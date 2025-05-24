@@ -4,6 +4,7 @@
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { isSameDay, subDays, formatISO } from 'date-fns';
 
 export const logHydration = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -27,36 +28,46 @@ export const logHydration = functions.https.onCall(async (data, context) => {
 
     const userDocRef = db.collection('users').doc(userId);
     
-    // Update streak in a transaction to ensure atomicity
     await db.runTransaction(async (transaction) => {
       const userDoc = await transaction.get(userDocRef);
       
       if (!userDoc.exists) {
-        // Optionally create a basic user profile if it doesn't exist,
-        // though typically it should exist if the user is authenticated.
-        // For this function, we'll assume it exists or is handled by client sign-up.
-        console.warn(`User document for ${userId} not found during streak update.`);
-        return; // Or throw an error if profile is strictly required
+        // This case should ideally be handled by client-side profile creation on signup.
+        // For robustness, we could create a minimal profile here or throw.
+        // For now, assuming profile exists or logging continues without streak update for new users if doc is missing.
+        console.warn(`User document for ${userId} not found during streak update. Creating one.`);
+        const today = formatISO(new Date(), { representation: 'date' });
+        transaction.set(userDocRef, {
+            uid: userId,
+            email: context.auth.token.email || null, // From decoded token
+            name: context.auth.token.name || 'User',
+            hydrationGoal: 2000,
+            dailyStreak: 1,
+            longestStreak: 1,
+            lastLogDate: today,
+            reminderTimes: { '08:00': false, '12:00': true, '16:00': false },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return;
       }
 
-      const userData = userDoc.data() as any; // Define UserProfile type if shared with functions
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const userData = userDoc.data() as any; // Consider defining a UserProfile type shared with functions
+      const today = formatISO(new Date(), { representation: 'date' }); // YYYY-MM-DD
+      const lastLogDateStr = userData.lastLogDate; // Should be YYYY-MM-DD string
 
       let dailyStreak = userData.dailyStreak || 0;
       let longestStreak = userData.longestStreak || 0;
-      const lastLogDate = userData.lastLogDate;
 
-      if (lastLogDate !== today) { // Only update streak if it's a new day or first log
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
+      if (lastLogDateStr !== today) { // Only update streak if it's a new day or first log
+        const yesterday = formatISO(subDays(new Date(), 1), { representation: 'date' });
 
-        if (lastLogDate === yesterdayStr) {
+        if (lastLogDateStr === yesterday) {
           dailyStreak += 1;
         } else {
           dailyStreak = 1; // Reset streak if last log wasn't yesterday or today
         }
       }
+      // If lastLogDateStr is today, streak already accounted for or it's the first log of the day for an ongoing streak.
       
       if (dailyStreak > longestStreak) {
         longestStreak = dailyStreak;
@@ -66,12 +77,14 @@ export const logHydration = functions.https.onCall(async (data, context) => {
         lastLogDate: today,
         dailyStreak,
         longestStreak,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
       });
     });
 
     return { success: true, logId: logRef.id, message: `${amount}ml logged successfully.` };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error logging hydration for user', userId, ':', error);
-    throw new functions.https.HttpsError('internal', 'Failed to log hydration.');
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError('internal', 'Failed to log hydration.', error.message);
   }
 });

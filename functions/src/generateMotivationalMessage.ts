@@ -5,10 +5,12 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel } from '@google/generative-ai';
+import { subDays, format } from 'date-fns';
 
 let genAI: GoogleGenerativeAI | null = null;
 let model: GenerativeModel | null = null;
 
+// Initialize Gemini AI client
 function initializeGenAI() {
   if (!genAI) {
     const API_KEY = functions.config().gemini?.apikey;
@@ -28,7 +30,7 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
   const userId = context.auth.uid;
   const db = admin.firestore();
 
-  initializeGenAI(); // Initialize on first call or if not already initialized
+  initializeGenAI();
   if (!model) {
      throw new functions.https.HttpsError('internal', 'AI model not initialized.');
   }
@@ -40,45 +42,46 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
     }
     const userData = userDoc.data() as any; // Define UserProfile type if shared
     const hydrationGoal = userData.hydrationGoal || 2000; // Default if not set
+    const userName = userData.name || 'there';
 
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2); // Logs from the past 48 hours
+    const twoDaysAgo = subDays(new Date(), 2); // Logs from the past 48 hours
     const logsSnapshot = await db.collection('hydration_logs')
       .where('userId', '==', userId)
       .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(twoDaysAgo))
       .orderBy('timestamp', 'desc')
-      .limit(20) // Limit recent logs to keep prompt concise
+      .limit(10) // Limit recent logs to keep prompt concise
       .get();
     
-    const hydrationLogs = logsSnapshot.docs.map(doc => {
+    const hydrationLogsFormatted = logsSnapshot.docs.map(doc => {
       const d = doc.data();
       return { 
         amount: d.amount, 
-        timestamp: (d.timestamp as admin.firestore.Timestamp).toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        timestamp: format((d.timestamp as admin.firestore.Timestamp).toDate(), "MMM d, h:mm a")
       };
     });
 
-    const logSummary = hydrationLogs.length > 0 
-      ? `Recent logs: ${hydrationLogs.map(l => `${l.amount}ml at ${l.timestamp}`).join(', ')}.`
-      : "No recent hydration logs found.";
+    const logSummary = hydrationLogsFormatted.length > 0 
+      ? `Recent logs: ${hydrationLogsFormatted.map(l => `${l.amount}ml at ${l.timestamp}`).join('; ')}.`
+      : "No recent hydration logs found in the last 48 hours.";
 
     const prompt = `
-      You are a friendly and supportive hydration coach.
-      User ID: ${userId}
-      User's daily hydration goal: ${hydrationGoal}ml.
+      You are a friendly and supportive hydration coach named HydroHelper.
+      The user's name is ${userName}.
+      Their daily hydration goal is ${hydrationGoal}ml.
       ${logSummary}
       
       Based on this information, write a short, kind, and encouraging SMS message (max 160 characters) 
-      to motivate the user about their hydration. Be positive and avoid shaming. 
-      If they have logs, acknowledge their effort. If not, gently encourage them to log.
-      Make the message feel personal and helpful.
+      to motivate the user about their hydration. Be positive and avoid shaming.
+      If they have logs, acknowledge their effort. If not, gently encourage them to log their intake.
+      Make the message feel personal, empathetic, and helpful. Address them by their name.
+      End with a water-related emoji.
     `;
 
     const generationConfig = {
-      temperature: 0.8, // Slightly creative but not too wild
+      temperature: 0.7, 
       topK: 1,
-      topP: 0.95,
-      maxOutputTokens: 80, // Max chars for SMS is around 160, this gives buffer
+      topP: 1,
+      maxOutputTokens: 80, 
     };
     const safetySettings = [
       { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -94,25 +97,22 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
     });
 
     const response = result.response;
-    if (!response || !response.candidates || response.candidates.length === 0) {
-      console.error('Gemini API returned no candidates. Response:', JSON.stringify(response, null, 2));
+    if (!response || !response.candidates || response.candidates.length === 0 || !response.text()) {
+      console.error('Gemini API returned no valid candidates or text. Response:', JSON.stringify(response, null, 2));
       throw new functions.https.HttpsError('internal', 'AI service did not return a valid response.');
     }
     
-    const messageText = response.text();
-    if (!messageText) {
-       console.error('Gemini API returned empty text. Response:', JSON.stringify(response, null, 2));
-       throw new functions.https.HttpsError('internal', 'AI service returned an empty message.');
-    }
+    const messageText = response.text().trim();
     
-    return { message: messageText.trim() };
+    return { message: messageText };
 
   } catch (error: any) {
     console.error('Error generating motivational message for user', userId, ':', error);
-    if (error.response && error.response.promptFeedback) {
+    if (error.response?.promptFeedback?.blockReason) {
       console.error('Gemini Prompt Feedback:', JSON.stringify(error.response.promptFeedback, null, 2));
-       throw new functions.https.HttpsError('internal', `AI service failed due to content policy: ${error.response.promptFeedback.blockReason}`);
+       throw new functions.https.HttpsError('internal', `AI service failed due to content policy: ${error.response.promptFeedback.blockReasonMessage || error.response.promptFeedback.blockReason}`);
     }
-    throw new functions.https.HttpsError('internal', 'Failed to generate motivational message.');
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError('internal', 'Failed to generate motivational message.', error.message);
   }
 });

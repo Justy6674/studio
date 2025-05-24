@@ -1,15 +1,15 @@
 /**
  * @fileOverview Firebase Function to update user settings such as
- * daily hydration goal, reminder times, and phone number.
+ * daily hydration goal, reminder times, phone number, and name.
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
 interface UserSettingsInput {
+  name?: string;
   hydrationGoal?: number;
-  reminderTimes?: { [key: string]: boolean }; // e.g., { '08:00': true, '12:00': false }
-  phoneNumber?: string;
-  name?: string; // Allow updating name as well
+  reminderTimes?: { [key: string]: boolean }; // e.g., { '08:00': true, '12:00': false, '16:00': false }
+  phoneNumber?: string | null; // Allow null to clear phone number
 }
 
 export const updateUserSettings = functions.https.onCall(async (data: UserSettingsInput, context) => {
@@ -17,10 +17,16 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
   const userId = context.auth.uid;
-  const { hydrationGoal, reminderTimes, phoneNumber, name } = data;
+  const { name, hydrationGoal, reminderTimes, phoneNumber } = data;
   const db = admin.firestore();
 
-  const settingsToUpdate: Partial<UserSettingsInput> & { lastUpdated?: admin.firestore.FieldValue } = {};
+  const settingsToUpdate: Partial<UserSettingsInput & { lastUpdated?: admin.firestore.FieldValue }> = {};
+
+  if (typeof name === 'string') {
+    settingsToUpdate.name = name.trim();
+  } else if (name !== undefined) {
+     throw new functions.https.HttpsError('invalid-argument', 'Name must be a string.');
+  }
 
   if (typeof hydrationGoal === 'number' && hydrationGoal > 0) {
     settingsToUpdate.hydrationGoal = hydrationGoal;
@@ -29,26 +35,37 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
   }
 
   if (reminderTimes !== undefined) {
-    // Basic validation for reminderTimes structure could be added here
-    // e.g., check if keys are valid time strings and values are booleans
-    settingsToUpdate.reminderTimes = reminderTimes;
+    if (typeof reminderTimes === 'object' && reminderTimes !== null) {
+      // Basic validation for reminderTimes structure
+      const validTimes = ['08:00', '12:00', '16:00'];
+      for (const timeKey in reminderTimes) {
+        if (!validTimes.includes(timeKey) || typeof reminderTimes[timeKey] !== 'boolean') {
+          throw new functions.https.HttpsError('invalid-argument', `Invalid reminderTimes format. Key ${timeKey} or its value is invalid.`);
+        }
+      }
+      settingsToUpdate.reminderTimes = reminderTimes;
+    } else {
+        throw new functions.https.HttpsError('invalid-argument', 'reminderTimes must be an object.');
+    }
   }
   
-  if (phoneNumber !== undefined) {
-    // Basic phone number validation could be added (e.g., format)
-    // For simplicity, we're accepting it as is. Ensure E.164 format for Twilio.
-    settingsToUpdate.phoneNumber = phoneNumber === "" ? null : phoneNumber; // Store empty string as null or handle
-  }
-
-  if (typeof name === 'string') {
-    settingsToUpdate.name = name;
+  if (phoneNumber !== undefined) { // phoneNumber can be an empty string to clear it, or null
+    if (phoneNumber === null || phoneNumber === "" ) {
+        settingsToUpdate.phoneNumber = null;
+    } else if (typeof phoneNumber === 'string') {
+        // Basic E.164-like validation (very simple). Robust validation should be on client or use a library.
+        if (!/^\+?[1-9]\d{1,14}$/.test(phoneNumber)) {
+             throw new functions.https.HttpsError('invalid-argument', 'Phone number format is invalid. Expected E.164-like format e.g. +12345678900.');
+        }
+        settingsToUpdate.phoneNumber = phoneNumber;
+    } else {
+        throw new functions.https.HttpsError('invalid-argument', 'Phone number must be a string or null.');
+    }
   }
 
 
   if (Object.keys(settingsToUpdate).length === 0) {
-    // If only undefined or invalid values were passed, nothing to update.
     return { success: true, message: 'No valid settings provided to update.' };
-    // throw new functions.https.HttpsError('invalid-argument', 'No valid settings provided to update.');
   }
   
   settingsToUpdate.lastUpdated = admin.firestore.FieldValue.serverTimestamp();
@@ -56,8 +73,9 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
   try {
     await db.collection('users').doc(userId).set(settingsToUpdate, { merge: true });
     return { success: true, message: 'User settings updated successfully.' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating user settings for user', userId, ':', error);
-    throw new functions.https.HttpsError('internal', 'Failed to update user settings.');
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError('internal', 'Failed to update user settings.', error.message);
   }
 });

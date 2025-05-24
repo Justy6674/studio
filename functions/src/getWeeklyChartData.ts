@@ -14,14 +14,14 @@ export const getWeeklyChartData = functions.https.onCall(async (data, context) =
   const db = admin.firestore();
 
   try {
-    const today = startOfDay(new Date());
-    const sevenDaysAgoDate = startOfDay(subDays(today, 6)); // -6 for 7 days inclusive of today
+    const today = startOfDay(new Date()); // Current date, time set to 00:00:00
+    const sevenDaysAgoDate = startOfDay(subDays(today, 6)); // 7 days ago, including today
 
     const logsSnapshot = await db.collection('hydration_logs')
       .where('userId', '==', userId)
       .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(sevenDaysAgoDate))
-      .where('timestamp', '<=', admin.firestore.Timestamp.fromDate(endOfDay(today))) // Ensure we cover all of today
-      .orderBy('timestamp', 'asc') // Ascending for easier processing if needed, though aggregation handles it
+      .where('timestamp', '<=', admin.firestore.Timestamp.fromDate(endOfDay(today))) 
+      .orderBy('timestamp', 'asc')
       .get();
 
     const logs: Array<{ amount: number; timestamp: Date }> = logsSnapshot.docs.map(doc => {
@@ -34,19 +34,19 @@ export const getWeeklyChartData = functions.https.onCall(async (data, context) =
 
     const dateInterval = eachDayOfInterval({ start: sevenDaysAgoDate, end: today });
     
-    const weeklyChartData = dateInterval.map(day => {
-      const logsForDay = logs.filter(log => isSameDay(log.timestamp, day));
+    const weeklyChartData = dateInterval.map(dayInInterval => {
+      const logsForDay = logs.filter(log => isSameDay(log.timestamp, dayInInterval));
       const totalAmount = logsForDay.reduce((sum, log) => sum + log.amount, 0);
       return {
-        date: format(day, 'yyyy-MM-dd'), // Consistent date format (e.g., "2023-10-27")
-        // dateLabel: format(day, 'MMM d'), // e.g., "Oct 27" - client can format this
+        date: format(dayInInterval, 'yyyy-MM-dd'), // Consistent date format (e.g., "2023-10-27")
         totalAmount,
       };
     });
 
     return { weeklyChartData };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching weekly chart data for user', userId, ':', error);
-    throw new functions.https.HttpsError('internal', 'Failed to fetch weekly chart data.');
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError('internal', 'Failed to fetch weekly chart data.', error.message);
   }
 });
