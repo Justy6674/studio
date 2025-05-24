@@ -22,16 +22,20 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
 
   const settingsToUpdate: Partial<UserSettingsInput & { lastUpdated?: admin.firestore.FieldValue }> = {};
 
-  if (typeof name === 'string') {
-    settingsToUpdate.name = name.trim();
-  } else if (name !== undefined) {
+  if (name !== undefined) {
+    if (typeof name === 'string') {
+      settingsToUpdate.name = name.trim();
+    } else {
      throw new functions.https.HttpsError('invalid-argument', 'Name must be a string.');
+    }
   }
 
-  if (typeof hydrationGoal === 'number' && hydrationGoal > 0) {
-    settingsToUpdate.hydrationGoal = hydrationGoal;
-  } else if (hydrationGoal !== undefined) {
-    throw new functions.https.HttpsError('invalid-argument', 'Hydration goal must be a positive number.');
+  if (hydrationGoal !== undefined) {
+    if (typeof hydrationGoal === 'number' && hydrationGoal > 0) {
+      settingsToUpdate.hydrationGoal = hydrationGoal;
+    } else {
+      throw new functions.https.HttpsError('invalid-argument', 'Hydration goal must be a positive number.');
+    }
   }
 
   if (reminderTimes !== undefined) {
@@ -54,8 +58,9 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
         settingsToUpdate.phoneNumber = null; // Clear phone number
     } else if (typeof phoneNumber === 'string') {
         // Basic E.164-like validation. Robust validation should ideally be on client or use a library.
-        if (!/^\+?[1-9]\d{1,14}$/.test(phoneNumber)) {
-             throw new functions.https.HttpsError('invalid-argument', 'Phone number format is invalid. Expected E.164-like format e.g. +12345678900.');
+        // Ensure it starts with '+'
+        if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+             throw new functions.https.HttpsError('invalid-argument', 'Phone number format is invalid. Expected E.164 format e.g. +12345678900.');
         }
         settingsToUpdate.phoneNumber = phoneNumber;
     } else {
@@ -64,6 +69,7 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
   }
 
   if (Object.keys(settingsToUpdate).length === 0) {
+    // Consider returning a specific message or allowing this call if no error found
     return { success: true, message: 'No valid settings provided to update.' };
   }
   

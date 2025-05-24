@@ -4,7 +4,13 @@
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { formatISO, subDays, startOfDay, isSameDay } from 'date-fns';
+import { formatISO, subDays, startOfDay } from 'date-fns';
+
+interface UserProfileData {
+  dailyStreak?: number;
+  longestStreak?: number;
+  lastLogDate?: string; // YYYY-MM-DD
+}
 
 export const getStreaks = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -18,8 +24,6 @@ export const getStreaks = functions.https.onCall(async (data, context) => {
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
-      // This might happen if a user is authenticated but their Firestore document hasn't been created yet.
-      // Or if called before user profile creation is complete.
       console.warn(`User profile for ${userId} not found. Returning default streak data.`);
       return {
         dailyStreak: 0,
@@ -29,24 +33,23 @@ export const getStreaks = functions.https.onCall(async (data, context) => {
       };
     }
     
-    const userData = userDoc.data() as any; // Define UserProfile type if shared
+    const userData = userDoc.data() as UserProfileData;
 
     let dailyStreak = userData.dailyStreak || 0;
-    const lastLogDateStr = userData.lastLogDate; // Should be YYYY-MM-DD string from formatISO(startOfDay(date))
+    const lastLogDateStr = userData.lastLogDate; // Should be YYYY-MM-DD string
 
     if (lastLogDateStr) {
-        const today = formatISO(startOfDay(new Date()), { representation: 'date' });
-        const yesterday = formatISO(subDays(startOfDay(new Date()), 1), { representation: 'date' });
+        const todayDate = startOfDay(new Date());
+        const today = formatISO(todayDate, { representation: 'date' });
+        const yesterdayDate = subDays(todayDate, 1);
+        const yesterday = formatISO(yesterdayDate, { representation: 'date' });
 
         // If the last log date is not today and not yesterday, the streak is broken.
-        // This check ensures that if a user misses a day, their streak is reset when this function is called.
-        // The logHydration function also handles streak updates, but this provides a safety net.
         if (lastLogDateStr !== today && lastLogDateStr !== yesterday) {
             dailyStreak = 0;
-            // Optionally, update Firestore here if streak is broken and hasn't been reset by logHydration.
-            // This can make getStreaks more robust if logHydration had an issue or was missed.
-            // await userDocRef.update({ dailyStreak: 0, lastUpdated: admin.firestore.FieldValue.serverTimestamp() });
-            // For now, just returning the calculated 0. logHydration is the primary mutator.
+            // Note: This function primarily reads. Streak resets are mainly handled by logHydration.
+            // If strictness is required here, an update could be performed, but it's often better
+            // for the action (logging) to be the source of truth for mutations.
         }
     } else {
         // No log date means no streak
@@ -56,7 +59,7 @@ export const getStreaks = functions.https.onCall(async (data, context) => {
     return {
       dailyStreak: dailyStreak,
       longestStreak: userData.longestStreak || 0,
-      lastLogDate: userData.lastLogDate || null, // lastLogDate is a YYYY-MM-DD string
+      lastLogDate: userData.lastLogDate || null, 
     };
   } catch (error: any) {
     console.error('Error fetching streak data for user', userId, ':', error);

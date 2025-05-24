@@ -15,9 +15,7 @@ function initializeTwilioClient() {
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
       console.error('Twilio credentials (SID or Auth Token) not configured. Set with `firebase functions:config:set twilio.sid="YOUR_SID" twilio.authtoken="YOUR_TOKEN"`');
-      // Not throwing here allows function to be called, but it will fail if Twilio is used.
-      // The call to twilioClient.messages.create will fail if twilioClient is null.
-      return;
+      return; // Client remains null, will be checked before use
     }
     twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   }
@@ -25,18 +23,22 @@ function initializeTwilioClient() {
 
 interface SendReminderInput {
   userId?: string; // Optional: if called by admin/cron for a specific user
-  message?: string; // Optional: if not provided, a generic or AI-generated message could be used
+  message?: string; // Optional: custom message
+}
+
+interface UserProfileData {
+  phoneNumber?: string | null;
+  name?: string;
 }
 
 export const sendHydrationReminder = functions.https.onCall(async (data: SendReminderInput, context) => {
-  initializeTwilioClient(); // Initialize client, will only run once per instance
+  initializeTwilioClient(); 
   
   const { userId: specifiedUserId, message: customMessage } = data;
 
-  // Determine target user ID
   let targetUserId: string | undefined = specifiedUserId;
   if (!targetUserId && context.auth) {
-    targetUserId = context.auth.uid; // If called by an authenticated user for themselves
+    targetUserId = context.auth.uid; 
   }
 
   if (!targetUserId) {
@@ -46,11 +48,11 @@ export const sendHydrationReminder = functions.https.onCall(async (data: SendRem
   const TWILIO_PHONE_NUMBER = functions.config().twilio?.phonenumber;
   if (!TWILIO_PHONE_NUMBER) {
     console.error('Twilio phone number not configured. Set with `firebase functions:config:set twilio.phonenumber="YOUR_TWILIO_NUMBER"`');
-    throw new functions.https.HttpsError('internal', 'SMS service (sender phone number) not configured.');
+    throw new functions.https.HttpsError('failed-precondition', 'SMS service (sender phone number) not configured.');
   }
 
-  if (!twilioClient) { // Check if client initialized successfully
-    throw new functions.https.HttpsError('internal', 'SMS service (Twilio client) not initialized, likely due to missing credentials.');
+  if (!twilioClient) { 
+    throw new functions.https.HttpsError('failed-precondition', 'SMS service (Twilio client) not initialized, likely due to missing credentials.');
   }
   
   const db = admin.firestore();
@@ -61,12 +63,11 @@ export const sendHydrationReminder = functions.https.onCall(async (data: SendRem
       throw new functions.https.HttpsError('not-found', `User profile for ${targetUserId} not found.`);
     }
     
-    const userData = userDoc.data() as any; // Define UserProfile type if shared
+    const userData = userDoc.data() as UserProfileData;
     const toPhoneNumber = userData.phoneNumber;
     const userName = userData.name || 'there';
 
     if (!toPhoneNumber) {
-      // This is not an error from the function's perspective, just a condition where SMS cannot be sent.
       console.log(`User ${targetUserId} does not have a phone number configured for SMS reminders.`);
       return { success: false, message: 'User phone number not configured.' };
     }
@@ -79,12 +80,8 @@ export const sendHydrationReminder = functions.https.onCall(async (data: SendRem
     
     let messageToSend = customMessage;
     if (!messageToSend) {
-      // If no custom message, use a generic one or potentially call generateMotivationalMessage.
-      // For simplicity here, using a generic message.
-      // Note: Calling another Firebase Function (like generateMotivationalMessage) from here
-      // requires careful consideration of authentication and potential circular dependencies or increased billing.
-      // It's often better to have a direct way to generate the message content if needed.
-      messageToSend = `Hi ${userName}! Just a friendly reminder to stay hydrated today. Keep up the great work! 💧 - Water4WeightLoss`;
+      // For a simple default message. Could also call generateMotivationalMessage here if complex logic is needed.
+      messageToSend = `Hi ${userName}! Just a friendly reminder from Water4WeightLoss to stay hydrated today. Keep up the great work! 💧`;
     }
 
     const twilioResponse = await twilioClient.messages.create({
@@ -98,12 +95,10 @@ export const sendHydrationReminder = functions.https.onCall(async (data: SendRem
 
   } catch (error: any) {
     console.error(`Error sending SMS reminder to user ${targetUserId}:`, error);
-    // Check if it's a Twilio API error (they often have code and message)
-    if (error.code && error.message && typeof error.code === 'number') { // Twilio errors
+    if (error.code && error.message && typeof error.code === 'number') { // Twilio errors often have code and message
         throw new functions.https.HttpsError('internal', `Twilio error: ${error.message} (Code: ${error.code})`);
     }
-    if (error instanceof functions.https.HttpsError) throw error; // Re-throw HttpsError
-    // For other errors
+    if (error instanceof functions.https.HttpsError) throw error; 
     throw new functions.https.HttpsError('internal', 'Failed to send SMS reminder.', error.message);
   }
 });

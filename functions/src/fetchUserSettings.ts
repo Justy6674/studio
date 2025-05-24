@@ -4,8 +4,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
-// Define a more specific type for what settings are returned, if desired
-// For now, it returns a subset of what might be in the UserProfile
+// Define a more specific type for what settings are returned
 interface UserSettingsOutput {
   name?: string;
   hydrationGoal?: number;
@@ -27,21 +26,34 @@ export const fetchUserSettings = functions.https.onCall(async (data, context) =>
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'User profile not found.');
+      // It's possible a user is authenticated but their profile doesn't exist yet.
+      // Create a default profile or return default settings.
+      console.warn(`User profile for ${userId} not found. Returning default settings or an indication.`);
+      // Depending on requirements, you might return default settings or an error
+      // For now, returning an object indicating user not fully set up, or default values
+      const defaultSettings: UserSettingsOutput = {
+        name: context.auth.token.name || context.auth.token.email?.split('@')[0] || 'User',
+        hydrationGoal: 2000, // Default
+        phoneNumber: null,
+        reminderTimes: { '08:00': false, '12:00': true, '16:00': false }, // Default
+        email: context.auth.token.email || null,
+      };
+      return { settings: defaultSettings, profileExists: false };
+      // Alternatively:
+      // throw new functions.https.HttpsError('not-found', 'User profile not found. Please complete setup.');
     }
     
-    const userData = userDoc.data() as any; // Use a defined type if available
+    const userData = userDoc.data();
 
-    // Construct the settings object to return, cherry-picking fields
     const settings: UserSettingsOutput = {
-      name: userData.name,
-      hydrationGoal: userData.hydrationGoal,
-      phoneNumber: userData.phoneNumber,
-      reminderTimes: userData.reminderTimes,
-      email: userData.email, // Or context.auth.token.email
+      name: userData?.name,
+      hydrationGoal: userData?.hydrationGoal,
+      phoneNumber: userData?.phoneNumber,
+      reminderTimes: userData?.reminderTimes,
+      email: userData?.email || context.auth.token.email,
     };
 
-    return { settings };
+    return { settings, profileExists: true };
   } catch (error: any) {
     console.error('Error fetching user settings for user', userId, ':', error);
     if (error instanceof functions.https.HttpsError) throw error;

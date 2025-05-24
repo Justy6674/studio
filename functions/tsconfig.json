@@ -6,7 +6,7 @@
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "es2020",
+    "target": "es2022", // Targeting a version compatible with Node.js 22
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,

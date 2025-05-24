@@ -4,11 +4,21 @@
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { formatISO, subDays, startOfDay, isSameDay } from 'date-fns';
+import { formatISO, subDays, startOfDay } from 'date-fns';
 
 interface LogHydrationData {
   amount: number;
-  timestamp?: string | admin.firestore.Timestamp; // Optional: client can send ISO string or allow server to set
+  timestamp?: string; // Optional: client can send ISO string
+}
+
+interface UserProfileData {
+  dailyStreak?: number;
+  longestStreak?: number;
+  lastLogDate?: string; // YYYY-MM-DD
+  name?: string;
+  email?: string | null;
+  hydrationGoal?: number;
+  reminderTimes?: { [key: string]: boolean };
 }
 
 export const logHydration = functions.https.onCall(async (data: LogHydrationData, context) => {
@@ -25,24 +35,20 @@ export const logHydration = functions.https.onCall(async (data: LogHydrationData
   const db = admin.firestore();
 
   try {
-    let logTimestamp: admin.firestore.Timestamp | admin.firestore.FieldValue = admin.firestore.FieldValue.serverTimestamp();
+    let logTimestampValue: admin.firestore.Timestamp | admin.firestore.FieldValue = admin.firestore.FieldValue.serverTimestamp();
     if (clientTimestamp) {
-      if (typeof clientTimestamp === 'string') {
-        const parsedDate = new Date(clientTimestamp);
-        if (!isNaN(parsedDate.getTime())) {
-          logTimestamp = admin.firestore.Timestamp.fromDate(parsedDate);
-        } else {
-          console.warn(`Invalid client timestamp string received: ${clientTimestamp}. Falling back to server timestamp.`);
-        }
-      } else if (clientTimestamp instanceof admin.firestore.Timestamp) {
-        logTimestamp = clientTimestamp;
+      const parsedDate = new Date(clientTimestamp);
+      if (!isNaN(parsedDate.getTime())) {
+        logTimestampValue = admin.firestore.Timestamp.fromDate(parsedDate);
+      } else {
+        console.warn(`Invalid client timestamp string received: ${clientTimestamp}. Falling back to server timestamp.`);
       }
     }
     
     const logRef = await db.collection('hydration_logs').add({
       userId,
       amount,
-      timestamp: logTimestamp,
+      timestamp: logTimestampValue,
     });
 
     // Update streak data
@@ -55,15 +61,16 @@ export const logHydration = functions.https.onCall(async (data: LogHydrationData
       let longestStreak = 0;
       let lastLogDateStr: string | null = null;
 
-      const today = formatISO(startOfDay(new Date()), { representation: 'date' }); // YYYY-MM-DD
+      // Ensure date comparison is done with start of day for consistency
+      const todayDate = startOfDay(new Date());
+      const today = formatISO(todayDate, { representation: 'date' }); // YYYY-MM-DD
 
       if (!userDoc.exists) {
-        // If user profile doesn't exist, create a basic one
         console.warn(`User document for ${userId} not found during streak update. Creating one.`);
         dailyStreak = 1;
         longestStreak = 1;
         lastLogDateStr = today;
-        transaction.set(userDocRef, {
+        const newUserProfile: UserProfileData & { uid: string; createdAt: admin.firestore.FieldValue } = {
             uid: userId,
             email: context.auth.token.email || null,
             name: context.auth.token.name || 'User',
@@ -73,22 +80,26 @@ export const logHydration = functions.https.onCall(async (data: LogHydrationData
             lastLogDate: lastLogDateStr,
             reminderTimes: { '08:00': false, '12:00': true, '16:00': false }, // Default reminders
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        };
+        transaction.set(userDocRef, newUserProfile);
       } else {
-        const userData = userDoc.data() as any; // Define UserProfile type if shared across client/server
+        const userData = userDoc.data() as UserProfileData;
         dailyStreak = userData.dailyStreak || 0;
         longestStreak = userData.longestStreak || 0;
-        lastLogDateStr = userData.lastLogDate; // Should be YYYY-MM-DD string
+        lastLogDateStr = userData.lastLogDate || null;
 
         if (lastLogDateStr !== today) { // Only update streak if it's a log for a new day
-          const yesterday = formatISO(subDays(startOfDay(new Date()), 1), { representation: 'date' });
+          const yesterdayDate = subDays(todayDate, 1);
+          const yesterday = formatISO(yesterdayDate, { representation: 'date' });
           if (lastLogDateStr === yesterday) {
             dailyStreak += 1;
           } else {
-            dailyStreak = 1; // Reset streak if last log wasn't yesterday
+            // Streak broken if last log wasn't today or yesterday
+            dailyStreak = 1;
           }
         }
         // If lastLogDateStr IS today, streak is already accounted for or it's the first log of the day continuing a streak from yesterday.
+        // No action needed on dailyStreak if it's a subsequent log on the same day.
       }
       
       if (dailyStreak > longestStreak) {

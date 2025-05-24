@@ -15,13 +15,17 @@ function initializeGenAI() {
   if (!genAI) {
     const API_KEY = functions.config().gemini?.apikey;
     if (!API_KEY) {
-      console.error('Gemini API key not configured. Set with `firebase functions:config:set gemini.apikey="YOUR_KEY"`');
+      console.error('Gemini API key not configured. Set with `firebase functions:config:set gemini.apikey=\"YOUR_KEY\"`');
       throw new functions.https.HttpsError('internal', 'AI service not configured. API key missing.');
     }
     genAI = new GoogleGenerativeAI(API_KEY);
-    // Specify the model; ensure it's one available for your key and project
     model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
   }
+}
+
+interface UserProfileData {
+  hydrationGoal?: number;
+  name?: string;
 }
 
 export const generateMotivationalMessage = functions.https.onCall(async (data, context) => {
@@ -31,9 +35,9 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
   const userId = context.auth.uid;
   const db = admin.firestore();
 
-  initializeGenAI(); // Initialize client, will only run once
-  if (!model) {
-     throw new functions.https.HttpsError('internal', 'AI model not initialized. Check API key configuration.');
+  initializeGenAI(); 
+  if (!model) { // Check if model was successfully initialized
+     throw new functions.https.HttpsError('failed-precondition', 'AI model not initialized. Check API key configuration.');
   }
 
   try {
@@ -41,7 +45,7 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
     if (!userDoc.exists) {
       throw new functions.https.HttpsError('not-found', 'User profile not found.');
     }
-    const userData = userDoc.data() as any; // Define UserProfile type if shared
+    const userData = userDoc.data() as UserProfileData;
     const hydrationGoal = userData.hydrationGoal || 2000; // Default if not set
     const userName = userData.name || 'there';
 
@@ -58,7 +62,6 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
       const d = doc.data();
       return { 
         amount: d.amount, 
-        // Format timestamp for better readability in the prompt
         timestamp: format((d.timestamp as admin.firestore.Timestamp).toDate(), "MMM d, h:mm a")
       };
     });
@@ -68,7 +71,7 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
       : "They have no recent hydration logs in the last 48 hours.";
 
     const prompt = `
-      You are a friendly and supportive hydration coach named HydroHelper.
+      You are a friendly and supportive hydration coach named HydroHelper for the app Water4WeightLoss.
       The user's name is ${userName}.
       Their daily hydration goal is ${hydrationGoal}ml.
       ${logSummary}
@@ -84,7 +87,7 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
       temperature: 0.7, 
       topK: 1,
       topP: 1,
-      maxOutputTokens: 80, // Max tokens for a short SMS-like message
+      maxOutputTokens: 80, 
     };
     const safetySettings = [
       { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -99,24 +102,23 @@ export const generateMotivationalMessage = functions.https.onCall(async (data, c
       safetySettings,
     });
 
-    // Access the response text correctly
     const response = result.response;
-    if (!response || !response.candidates || response.candidates.length === 0 || !response.text()) {
-      console.error('Gemini API returned no valid candidates or text. Response:', JSON.stringify(response, null, 2));
-      throw new functions.https.HttpsError('internal', 'AI service did not return a valid response.');
+    const responseText = response.text(); // Call text() method
+
+    if (!responseText) {
+      console.error('Gemini API returned no valid text. Response:', JSON.stringify(response, null, 2));
+      // Check for blocking reasons
+      if (response.promptFeedback?.blockReason) {
+        throw new functions.https.HttpsError('internal', `AI service blocked the prompt: ${response.promptFeedback.blockReasonMessage || response.promptFeedback.blockReason}`);
+      }
+      throw new functions.https.HttpsError('internal', 'AI service did not return a valid response text.');
     }
     
-    const messageText = response.text().trim();
-    
+    const messageText = responseText.trim();
     return { message: messageText };
 
   } catch (error: any) {
     console.error('Error generating motivational message for user', userId, ':', error);
-    // Check for specific Gemini API error details if available
-    if (error.response?.promptFeedback?.blockReason) {
-      console.error('Gemini Prompt Feedback:', JSON.stringify(error.response.promptFeedback, null, 2));
-       throw new functions.https.HttpsError('internal', `AI service failed due to content policy: ${error.response.promptFeedback.blockReasonMessage || error.response.promptFeedback.blockReason}`);
-    }
     if (error instanceof functions.https.HttpsError) throw error;
     throw new functions.https.HttpsError('internal', 'Failed to generate motivational message.', error.message);
   }

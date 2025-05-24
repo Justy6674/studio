@@ -15,3 +15,11 @@ export { fetchUserSettings } from './fetchUserSettings';
 export { getStreaks } from './getStreaks';
 export { generateMotivationalMessage } from './generateMotivationalMessage';
 export { sendHydrationReminder } from './sendHydrationReminder';
+
+// Example for a scheduled (cron) function to send reminders, if needed later.
+// import * as functions from 'firebase-functions';
+// export const scheduledReminderSender = functions.pubsub.schedule('every day 08:00').timeZone('America/New_York').onRun(async (context) => {
+//   console.log('This will be run every day at 08:00 AM Eastern!');
+//   // Here you would query users who want reminders at this time and call sendHydrationReminder for each.
+//   return null;
+// });
