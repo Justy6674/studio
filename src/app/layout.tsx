@@ -5,8 +5,8 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'HydrateAI - Track Your Water, Boost Your Health',
-  description: 'Gamified water tracking with AI-powered motivation to help you reach your hydration goals.',
+  title: 'Water4WeightLoss - Hydrate & Achieve Your Goals',
+  description: 'Track your water intake, get AI motivation, and reach your weight loss and hydration goals with Water4WeightLoss.',
 };
 
 export default function RootLayout({

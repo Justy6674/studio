@@ -67,7 +67,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           createdAt: new Date().toISOString(),
         });
         await fetchUserProfile(user); // Fetch profile after sign up
-        toast({ title: "Account Created", description: "Welcome to HydrateAI!" });
+        toast({ title: "Account Created", description: "Welcome to Water4WeightLoss!" });
         router.push("/dashboard");
       }
     } catch (err: any) {
@@ -100,7 +100,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     <div className="w-full max-w-md space-y-6 rounded-xl bg-card p-8 shadow-2xl">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-primary">
-          {isLogin ? "Welcome Back to HydrateAI" : "Join HydrateAI"}
+          {isLogin ? "Welcome Back to Water4WeightLoss" : "Join Water4WeightLoss"}
         </h1>
         <p className="text-muted-foreground">
           {isLogin ? "Sign in to continue your hydration journey." : "Create an account to start tracking."}

@@ -22,7 +22,7 @@ export function Header() {
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <Link href="/dashboard" className="flex items-center space-x-2">
           <Droplet className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg sm:inline-block">HydrateAI</span>
+          <span className="font-bold text-lg sm:inline-block">Water4WeightLoss</span>
         </Link>
 
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
@@ -56,7 +56,7 @@ export function Header() {
               <SheetContent side="right" className="w-[280px] bg-background p-6">
                 <div className="mb-8 flex items-center space-x-2">
                   <Droplet className="h-6 w-6 text-primary" />
-                  <span className="font-bold text-lg">HydrateAI</span>
+                  <span className="font-bold text-lg">Water4WeightLoss</span>
                 </div>
                 <nav className="flex flex-col space-y-4">
                   {user && navLinks.map(link => (
