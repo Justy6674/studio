@@ -15,13 +15,14 @@ export const getWeeklyChartData = functions.https.onCall(async (data, context) =
 
   try {
     const today = startOfDay(new Date()); // Current date, time set to 00:00:00
-    const sevenDaysAgoDate = startOfDay(subDays(today, 6)); // 7 days ago, including today
+    const sevenDaysAgoDate = startOfDay(subDays(today, 6)); // 7 days ago, inclusive of today
 
+    // Fetch logs for the last 7 days
     const logsSnapshot = await db.collection('hydration_logs')
       .where('userId', '==', userId)
       .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(sevenDaysAgoDate))
-      .where('timestamp', '<=', admin.firestore.Timestamp.fromDate(endOfDay(today))) 
-      .orderBy('timestamp', 'asc')
+      .where('timestamp', '<=', admin.firestore.Timestamp.fromDate(endOfDay(today))) // Ensure we get all logs for today
+      .orderBy('timestamp', 'asc') // Order by timestamp to process chronologically
       .get();
 
     const logs: Array<{ amount: number; timestamp: Date }> = logsSnapshot.docs.map(doc => {
@@ -32,8 +33,10 @@ export const getWeeklyChartData = functions.https.onCall(async (data, context) =
       };
     });
 
+    // Generate all dates in the interval [sevenDaysAgo, today]
     const dateInterval = eachDayOfInterval({ start: sevenDaysAgoDate, end: today });
     
+    // Map each day in the interval to its total hydration amount
     const weeklyChartData = dateInterval.map(dayInInterval => {
       const logsForDay = logs.filter(log => isSameDay(log.timestamp, dayInInterval));
       const totalAmount = logsForDay.reduce((sum, log) => sum + log.amount, 0);

@@ -1,6 +1,6 @@
 /**
  * @fileOverview Firebase Function to update user settings such as
- * daily hydration goal, reminder times, phone number, and name.
+ * daily hydration goal, reminder times, and phone number.
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
@@ -37,7 +37,7 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
   if (reminderTimes !== undefined) {
     if (typeof reminderTimes === 'object' && reminderTimes !== null) {
       // Basic validation for reminderTimes structure
-      const validTimes = ['08:00', '12:00', '16:00'];
+      const validTimes = ['08:00', '12:00', '16:00']; // Example valid times
       for (const timeKey in reminderTimes) {
         if (!validTimes.includes(timeKey) || typeof reminderTimes[timeKey] !== 'boolean') {
           throw new functions.https.HttpsError('invalid-argument', `Invalid reminderTimes format. Key ${timeKey} or its value is invalid.`);
@@ -49,11 +49,11 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
     }
   }
   
-  if (phoneNumber !== undefined) { // phoneNumber can be an empty string to clear it, or null
+  if (phoneNumber !== undefined) {
     if (phoneNumber === null || phoneNumber === "" ) {
-        settingsToUpdate.phoneNumber = null;
+        settingsToUpdate.phoneNumber = null; // Clear phone number
     } else if (typeof phoneNumber === 'string') {
-        // Basic E.164-like validation (very simple). Robust validation should be on client or use a library.
+        // Basic E.164-like validation. Robust validation should ideally be on client or use a library.
         if (!/^\+?[1-9]\d{1,14}$/.test(phoneNumber)) {
              throw new functions.https.HttpsError('invalid-argument', 'Phone number format is invalid. Expected E.164-like format e.g. +12345678900.');
         }
@@ -62,7 +62,6 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
         throw new functions.https.HttpsError('invalid-argument', 'Phone number must be a string or null.');
     }
   }
-
 
   if (Object.keys(settingsToUpdate).length === 0) {
     return { success: true, message: 'No valid settings provided to update.' };
