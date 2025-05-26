@@ -1,0 +1,85 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fetchUserSettings = void 0;
+/**
+ * @fileOverview Firebase Function to fetch user settings.
+ */
+const functions = __importStar(require("firebase-functions"));
+const admin = __importStar(require("firebase-admin"));
+exports.fetchUserSettings = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    const userId = context.auth.uid;
+    const db = admin.firestore();
+    try {
+        const userDocRef = db.collection('users').doc(userId);
+        const userDoc = await userDocRef.get();
+        if (!userDoc.exists) {
+            // It's possible a user is authenticated but their profile doesn't exist yet.
+            // Create a default profile or return default settings.
+            console.warn(`User profile for ${userId} not found. Returning default settings or an indication.`);
+            // Depending on requirements, you might return default settings or an error
+            // For now, returning an object indicating user not fully set up, or default values
+            const defaultSettings = {
+                name: context.auth.token.name || context.auth.token.email?.split('@')[0] || 'User',
+                hydrationGoal: 2000, // Default
+                phoneNumber: null,
+                reminderTimes: { '08:00': false, '12:00': true, '16:00': false }, // Default
+                email: context.auth.token.email || null,
+            };
+            return { settings: defaultSettings, profileExists: false };
+            // Alternatively:
+            // throw new functions.https.HttpsError('not-found', 'User profile not found. Please complete setup.');
+        }
+        const userData = userDoc.data();
+        const settings = {
+            name: userData?.name,
+            hydrationGoal: userData?.hydrationGoal,
+            phoneNumber: userData?.phoneNumber,
+            reminderTimes: userData?.reminderTimes,
+            email: userData?.email || context.auth.token.email,
+        };
+        return { settings, profileExists: true };
+    }
+    catch (error) {
+        console.error('Error fetching user settings for user', userId, ':', error);
+        if (error instanceof functions.https.HttpsError)
+            throw error;
+        throw new functions.https.HttpsError('internal', 'Failed to fetch user settings.', error.message);
+    }
+});
+//# sourceMappingURL=fetchUserSettings.js.map

@@ -1,15 +1,18 @@
+
 /**
  * @fileOverview Firebase Function to update user settings such as
- * daily hydration goal, reminder times, and phone number.
+ * daily hydration goal, reminder times, phone number, and preferences.
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import type { UserSettings, UserPreferences, MotivationTone, availableTones } from '../../src/lib/types'; // Adjust path as needed
 
 interface UserSettingsInput {
   name?: string;
   hydrationGoal?: number;
-  reminderTimes?: { [key: string]: boolean }; // e.g., { '08:00': true, '12:00': false, '16:00': false }
-  phoneNumber?: string | null; // Allow null to clear phone number
+  reminderTimes?: { [key: string]: boolean };
+  phoneNumber?: string | null;
+  preferences?: UserPreferences;
 }
 
 export const updateUserSettings = functions.https.onCall(async (data: UserSettingsInput, context) => {
@@ -17,10 +20,10 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
   const userId = context.auth.uid;
-  const { name, hydrationGoal, reminderTimes, phoneNumber } = data;
+  const { name, hydrationGoal, reminderTimes, phoneNumber, preferences } = data;
   const db = admin.firestore();
 
-  const settingsToUpdate: Partial<UserSettingsInput & { lastUpdated?: admin.firestore.FieldValue }> = {};
+  const settingsToUpdate: Partial<UserSettings & { lastUpdated?: admin.firestore.FieldValue }> = {};
 
   if (name !== undefined) {
     if (typeof name === 'string') {
@@ -40,8 +43,7 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
 
   if (reminderTimes !== undefined) {
     if (typeof reminderTimes === 'object' && reminderTimes !== null) {
-      // Basic validation for reminderTimes structure
-      const validTimes = ['08:00', '12:00', '16:00']; // Example valid times
+      const validTimes = ['08:00', '12:00', '16:00'];
       for (const timeKey in reminderTimes) {
         if (!validTimes.includes(timeKey) || typeof reminderTimes[timeKey] !== 'boolean') {
           throw new functions.https.HttpsError('invalid-argument', `Invalid reminderTimes format. Key ${timeKey} or its value is invalid.`);
@@ -55,10 +57,8 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
   
   if (phoneNumber !== undefined) {
     if (phoneNumber === null || phoneNumber === "" ) {
-        settingsToUpdate.phoneNumber = null; // Clear phone number
+        settingsToUpdate.phoneNumber = null;
     } else if (typeof phoneNumber === 'string') {
-        // Basic E.164-like validation. Robust validation should ideally be on client or use a library.
-        // Ensure it starts with '+'
         if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
              throw new functions.https.HttpsError('invalid-argument', 'Phone number format is invalid. Expected E.164 format e.g. +12345678900.');
         }
@@ -68,8 +68,25 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
     }
   }
 
+  if (preferences !== undefined) {
+    if (typeof preferences === 'object' && preferences !== null) {
+      if (preferences.tone !== undefined) {
+        // Type assertion for availableTones if imported directly
+        const validTones: string[] = ["default", "funny", "crass", "rude", "sarcastic", "kind", "motivational", "clinical"];
+        if (typeof preferences.tone === 'string' && validTones.includes(preferences.tone)) {
+          // Ensure we are merging correctly if other preferences exist
+          settingsToUpdate.preferences = { ...settingsToUpdate.preferences, tone: preferences.tone as MotivationTone };
+        } else {
+          throw new functions.https.HttpsError('invalid-argument', `Invalid tone value: ${preferences.tone}.`);
+        }
+      }
+      // Add validation for other preferences if they exist
+    } else {
+      throw new functions.https.HttpsError('invalid-argument', 'Preferences must be an object.');
+    }
+  }
+
   if (Object.keys(settingsToUpdate).length === 0) {
-    // Consider returning a specific message or allowing this call if no error found
     return { success: true, message: 'No valid settings provided to update.' };
   }
   

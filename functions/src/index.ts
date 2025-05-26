@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Main entry point for Firebase Functions.
  * Initializes Firebase Admin SDK and exports all function handlers.
@@ -13,7 +14,9 @@ export { fetchHydrationLogs } from './fetchHydrationLogs';
 export { updateUserSettings } from './updateUserSettings';
 export { fetchUserSettings } from './fetchUserSettings';
 export { getStreaks } from './getStreaks';
+export { getWeeklyChartData } from './getWeeklyChartData'; // Added export
 export { generateMotivationalMessage } from './generateMotivationalMessage';
+export { getHydrationMotivation } from './getHydrationMotivation'; // Added export
 export { sendHydrationReminder } from './sendHydrationReminder';
 
 // Example for a scheduled (cron) function to send reminders, if needed later.

@@ -1,17 +1,18 @@
+
 /**
  * @fileOverview Firebase Function to fetch user settings.
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import type { UserPreferences, MotivationTone } from '../../src/lib/types'; // Adjust path as needed
 
-// Define a more specific type for what settings are returned
 interface UserSettingsOutput {
   name?: string;
   hydrationGoal?: number;
   phoneNumber?: string | null;
   reminderTimes?: { [key: string]: boolean };
   email?: string | null;
-  // Add other fields you want to expose as "settings"
+  preferences?: UserPreferences;
 }
 
 export const fetchUserSettings = functions.https.onCall(async (data, context) => {
@@ -26,21 +27,16 @@ export const fetchUserSettings = functions.https.onCall(async (data, context) =>
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
-      // It's possible a user is authenticated but their profile doesn't exist yet.
-      // Create a default profile or return default settings.
       console.warn(`User profile for ${userId} not found. Returning default settings or an indication.`);
-      // Depending on requirements, you might return default settings or an error
-      // For now, returning an object indicating user not fully set up, or default values
       const defaultSettings: UserSettingsOutput = {
         name: context.auth.token.name || context.auth.token.email?.split('@')[0] || 'User',
-        hydrationGoal: 2000, // Default
+        hydrationGoal: 2000,
         phoneNumber: null,
-        reminderTimes: { '08:00': false, '12:00': true, '16:00': false }, // Default
+        reminderTimes: { '08:00': false, '12:00': true, '16:00': false },
         email: context.auth.token.email || null,
+        preferences: { tone: 'default' as MotivationTone },
       };
       return { settings: defaultSettings, profileExists: false };
-      // Alternatively:
-      // throw new functions.https.HttpsError('not-found', 'User profile not found. Please complete setup.');
     }
     
     const userData = userDoc.data();
@@ -51,6 +47,7 @@ export const fetchUserSettings = functions.https.onCall(async (data, context) =>
       phoneNumber: userData?.phoneNumber,
       reminderTimes: userData?.reminderTimes,
       email: userData?.email || context.auth.token.email,
+      preferences: userData?.preferences || { tone: 'default' as MotivationTone },
     };
 
     return { settings, profileExists: true };

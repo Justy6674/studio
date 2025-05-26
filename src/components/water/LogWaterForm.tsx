@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type FormEvent } from "react";
@@ -5,18 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { logHydration } from "@/app/actions/hydration";
+// import { logHydration as logHydrationAction } from "@/app/actions/hydration"; // Using Firebase Function now
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, MinusCircle, GlassWater } from "lucide-react";
 
 const PRESET_AMOUNTS = [250, 500, 750, 1000]; // in ml
 
-export function LogWaterForm() {
-  const { user } = useAuth();
+interface LogWaterFormProps {
+  onLogSuccess?: () => void; // Optional callback
+}
+
+export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
+  const { user, fetchUserProfile } = useAuth(); // Added fetchUserProfile to update streak from AuthContext
   const [amount, setAmount] = useState<string>("250");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const firebaseFunctions = getFunctions();
 
   const handleSubmit = async (e?: FormEvent, presetAmount?: number) => {
     if (e) e.preventDefault();
@@ -32,14 +39,27 @@ export function LogWaterForm() {
     }
 
     setIsLoading(true);
-    const result = await logHydration(user.uid, numericAmount);
-    setIsLoading(false);
+    try {
+        const logHydrationFn = httpsCallable(firebaseFunctions, 'logHydration');
+        const result = await logHydrationFn({ amount: numericAmount, timestamp: new Date().toISOString() }) as any;
 
-    if (result.success) {
-      toast({ title: "Success!", description: `${numericAmount}ml logged.` });
-      setAmount("250"); // Reset to default
-    } else {
-      toast({ variant: "destructive", title: "Error", description: result.error });
+        if (result.data.success) {
+            toast({ title: "Success!", description: `${numericAmount}ml logged.` });
+            setAmount("250"); // Reset to default
+            if (user) { // Re-fetch user profile to update streak display
+              await fetchUserProfile(user);
+            }
+            if (onLogSuccess) { // Call the success callback to refresh logs on dashboard
+              onLogSuccess();
+            }
+        } else {
+            throw new Error(result.data.message || "Failed to log hydration via function.");
+        }
+    } catch (error: any) {
+        console.error("Error calling logHydration function:", error);
+        toast({ variant: "destructive", title: "Error", description: error.message || "Failed to log hydration." });
+    } finally {
+        setIsLoading(false);
     }
   };
 
