@@ -19,12 +19,6 @@ console.log('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:', process.env.NEXT_PUBLIC_FIREBAS
 console.log('NEXT_PUBLIC_FIREBASE_PROJECT_ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'SET' : 'UNDEFINED');
 console.log('All env keys:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_FIREBASE')));
 
-// Validate config after initialization
-const missingConfigVars = Object.entries(firebaseConfig).filter(([key, value]) => !value).map(([key]) => key);
-if (missingConfigVars.length > 0) {
-  console.error('Firebase config has undefined values for:', missingConfigVars);
-}
-
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
