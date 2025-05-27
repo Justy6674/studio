@@ -134,7 +134,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <div className="md:col-span-2 xl:col-span-1">
-           <LogWaterForm />
+           <LogWaterForm onLogSuccess={fetchDashboardData} />
         </div>
         <WaterProgressDisplay currentIntake={currentIntake} goalIntake={hydrationGoal} />
         <StreakDisplay currentStreak={dailyStreak} longestStreak={longestStreak} />
