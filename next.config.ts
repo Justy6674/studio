@@ -1,6 +1,11 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['*']
+    }
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -24,11 +29,6 @@ const nextConfig: NextConfig = {
         hostname: 'firebasestorage.googleapis.com',
       }
     ],
-  },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
   },
   serverExternalPackages: ['@google-cloud/vertexai'],
   allowedDevOrigins: [
