@@ -1,155 +1,124 @@
-
 "use client";
 
-import type { ReactNode } from "react";
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import type { UserProfile, UserPreferences, MotivationTone } from "@/lib/types";
-import { useRouter } from "next/navigation";
+import type { UserProfile } from "@/lib/types";
 
 interface AuthContextType {
-  user: UserProfile | null;
+  user: User | null;
+  userProfile: UserProfile | null;
   loading: boolean;
-  initialLoading: boolean;
-  fetchUserProfile: (firebaseUser: FirebaseUser) => Promise<UserProfile | null>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   updateUserProfileData: (userId: string, data: Partial<UserProfile>) => Promise<void>;
-  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const router = useRouter();
 
-  const fetchUserProfile = async (firebaseUser: FirebaseUser): Promise<UserProfile | null> => {
-    if (!firebaseUser) return null;
-    setLoading(true);
-    try {
-      const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        const profileData = userDoc.data() as Omit<UserProfile, keyof FirebaseUser>;
-        const fullUserProfile: UserProfile = {
-          // Firebase User properties
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || profileData.name,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified,
-          isAnonymous: firebaseUser.isAnonymous,
-          metadata: firebaseUser.metadata,
-          providerData: firebaseUser.providerData,
-          refreshToken: firebaseUser.refreshToken,
-          tenantId: firebaseUser.tenantId,
-          delete: firebaseUser.delete,
-          getIdToken: firebaseUser.getIdToken,
-          getIdTokenResult: firebaseUser.getIdTokenResult,
-          reload: firebaseUser.reload,
-          toJSON: firebaseUser.toJSON,
-          // Custom profile data from Firestore
-          ...profileData,
-          preferences: profileData.preferences || { tone: 'default' as MotivationTone },
-        };
-        setUser(fullUserProfile);
-        return fullUserProfile;
+  useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+
+      if (user) {
+        await fetchUserProfile(user.uid);
       } else {
-        // Create a basic profile if it doesn't exist
-        const basicProfile: UserProfile = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          hydrationGoal: 2000, // Default goal
-          reminderTimes: { '08:00': false, '12:00': true, '16:00': false },
-          dailyStreak: 0,
-          longestStreak: 0,
-          preferences: { tone: 'default' as MotivationTone },
-          // Required FirebaseUser fields (some might be null/undefined initially)
-          emailVerified: firebaseUser.emailVerified,
-          isAnonymous: firebaseUser.isAnonymous,
-          metadata: firebaseUser.metadata,
-          providerData: firebaseUser.providerData,
-          refreshToken: firebaseUser.refreshToken,
-          tenantId: firebaseUser.tenantId,
-          delete: firebaseUser.delete,
-          getIdToken: firebaseUser.getIdToken,
-          getIdTokenResult: firebaseUser.getIdTokenResult,
-          reload: firebaseUser.reload,
-          toJSON: firebaseUser.toJSON,
+        setUserProfile(null);
+      }
+
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        setUserProfile(userDoc.data() as UserProfile);
+      } else {
+        // Create default profile for new user
+        const defaultProfile: UserProfile = {
+          uid: userId,
+          email: user?.email || "",
+          displayName: user?.displayName || "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
         };
-        await setDoc(userDocRef, { 
-            ...basicProfile, 
-            createdAt: serverTimestamp(),
-        });
-        setUser(basicProfile);
-        return basicProfile;
+        await setDoc(doc(db, "users", userId), defaultProfile);
+        setUserProfile(defaultProfile);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      const fallbackProfile: UserProfile = { 
-        ...firebaseUser, 
-        preferences: { tone: 'default' as MotivationTone } 
-      };
-      setUser(fallbackProfile); 
-      return fallbackProfile;
-    } finally {
       setLoading(false);
     }
   };
 
   const updateUserProfileData = async (userId: string, data: Partial<UserProfile>) => {
-    if (user && user.uid === userId) {
-      setUser(prevUser => {
-        if (!prevUser) return null;
-        const newPreferences = data.preferences 
-          ? { ...prevUser.preferences, ...data.preferences } 
-          : prevUser.preferences;
-        return { ...prevUser, ...data, preferences: newPreferences };
-      });
-    }
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        await fetchUserProfile(firebaseUser);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-      setInitialLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const signOut = async () => {
-    setLoading(true);
     try {
-      await firebaseSignOut(auth);
-      setUser(null);
-      router.push("/login");
+      await updateDoc(doc(db, "users", userId), {
+        ...data,
+        updatedAt: new Date(),
+      });
+
+      setUserProfile(prev => prev ? { ...prev, ...data, updatedAt: new Date() } : null);
     } catch (error) {
-      console.error("Error signing out:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error updating user profile:", error);
+      throw error;
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, initialLoading, fetchUserProfile, updateUserProfileData, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const signIn = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error("Firebase auth not initialized");
+    }
+    await signInWithEmailAndPassword(auth, email, password);
+  };
 
-export const useAuthContext = () => {
+  const signUp = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error("Firebase auth not initialized");
+    }
+    await createUserWithEmailAndPassword(auth, email, password);
+  };
+
+  const logout = async () => {
+    if (!auth) {
+      throw new Error("Firebase auth not initialized");
+    }
+    await signOut(auth);
+  };
+
+  const value = {
+    user,
+    userProfile,
+    loading,
+    signIn,
+    signUp,
+    logout,
+    updateUserProfileData,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-};
+}
