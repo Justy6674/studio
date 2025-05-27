@@ -3,15 +3,22 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import type { UserProfile } from "@/lib/types";
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfileData: (userId: string, data: Partial<UserProfile>) => Promise<void>;
@@ -49,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!auth) {
+      console.error("Firebase auth not initialized");
       setLoading(false);
       return;
     }
@@ -70,44 +78,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUserProfileData = async (userId: string, data: Partial<UserProfile>) => {
     try {
-      await updateDoc(doc(db, "users", userId), {
-        ...data,
-        updatedAt: new Date(),
-      });
-
-      setUserProfile(prev => prev ? { ...prev, ...data, updatedAt: new Date() } : null);
+      const updatedData = { ...data, updatedAt: new Date() };
+      await setDoc(doc(db, "users", userId), updatedData, { merge: true });
+      setUserProfile(prev => prev ? { ...prev, ...updatedData } : null);
     } catch (error) {
       console.error("Error updating user profile:", error);
       throw error;
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    if (!auth) {
-      throw new Error("Firebase auth not initialized");
-    }
+  const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signUp = async (email: string, password: string) => {
-    if (!auth) {
-      throw new Error("Firebase auth not initialized");
-    }
     await createUserWithEmailAndPassword(auth, email, password);
   };
 
   const logout = async () => {
-    if (!auth) {
-      throw new Error("Firebase auth not initialized");
-    }
     await signOut(auth);
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     userProfile,
     loading,
-    signIn,
+    login,
     signUp,
     logout,
     updateUserProfileData,
