@@ -30,15 +30,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  // Disable Turbopack temporarily to avoid PostCSS issues
-  turbo: {
-    rules: {
-      '*.css': {
-        loaders: ['css-loader'],
-        as: '*.css',
-      },
-    },
-  },
   async rewrites() {
     return [
       {
@@ -60,11 +51,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Allow Replit dev origins
-  allowedDevOrigins: [
-    '*.replit.dev',
-    '*.repl.co',
-  ],
 };
 
 export default nextConfig;
