@@ -1,179 +1,117 @@
 "use client";
 
-import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Droplets, Eye, EyeOff, Loader2, Mail, User, Lock } from "lucide-react";
-import { useAuth as useAuthContext } from "@/hooks/useAuth";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Droplets, User, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import Image from "next/image";
 
 interface AuthFormProps {
   mode: "login" | "signup";
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const { fetchUserProfile } = useAuthContext();
-
-  const [isLogin, setIsLogin] = useState(mode === "login");
-  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    name: "",
-    confirmPassword: "",
-  });
-  
-  const [validationErrors, setValidationErrors] = useState({
-    email: "",
-    password: "",
-    name: "",
-    confirmPassword: "",
-  });
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = async (e: FormEvent) => {
+  const isLogin = mode === "login";
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const toggleMode = () => {
+    const newMode = isLogin ? "signup" : "login";
+    router.push(`/${newMode}`);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
+    setIsLoading(true);
+
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      setError("Passwords don't match");
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      // Enhanced validation
-      const emailError = validateField('email', formData.email);
-      const passwordError = validateField('password', formData.password);
-      const nameError = !isLogin ? validateField('name', formData.name) : "";
-      const confirmError = !isLogin ? validateField('confirmPassword', formData.confirmPassword) : "";
-      
-      if (emailError || passwordError || nameError || confirmError) {
-        setValidationErrors({
-          email: emailError,
-          password: passwordError,
-          name: nameError,
-          confirmPassword: confirmError
-        });
-        setError("Please fix the validation errors above.");
-        setIsLoading(false);
-        return;
-      }
-
       if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        await fetchUserProfile(userCredential.user);
-        toast({ 
-          title: "Welcome back!", 
-          description: "Ready to continue your hydration journey?" 
-        });
+        await signInWithEmailAndPassword(auth, formData.email, formData.password);
         router.push("/dashboard");
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-        const user = userCredential.user;
 
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          email: user.email,
+        // Create user profile in Firestore
+        await setDoc(doc(db, "users", userCredential.user.uid), {
           name: formData.name,
-          hydrationGoal: 2000, // Default goal in ml
+          email: formData.email,
+          hydrationGoal: 2000,
+          createdAt: new Date(),
           dailyStreak: 0,
           longestStreak: 0,
-          reminderTimes: { '08:00': false, '12:00': true, '16:00': false },
-          createdAt: new Date().toISOString(),
         });
 
-        await fetchUserProfile(user);
-        toast({ 
-          title: "Welcome aboard!", 
-          description: "Your hydration journey starts now! 💧" 
-        });
         router.push("/dashboard");
       }
-    } catch (err: any) {
-      console.error("Auth error:", err);
-      setError(err.message || "Authentication failed. Please try again.");
-      toast({
-        variant: "destructive",
-        title: "Oops! Something went wrong",
-        description: err.message || "Please check your details and try again.",
-      });
+    } catch (error: any) {
+      setError(error.message || "An error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const validateField = (name: string, value: string) => {
-    switch (name) {
-      case 'email':
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Please enter a valid email";
-      case 'password':
-        return value.length >= 6 ? "" : "Password must be at least 6 characters";
-      case 'name':
-        return value.trim().length >= 2 ? "" : "Name must be at least 2 characters";
-      case 'confirmPassword':
-        return value === formData.password ? "" : "Passwords don't match";
-      default:
-        return "";
-    }
-  };
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    
-    // Real-time validation
-    if (value.trim()) {
-      const errorMessage = validateField(name, value);
-      setValidationErrors(prev => ({
-        ...prev,
-        [name]: errorMessage
-      }));
-    } else {
-      setValidationErrors(prev => ({
-        ...prev,
-        [name]: ""
-      }));
-    }
-  };
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setError("");
-    router.push(isLogin ? "/signup" : "/login");
-  };
-
   return (
-    <div className="w-full max-w-md">
-      {/* Auth Card */}
-      <div className="bg-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full border border-blue-500/30">
-              <Droplets className="h-8 w-8 text-blue-400" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-100 mb-2">
-            {isLogin ? "Welcome Back!" : "Join the Flow"}
-          </h2>
-          <p className="text-slate-400">
-            {isLogin 
-              ? "Ready to continue your hydration journey?" 
-              : "Start tracking your water intake like a true Aussie"
-            }
-          </p>
+    <Card className="w-full max-w-md mx-auto bg-slate-800/90 border-slate-700 shadow-2xl backdrop-blur-sm">
+      <CardHeader className="text-center space-y-4">
+        {/* Logo */}
+        <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden">
+          <Image
+            src="/logo-128.png"
+            alt="Water4WeightLoss"
+            width={48}
+            height={48}
+            className="rounded-lg"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl"></div>
         </div>
 
+        <div className="space-y-2">
+          <CardTitle className="text-2xl font-bold text-slate-100">
+            {isLogin ? "Welcome Back!" : "Start Your Journey"}
+          </CardTitle>
+          <CardDescription className="text-slate-400">
+            {isLogin 
+              ? "Continue your hydration journey with HydrateAI" 
+              : "Join thousands achieving their hydration goals"
+            }
+          </CardDescription>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Error Alert */}
         {error && (
           <Alert variant="destructive" className="mb-6 bg-red-950/50 border-red-500/50">
             <Droplets className="h-4 w-4" />
@@ -215,7 +153,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="your.email@example.com"
+                placeholder="your@email.com"
                 required
                 value={formData.email}
                 onChange={handleChange}
@@ -323,25 +261,27 @@ export function AuthForm({ mode }: AuthFormProps) {
             }
           </button>
         </div>
-      </div>
+      </CardContent>
 
       {/* Features Highlight */}
-      <div className="mt-6 text-center">
-        <div className="inline-flex items-center space-x-6 text-sm text-slate-400">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <span>AI Coaching</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-            <span>Smart Reminders</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>Progress Tracking</span>
+      <div className="px-6 pb-6">
+        <div className="text-center">
+          <div className="inline-flex items-center space-x-6 text-sm text-slate-400">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <span>AI Coaching</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              <span>Smart Reminders</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Progress Tracking</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
