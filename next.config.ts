@@ -3,7 +3,13 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      allowedOrigins: ['*']
+      allowedOrigins: [
+        "*.replit.dev",
+        "*.replit.app",
+        "localhost:*",
+        "127.0.0.1:*",
+        "*"
+      ]
     }
   },
   typescript: {
@@ -51,7 +57,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
         ],
       },
