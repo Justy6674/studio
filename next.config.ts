@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    serverComponentsExternalPackages: ['@google-cloud/vertexai'],
   },
   async rewrites() {
     return [
