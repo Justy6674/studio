@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { UserNav } from "./UserNav";
-import { useAuth } from "@/hooks/useAuth";
+import { UserNav } from './UserNav';
+import { useAuth } from '@/hooks/useAuth';
+import Image from 'next/image';
 import { Menu, Droplet } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
