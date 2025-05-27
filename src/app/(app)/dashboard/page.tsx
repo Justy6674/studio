@@ -128,7 +128,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome, {user.name || user.email}!</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome, {user.name || "User"}!</h1>
         <p className="text-muted-foreground">Here's your hydration overview for today.</p>
       </div>
 
@@ -177,7 +177,7 @@ export default function DashboardPage() {
         <CardHeader>
            <CardTitle className="flex items-center gap-2 text-2xl">
               <CalendarDays className="h-7 w-7 text-primary" />
-              Recent Logs
+              Recent Logs (Max 10 shown)
             </CardTitle>
         </CardHeader>
         <CardContent>
