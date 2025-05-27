@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from "react";
@@ -83,8 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(userDocRef, { 
             ...basicProfile, 
             createdAt: serverTimestamp(),
-            // Explicitly remove FirebaseUser methods before saving to Firestore if they were part of basicProfile
-            // For this case, basicProfile is constructed with only data fields.
         });
         setUser(basicProfile);
         return basicProfile;
@@ -103,19 +102,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateUserProfileData = async (userId: string, data: Partial<UserProfile>) => {
-    // This function is primarily for client-side state updates after a successful backend update.
-    // The actual saving to Firestore should be done by a Firebase Function or Server Action.
     if (user && user.uid === userId) {
       setUser(prevUser => {
         if (!prevUser) return null;
-        // Deep merge preferences
         const newPreferences = data.preferences 
           ? { ...prevUser.preferences, ...data.preferences } 
           : prevUser.preferences;
         return { ...prevUser, ...data, preferences: newPreferences };
       });
     }
-    // For persisting, ensure updateUserSettings Firebase Function is called from the UI.
   };
 
   useEffect(() => {
@@ -129,7 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setInitialLoading(false);
     });
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signOut = async () => {
