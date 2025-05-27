@@ -1,201 +1,127 @@
-
-"use client";
-
-import { useEffect, useState } from "react";
+import React from 'react';
 
 interface WaterGlassProps {
-  currentIntake: number; // in ml
-  goalIntake: number; // in ml
-  size?: number; // glass width/height
+  currentIntake: number;
+  goalIntake: number;
+  size?: number;
 }
 
-export function WaterGlass({ currentIntake, goalIntake, size = 200 }: WaterGlassProps) {
-  const [animatedIntake, setAnimatedIntake] = useState(0);
-  
-  // Animate the water level when currentIntake changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimatedIntake(currentIntake);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [currentIntake]);
-
-  const progressPercentage = goalIntake > 0 ? Math.min((animatedIntake / goalIntake) * 100, 100) : 0;
-  const waterHeight = (progressPercentage / 100) * (size * 0.7); // 70% of glass height available for water
-  
-  // Calculate measurement marks (every 500ml up to goal)
-  const measurements = [];
-  for (let i = 500; i <= goalIntake; i += 500) {
-    const markHeight = ((goalIntake - i) / goalIntake) * (size * 0.7);
-    measurements.push({
-      amount: i,
-      position: markHeight + (size * 0.15) // offset for glass top
-    });
-  }
+export function WaterGlass({ currentIntake, goalIntake, size = 240 }: WaterGlassProps) {
+  const percentage = goalIntake > 0 ? Math.min((currentIntake / goalIntake) * 100, 100) : 0;
+  const waterHeight = (percentage / 100) * (size * 0.7); // 70% of glass height for water
 
   return (
     <div className="flex flex-col items-center space-y-4">
       <div className="relative" style={{ width: size, height: size }}>
+        {/* Glass Container */}
         <svg
           width={size}
           height={size}
           viewBox={`0 0 ${size} ${size}`}
-          className="overflow-visible"
+          className="absolute inset-0"
         >
-          {/* Glass container */}
-          <defs>
-            <linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-              <stop offset="50%" stopColor="rgba(255,255,255,0.1)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.3)" />
-            </linearGradient>
-            <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#60a5fa" />
-              <stop offset="100%" stopColor="#3b82f6" />
-            </linearGradient>
-          </defs>
-          
-          {/* Measurement marks and labels */}
-          {measurements.map((mark, index) => (
-            <g key={index}>
-              {/* Measurement line */}
-              <line
-                x1={size * 0.15}
-                y1={mark.position}
-                x2={size * 0.25}
-                y2={mark.position}
-                stroke="#94a3b8"
-                strokeWidth="1"
-              />
-              {/* Measurement text */}
-              <text
-                x={size * 0.05}
-                y={mark.position + 4}
-                fontSize="10"
-                fill="#64748b"
-                textAnchor="end"
-              >
-                {mark.amount}ml
-              </text>
-            </g>
-          ))}
-          
-          {/* Glass outline - tapered cylinder */}
+          {/* Glass outline */}
           <path
-            d={`M ${size * 0.15} ${size * 0.15} 
-                L ${size * 0.85} ${size * 0.15}
-                L ${size * 0.8} ${size * 0.85}
-                L ${size * 0.2} ${size * 0.85}
-                Z`}
+            d={`M ${size * 0.25} ${size * 0.15} 
+                L ${size * 0.75} ${size * 0.15}
+                L ${size * 0.7} ${size * 0.85}
+                L ${size * 0.3} ${size * 0.85} Z`}
             fill="none"
-            stroke="url(#glassGradient)"
-            strokeWidth="2"
+            stroke="rgba(148, 163, 184, 0.6)"
+            strokeWidth="3"
+            className="drop-shadow-lg"
           />
-          
+
           {/* Water fill */}
           <defs>
+            <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+              <stop offset="50%" stopColor="#1d4ed8" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#1e40af" stopOpacity="1" />
+            </linearGradient>
             <clipPath id="glassClip">
               <path
-                d={`M ${size * 0.15} ${size * 0.15} 
-                    L ${size * 0.85} ${size * 0.15}
-                    L ${size * 0.8} ${size * 0.85}
-                    L ${size * 0.2} ${size * 0.85}
-                    Z`}
+                d={`M ${size * 0.25} ${size * 0.15} 
+                    L ${size * 0.75} ${size * 0.15}
+                    L ${size * 0.7} ${size * 0.85}
+                    L ${size * 0.3} ${size * 0.85} Z`}
               />
             </clipPath>
           </defs>
-          
+
           {waterHeight > 0 && (
-            <g clipPath="url(#glassClip)">
-              {/* Water body */}
-              <rect
-                x={size * 0.15}
-                y={size * 0.85 - waterHeight}
-                width={size * 0.7}
-                height={waterHeight}
-                fill="url(#waterGradient)"
-                className="transition-all duration-1000 ease-out"
+            <rect
+              x={size * 0.25}
+              y={size * 0.85 - waterHeight}
+              width={size * 0.5}
+              height={waterHeight}
+              fill="url(#waterGradient)"
+              clipPath="url(#glassClip)"
+              className="transition-all duration-1000 ease-out"
+            >
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="0,2; 0,-2; 0,2"
+                dur="3s"
+                repeatCount="indefinite"
               />
-              
-              {/* Water surface with wave effect */}
-              <path
-                d={`M ${size * 0.15} ${size * 0.85 - waterHeight}
-                    Q ${size * 0.35} ${size * 0.85 - waterHeight - 3}
-                    ${size * 0.5} ${size * 0.85 - waterHeight}
-                    Q ${size * 0.65} ${size * 0.85 - waterHeight + 3}
-                    ${size * 0.85} ${size * 0.85 - waterHeight}
-                    L ${size * 0.85} ${size * 0.85 - waterHeight + 5}
-                    Q ${size * 0.65} ${size * 0.85 - waterHeight + 2}
-                    ${size * 0.5} ${size * 0.85 - waterHeight + 5}
-                    Q ${size * 0.35} ${size * 0.85 - waterHeight + 8}
-                    ${size * 0.15} ${size * 0.85 - waterHeight + 5}
-                    Z`}
-                fill="#38bdf8"
-                opacity="0.8"
-                className="animate-pulse"
-              />
-              
-              {/* Bubbles */}
-              {progressPercentage > 10 && (
-                <>
-                  <circle
-                    cx={size * 0.3}
-                    cy={size * 0.85 - waterHeight * 0.3}
-                    r="2"
-                    fill="rgba(255,255,255,0.6)"
-                    className="animate-bounce"
-                  />
-                  <circle
-                    cx={size * 0.7}
-                    cy={size * 0.85 - waterHeight * 0.6}
-                    r="1.5"
-                    fill="rgba(255,255,255,0.5)"
-                    className="animate-pulse"
-                  />
-                </>
-              )}
-            </g>
+            </rect>
           )}
-          
-          {/* Glass rim highlight */}
-          <ellipse
-            cx={size * 0.5}
-            cy={size * 0.15}
-            rx={size * 0.35}
-            ry="4"
-            fill="none"
-            stroke="rgba(255,255,255,0.6)"
-            strokeWidth="1"
-          />
+
+          {/* Water surface waves */}
+          {waterHeight > 5 && (
+            <path
+              d={`M ${size * 0.25} ${size * 0.85 - waterHeight}
+                  Q ${size * 0.35} ${size * 0.85 - waterHeight - 3}
+                    ${size * 0.45} ${size * 0.85 - waterHeight}
+                  Q ${size * 0.55} ${size * 0.85 - waterHeight + 3}
+                    ${size * 0.65} ${size * 0.85 - waterHeight}
+                  Q ${size * 0.7} ${size * 0.85 - waterHeight - 2}
+                    ${size * 0.75} ${size * 0.85 - waterHeight}`}
+              fill="none"
+              stroke="rgba(59, 130, 246, 0.4)"
+              strokeWidth="2"
+              className="animate-pulse"
+            />
+          )}
+
+          {/* Measurement marks */}
+          {[25, 50, 75].map((mark) => (
+            <g key={mark}>
+              <line
+                x1={size * 0.75 + 5}
+                y1={size * 0.85 - (mark / 100) * (size * 0.7)}
+                x2={size * 0.75 + 15}
+                y2={size * 0.85 - (mark / 100) * (size * 0.7)}
+                stroke="rgba(148, 163, 184, 0.5)"
+                strokeWidth="1"
+              />
+              <text
+                x={size * 0.75 + 20}
+                y={size * 0.85 - (mark / 100) * (size * 0.7) + 4}
+                fontSize="10"
+                fill="rgba(148, 163, 184, 0.7)"
+                className="text-xs"
+              >
+                {mark}%
+              </text>
+            </g>
+          ))}
         </svg>
-        
-        {/* Current level indicator */}
-        {currentIntake > 0 && (
-          <div 
-            className="absolute left-full ml-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full whitespace-nowrap"
-            style={{ 
-              top: `${((goalIntake - currentIntake) / goalIntake) * (size * 0.7) + (size * 0.15)}px`,
-              transform: 'translateY(-50%)'
-            }}
-          >
-            {currentIntake}ml
-          </div>
-        )}
       </div>
-      
-      {/* Progress text */}
-      <div className="text-center">
-        <div className="text-2xl font-bold text-slate-100">
-          {progressPercentage.toFixed(1)}%
+
+      {/* Stats Display */}
+      <div className="text-center space-y-2">
+        <div className="text-3xl font-bold text-blue-400">
+          {Math.round(percentage)}%
+        </div>
+        <div className="text-lg text-slate-300">
+          {currentIntake.toLocaleString()}ml
         </div>
         <div className="text-sm text-slate-400">
-          {currentIntake.toLocaleString()}ml / {goalIntake.toLocaleString()}ml
+          Goal: {goalIntake.toLocaleString()}ml
         </div>
-        {currentIntake >= goalIntake && (
-          <div className="text-green-400 font-semibold mt-2">
-            🎉 Goal Achieved! 🎉
-          </div>
-        )}
       </div>
     </div>
   );

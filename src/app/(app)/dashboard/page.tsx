@@ -210,7 +210,11 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <LogWaterForm onLogSuccess={fetchDashboardData} />
+              <LogWaterForm onLogSuccess={() => {
+                fetchDashboardData();
+                // Force a small delay to ensure Firestore has time to update
+                setTimeout(fetchDashboardData, 500);
+              }} />
             </CardContent>
           </Card>
         </div>
