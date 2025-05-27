@@ -15,7 +15,7 @@ interface LogWaterFormProps {
   onLogSuccess?: () => void;
 }
 
-export default function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
+export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [amount, setAmount] = useState("");

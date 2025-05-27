@@ -21,7 +21,7 @@ localPort = 9002
 externalPort = 80
 
 [workflows]
-runButton = "Production Build + Run"
+runButton = "Development Server (Fixed)"
 
 [[workflows.workflow]]
 name = "Development Server"
@@ -39,7 +39,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run build && npm start"
+args = "npm run dev -- --port 5000 --hostname 0.0.0.0"
 
 [[workflows.workflow]]
 name = "Dev Without Turbopack"
