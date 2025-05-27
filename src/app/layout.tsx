@@ -9,12 +9,8 @@ export const metadata: Metadata = {
   title: "Water4WeightLoss - HydrateAI",
   description: "AI-powered hydration tracking for healthy weight loss. Track your water intake with personalized Australian support.",
   icons: {
-    icon: [
-      { url: '/logo-128.png', sizes: '128x128', type: 'image/png' },
-      { url: '/logo-192.png', sizes: '192x192', type: 'image/png' },
-    ],
+    icon: '/favicon.ico',
     apple: '/logo-192.png',
-    shortcut: '/logo-128.png',
   },
 };
 
