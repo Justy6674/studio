@@ -32,6 +32,11 @@ const nextConfig: NextConfig = {
     serverComponentsExternalPackages: ['@genkit-ai/core', '@genkit-ai/ai', 'genkit']
   },
   serverExternalPackages: ['@google-cloud/vertexai'],
+  allowedDevOrigins: [
+    'd0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev',
+    '*.replit.dev',
+    'localhost:5000'
+  ],
   async rewrites() {
     return [
       {
