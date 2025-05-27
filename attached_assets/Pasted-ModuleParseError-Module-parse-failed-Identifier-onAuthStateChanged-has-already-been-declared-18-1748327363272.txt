@@ -1,0 +1,35 @@
+ModuleParseError: Module parse failed: Identifier 'onAuthStateChanged' has already been declared (183:9)
+File was processed with these loaders:
+ * ./node_modules/next/dist/compiled/@next/react-refresh-utils/dist/loader.js
+ * ./node_modules/next/dist/build/webpack/loaders/next-flight-client-module-loader.js
+ * ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+You may need an additional loader to handle the result of these loaders.
+| };
+| _s1(useAuthContext, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");
+> import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+| import { auth } from '@/lib/firebase';
+| const AuthContext = /*#__PURE__*/ createContext(undefined);
+    at <unknown> (File was processed with these loaders:)
+    at handleParseError (file:///home/runner/workspace/node_modules/next/dist/compiled/webpack/bundle5.js:29:410403)
+    at <unknown> (file:///home/runner/workspace/node_modules/next/dist/compiled/webpack/bundle5.js:29:412019)
+    at processResult (file:///home/runner/workspace/node_modules/next/dist/compiled/webpack/bundle5.js:29:407884)
+    at <unknown> (file:///home/runner/workspace/node_modules/next/dist/compiled/webpack/bundle5.js:29:408906)
+    at <unknown> (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:8727)
+    at iterateNormalLoaders (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5565)
+    at iterateNormalLoaders (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5650)
+    at <unknown> (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5879)
+    at r.callback (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4039)
+    at Object.ReactRefreshLoader (file:///home/runner/workspace/node_modules/next/dist/compiled/@next/react-refresh-utils/dist/loader.js:14:10)
+    at LOADER_EXECUTION (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4134)
+    at runSyncOrAsync (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4145)
+    at iterateNormalLoaders (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5782)
+    at iterateNormalLoaders (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5650)
+    at <unknown> (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5879)
+    at r.callback (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4039)
+    at Object.transformSource (file:///home/runner/workspace/node_modules/next/dist/build/webpack/loaders/next-flight-client-module-loader.js:45:17)
+    at LOADER_EXECUTION (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4134)
+    at runSyncOrAsync (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4145)
+    at iterateNormalLoaders (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5782)
+    at <unknown> (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5142)
+    at r.callback (file:///home/runner/workspace/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4039)
+    at <unknown> (file:///home/runner/workspace/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js:207:23)
