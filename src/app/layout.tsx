@@ -8,10 +8,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Water4WeightLoss - HydrateAI",
   description: "AI-powered hydration tracking for healthy weight loss. Track your water intake with personalized Australian support.",
-  icons: {
-    icon: '/icon.png',
-    apple: '/logo-192.png',
-  },
 };
 
 export default function RootLayout({
