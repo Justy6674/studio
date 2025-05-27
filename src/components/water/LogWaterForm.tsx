@@ -1,12 +1,13 @@
-
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { logHydration } from "@/app/actions/hydration";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Minus } from "lucide-react";
+import { Droplets, Plus } from "lucide-react";
 import { getFunctions, httpsCallable } from "firebase/functions";
 
 interface LogWaterFormProps {
@@ -69,62 +70,55 @@ export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Amount Input */}
-        <div className="flex items-center space-x-2">
+      {/* Quick Amount Buttons */}
+      <div className="grid grid-cols-4 gap-2">
+        {[250, 500, 750, 1000].map((quickAmount) => (
           <Button
+            key={quickAmount}
             type="button"
             variant="outline"
-            size="icon"
-            className="h-10 w-10 bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300"
-            onClick={() => adjustAmount(-50)}
-            disabled={isLoading}
+            size="sm"
+            onClick={() => setAmount(quickAmount.toString())}
+            className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200"
           >
-            <Minus className="h-4 w-4" />
+            {quickAmount}ml
           </Button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="amount" className="text-slate-300 text-sm">
+            Custom Amount (ml)
+          </Label>
           <Input
+            id="amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Amount"
+            placeholder="Enter amount"
+            min="1"
+            max="5000"
+            className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 focus:border-cyan-400"
             required
-            className="text-center text-lg h-10 bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
-            disabled={isLoading}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-10 w-10 bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300"
-            onClick={() => adjustAmount(50)}
-            disabled={isLoading}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
         </div>
-
-        {/* Quick Amount Buttons */}
-        <div className="grid grid-cols-2 gap-2">
-          {quickAmounts.map((quickAmount) => (
-            <Button
-              key={quickAmount}
-              type="button"
-              variant="outline"
-              className="h-8 text-sm bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300 hover:text-slate-100"
-              onClick={() => setQuickAmount(quickAmount)}
-              disabled={isLoading}
-            >
-              {quickAmount}ml
-            </Button>
-          ))}
-        </div>
-
         <Button 
           type="submit" 
-          className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-medium" 
-          disabled={isLoading || !user}
+          disabled={isLoading} 
+          className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-medium"
         >
-          {isLoading ? "Logging..." : "Log Water"}
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Logging...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Log Water
+            </div>
+          )}
         </Button>
       </form>
     </div>
