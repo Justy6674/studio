@@ -3,16 +3,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { LogWaterForm } from "@/components/water/LogWaterForm";
+import LogWaterForm from "@/components/water/LogWaterForm"; // Changed to default import
 import { WaterProgressDisplay } from "@/components/water/WaterProgressDisplay";
 import { StreakDisplay } from "@/components/water/StreakDisplay";
 import { AIMotivationCard } from "@/components/water/AIMotivationCard";
-// import { getHydrationLogs as getHydrationLogsAction, getAIMotivation as getAIMotivationAction } from "@/app/actions/hydration"; // Using Firebase Functions now
 import { getFunctions, httpsCallable } from "firebase/functions";
 import type { HydrationLog, UserProfile, MotivationTone } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { BarChart, CalendarDays, Terminal } from "lucide-react"; // Added Terminal
+import { BarChart, CalendarDays, Terminal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
@@ -38,11 +37,11 @@ export default function DashboardPage() {
     if (!user) return;
     try {
       const fetchLogsFn = httpsCallable(firebaseFunctions, 'fetchHydrationLogs');
-      const result = await fetchLogsFn({ daysToFetch: 7 }) as any; // Type cast for result data
+      const result = await fetchLogsFn({ daysToFetch: 7 }) as any; 
       
       const logsData = result.data.logs.map((log: any) => ({
         ...log,
-        timestamp: new Date(log.timestamp) // Ensure timestamp is a Date object
+        timestamp: new Date(log.timestamp) 
       })) as HydrationLog[];
       
       setHydrationLogs(logsData);
@@ -62,10 +61,9 @@ export default function DashboardPage() {
     setLoadingMotivation(true);
     try {
       const getMotivationFn = httpsCallable(firebaseFunctions, 'getHydrationMotivation');
-      // Prepare recent logs for context, if any
       const recentLogsForMotivation = hydrationLogs
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) // Ensure descending order
-        .slice(0, 5) // Take most recent 5 logs
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) 
+        .slice(0, 5) 
         .map(log => ({
           amount: log.amount,
           timestamp: new Date(log.timestamp).toISOString(),
@@ -98,9 +96,9 @@ export default function DashboardPage() {
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Removed fetchDashboardLogs & fetchAIMotivation from deps to control calls
+  }, [user]); 
 
-   useEffect(() => { // Separate effect to run fetchAIMotivation when userTone changes
+   useEffect(() => { 
     if(user && userTone) {
         fetchAIMotivation();
     }
@@ -108,7 +106,6 @@ export default function DashboardPage() {
   }, [userTone]);
 
 
-  // Recalculate current intake when logs change (after new log added by LogWaterForm)
    useEffect(() => {
     const todayStart = startOfDay(new Date());
     const todayLogs = hydrationLogs.filter(log => isSameDay(new Date(log.timestamp), todayStart));
@@ -133,7 +130,7 @@ export default function DashboardPage() {
   };
   const weeklyChartData = getWeeklyChartData();
   const chartConfig = {
-    water: { label: "Water Intake (ml)", color: "hsl(var(--chart-1))" }, // Using chart-1
+    water: { label: "Water Intake (ml)", color: "hsl(var(--chart-1))" }, 
     goal: { label: "Goal (ml)", color: "hsl(var(--muted))" },
   };
 
@@ -169,7 +166,6 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <div className="md:col-span-2 xl:col-span-1">
-           {/* Pass fetchDashboardLogs to LogWaterForm to refresh logs after adding water */}
            <LogWaterForm onLogSuccess={fetchDashboardLogs} />
         </div>
         <WaterProgressDisplay currentIntake={currentIntake} goalIntake={hydrationGoal} />
