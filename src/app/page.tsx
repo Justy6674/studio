@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
