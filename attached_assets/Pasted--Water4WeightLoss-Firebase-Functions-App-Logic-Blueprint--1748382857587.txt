@@ -1,0 +1,113 @@
+/**
+ * 💧 Water4WeightLoss — Firebase Functions & App Logic Blueprint
+ * -------------------------------------------------------------
+ * This file defines all expected serverless functions, backend logic, and feature integrations
+ * for the Water4WeightLoss Replit app — built for Australians using hydration to support
+ * fat metabolism and healthy, AI-supported weight loss.
+ *
+ * 📌 Purpose:
+ * - Serve as the single source of truth for app logic
+ * - Power backend connectivity between Replit frontend, Firebase backend, Gemini AI, and Twilio
+ * - Provide future developers or AI copilots with clear expectations of function architecture
+ *
+ * 🔐 Monetisation:
+ * - $4.99 AUD / month via Stripe subscription (see /settings/billing.ts)
+ * - Account, reminder, AI coaching and Twilio preferences gated behind login
+ *
+ * 🏁 Key Tech Stack:
+ * - Replit (Frontend)
+ * - Firebase (Auth, Firestore, Functions, Analytics)
+ * - Gemini AI (Motivational content, reminders, insights)
+ * - Twilio (SMS reminders with user tone preferences)
+ * - Tailwind CSS (UI theming and dashboard layout)
+ *
+ * -------------------------------------------------------------
+ * ✅ EXPECTED FUNCTIONS (Firebase Functions to be built in /functions/src/)
+ * -------------------------------------------------------------
+ *
+ * 1. logHydration
+ *    ─ Store a hydration log
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: { userId: string, method: string, amount: number, timestamp: string }
+ *    ─ Output: { success: boolean }
+ *    ─ Firestore Path: hydration_logs/{userId}/{date}
+ *
+ * 2. getHydrationLogs
+ *    ─ Fetch hydration history
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: { userId: string, dateRange: { start: string, end: string } }
+ *    ─ Output: { logs: HydrationLog[] }
+ *
+ * 3. getDailyHydrationSummary
+ *    ─ Return user’s daily streak, average intake, and dashboard data
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: { userId: string }
+ *    ─ Output: { streak: number, averageIntake: number, dailyTotal: number }
+ *
+ * 4. generateMotivationalMessage
+ *    ─ Pulls AI-powered motivational support from Gemini
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: { userId: string, hydrationTotal: number, goal: number, tone: string }
+ *    ─ Output: { message: string }
+ *
+ * 5. sendSMSReminder
+ *    ─ Triggers Twilio SMS using user preferences (tone/theme)
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: { userId: string, tone: "funny" | "supportive" | "crass" | "kind" | "weightloss" }
+ *    ─ Output: { success: boolean }
+ *
+ * 6. updateUserSettings
+ *    ─ Store user preferences for reminders, AI messaging, and tone
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: UserSettings
+ *    ─ Output: { updated: boolean }
+ *    ─ Firestore Path: user_preferences/{userId}
+ *
+ * 7. getUserSettings
+ *    ─ Retrieve full settings object (hydration goal, reminders, tone, dashboard config)
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: { userId: string }
+ *    ─ Output: UserSettings
+ *
+ * 8. handleBillingWebhook
+ *    ─ Stripe webhook handler
+ *    ─ Type: HTTP Endpoint
+ *    ─ Input: Stripe event (automatically parsed)
+ *    ─ Output: 200 OK or error
+ *
+ * 9. generateHydrationGoalInsight
+ *    ─ AI-generated summary or insight for weekly report
+ *    ─ Type: HTTPS Callable
+ *    ─ Input: { userId: string, hydrationPattern: number[], weekStart: string }
+ *    ─ Output: { insight: string }
+ *
+ * -------------------------------------------------------------
+ * 🧠 FUTURE FUNCTIONALITY
+ * -------------------------------------------------------------
+ * - Bluetooth water bottle sync (via device_connections)
+ * - Voice command logging
+ * - Visual gamification (droplet animations, interactive streak board)
+ * - AI goal adjustment
+ * - Notifications via WhatsApp and email
+ * - Anonymous hydration leaderboard
+ * - In-app voice or face login (via biometric WebAuthn)
+ * - Push notifications (mobile PWA)
+ *
+ * -------------------------------------------------------------
+ * 📂 FIRESTORE STRUCTURE (Draft)
+ * -------------------------------------------------------------
+ *
+ * - hydration_logs/{userId}/{timestamp} => { amount, method, moodTag }
+ * - user_preferences/{userId} => { aiTone, hydrationGoal, smsReminderOn, aiMessagesOn }
+ * - users/{userId} => { email, tier, createdAt, lastLogin, name }
+ * - analytics_events/{eventId} => { userId, type, timestamp, metadata }
+ *
+ * -------------------------------------------------------------
+ * ✅ NOTES TO DEV TEAM / REPLIT AI
+ * -------------------------------------------------------------
+ * - ALWAYS check if user is authenticated before function use
+ * - Use Australian spelling and units (ml not oz)
+ * - Visual styling must match Downscale branding (blush pink, wheat, slate)
+ * - Use `functions/plan.ts` as the canonical logic map
+ * - This file should be reviewed any time a feature is updated
+ */
