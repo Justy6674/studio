@@ -10,6 +10,14 @@ console.log("NEXT_PUBLIC_FIREBASE_API_KEY:", process.env.NEXT_PUBLIC_FIREBASE_AP
 console.log("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:", process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? "SET" : "UNDEFINED");
 console.log("NEXT_PUBLIC_FIREBASE_PROJECT_ID:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? "SET" : "UNDEFINED");
 console.log("All env keys:", Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_FIREBASE')));
+console.log("Actual values check:", {
+  apiKey: !!firebaseConfig.apiKey,
+  authDomain: !!firebaseConfig.authDomain,
+  projectId: !!firebaseConfig.projectId,
+  storageBucket: !!firebaseConfig.storageBucket,
+  messagingSenderId: !!firebaseConfig.messagingSenderId,
+  appId: !!firebaseConfig.appId
+});
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -31,8 +39,13 @@ const requiredEnvVars = [
 ];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingConfigVars = Object.entries(firebaseConfig).filter(([key, value]) => !value).map(([key]) => key);
+
 if (missingVars.length > 0) {
   console.error('Missing required Firebase environment variables:', missingVars);
+}
+if (missingConfigVars.length > 0) {
+  console.error('Firebase config has undefined values for:', missingConfigVars);
 }
 
 let app, auth, db, functions;
@@ -94,7 +107,8 @@ async function testFirebaseConfig() {
   }
 }
 
-// Run the test when this module loads
-if (typeof window !== 'undefined') {
+// Run the test when this module loads (only once)
+if (typeof window !== 'undefined' && !window.__FIREBASE_CONFIG_TESTED__) {
+  window.__FIREBASE_CONFIG_TESTED__ = true;
   testFirebaseConfig();
 }
