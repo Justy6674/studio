@@ -137,34 +137,38 @@ export default function DashboardPage() {
   const progressPercentage = hydrationGoal > 0 ? Math.min((currentIntake / hydrationGoal) * 100, 100) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
+    <div className="min-h-screen text-slate-100" style={{ backgroundColor: '#334155' }}>
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Header Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-              </svg>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+              <Image
+                src="/logo-128.png"
+                alt="Water4WeightLoss"
+                width={40}
+                height={40}
+                className="rounded"
+              />
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: '#5271ff' }}></div>
+              <h1 className="text-4xl font-bold" style={{ color: '#F7F2D3' }}>
                 Welcome back, {user.name || "User"}
               </h1>
             </div>
           </div>
-          <p className="text-slate-400 text-lg">Track your hydration journey and stay motivated</p>
+          <p className="text-lg" style={{ color: '#B68A71' }}>Track your hydration journey and stay motivated</p>
         </div>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Progress Card */}
-          <Card className="bg-slate-800 border-slate-700 shadow-2xl">
+          <Card className="shadow-2xl" style={{ backgroundColor: '#3B475B', borderColor: '#4A5568' }}>
             <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Target className="h-6 w-6 text-blue-400" />
+              <CardTitle className="flex items-center gap-3" style={{ color: '#F7F2D3' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(82, 113, 255, 0.2)' }}>
+                  <Target className="h-6 w-6" style={{ color: '#5271ff' }} />
                 </div>
                 Today's Progress
               </CardTitle>
@@ -179,28 +183,28 @@ export default function DashboardPage() {
           </Card>
 
           {/* Streak Card */}
-          <Card className="bg-slate-800 border-slate-700 shadow-2xl">
+          <Card className="shadow-2xl" style={{ backgroundColor: '#3B475B', borderColor: '#4A5568' }}>
             <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <Award className="h-6 w-6 text-orange-400" />
+              <CardTitle className="flex items-center gap-3" style={{ color: '#F7F2D3' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 138, 113, 0.2)' }}>
+                  <Award className="h-6 w-6" style={{ color: '#B68A71' }} />
                 </div>
-                Streak Stats
+                Streak Stats {dailyStreak > 0 && <span>🔥</span>}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-400">{dailyStreak}</div>
-                  <div className="text-sm text-slate-400">Current</div>
+                  <div className="text-3xl font-bold" style={{ color: '#B68A71' }}>{dailyStreak}</div>
+                  <div className="text-sm" style={{ color: '#9CA3AF' }}>Current</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-slate-300">{longestStreak}</div>
-                  <div className="text-sm text-slate-400">Best</div>
+                  <div className="text-3xl font-bold" style={{ color: '#F7F2D3' }}>{longestStreak}</div>
+                  <div className="text-sm" style={{ color: '#9CA3AF' }}>Best</div>
                 </div>
               </div>
-              <div className="pt-2 border-t border-slate-700">
-                <div className="text-center text-slate-400 text-sm">
+              <div className="pt-2" style={{ borderTopColor: '#4A5568', borderTopWidth: '1px' }}>
+                <div className="text-center text-sm" style={{ color: '#9CA3AF' }}>
                   Keep it up! Every drop counts.
                 </div>
               </div>
@@ -208,11 +212,11 @@ export default function DashboardPage() {
           </Card>
 
           {/* Quick Log Card */}
-          <Card className="bg-slate-800 border-slate-700 shadow-2xl">
+          <Card className="shadow-2xl" style={{ backgroundColor: '#3B475B', borderColor: '#4A5568' }}>
             <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-cyan-500/20 rounded-lg">
-                  <Droplets className="h-6 w-6 text-cyan-400" />
+              <CardTitle className="flex items-center gap-3" style={{ color: '#F7F2D3' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(82, 113, 255, 0.2)' }}>
+                  <Droplets className="h-6 w-6" style={{ color: '#5271ff' }} />
                 </div>
                 Quick Log
               </CardTitle>
@@ -230,11 +234,11 @@ export default function DashboardPage() {
         {/* Charts and Activity Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Weekly Chart */}
-          <Card className="bg-slate-800 border-slate-700 shadow-2xl">
+          <Card className="shadow-2xl" style={{ backgroundColor: '#3B475B', borderColor: '#4A5568' }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-purple-400" />
+              <CardTitle className="flex items-center gap-3" style={{ color: '#F7F2D3' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(82, 113, 255, 0.2)' }}>
+                  <TrendingUp className="h-6 w-6" style={{ color: '#5271ff' }} />
                 </div>
                 Weekly Overview
               </CardTitle>
@@ -285,11 +289,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <Card className="bg-slate-800 border-slate-700 shadow-2xl">
+        <Card className="shadow-2xl" style={{ backgroundColor: '#3B475B', borderColor: '#4A5568' }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-slate-200">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <CalendarDays className="h-6 w-6 text-green-400" />
+            <CardTitle className="flex items-center gap-3" style={{ color: '#F7F2D3' }}>
+              <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 138, 113, 0.2)' }}>
+                <CalendarDays className="h-6 w-6" style={{ color: '#B68A71' }} />
               </div>
               Recent Activity
             </CardTitle>
@@ -306,15 +310,19 @@ export default function DashboardPage() {
                 {hydrationLogs.slice(0, 10).map((log, index) => (
                   <div 
                     key={log.id} 
-                    className="flex justify-between items-center p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700 transition-colors"
+                    className="flex justify-between items-center p-4 rounded-lg border transition-colors hover:opacity-80"
+                    style={{ 
+                      backgroundColor: 'rgba(74, 85, 104, 0.5)', 
+                      borderColor: 'rgba(74, 85, 104, 0.5)' 
+                    }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="font-semibold text-slate-200">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#5271ff' }}></div>
+                      <span className="font-semibold" style={{ color: '#F7F2D3' }}>
                         {log.amount}ml
                       </span>
                     </div>
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm" style={{ color: '#B68A71' }}>
                       {format(log.timestamp, "MMM d, 'at' h:mm a")}
                     </span>
                   </div>
