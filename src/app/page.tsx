@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Droplets, ArrowRight, User, Clock } from "lucide-react";
 
 export default function HomePage() {
-  const { user, userProfile, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -35,7 +35,7 @@ export default function HomePage() {
                 Welcome Back!
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400 mt-2">
-                {userProfile?.displayName || user.email || "Hydration Champion"}
+                {user.email || "Hydration Champion"}
               </CardDescription>
             </div>
           </CardHeader>
