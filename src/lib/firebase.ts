@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, signInAnonymously } from "firebase/auth";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
 // Debug logging for environment variables
@@ -47,3 +47,54 @@ try {
 }
 
 export { auth, db, functions };
+
+// Firebase Configuration Test
+async function testFirebaseConfig() {
+  console.log("🧪 Testing Firebase Configuration...");
+  
+  try {
+    // Test 1: Anonymous Authentication
+    console.log("📧 Testing Firebase Auth...");
+    if (!auth) {
+      throw new Error("Firebase Auth not initialized");
+    }
+    
+    const authResult = await signInAnonymously(auth);
+    console.log("✅ Firebase Auth SUCCESS:", {
+      uid: authResult.user.uid,
+      isAnonymous: authResult.user.isAnonymous
+    });
+    
+    // Test 2: Firestore Write
+    console.log("📝 Testing Firestore Write...");
+    if (!db) {
+      throw new Error("Firestore not initialized");
+    }
+    
+    const testDoc = await addDoc(collection(db, "test"), {
+      timestamp: Date.now(),
+      message: "Firebase config test",
+      createdAt: new Date()
+    });
+    
+    console.log("✅ Firestore Write SUCCESS:", {
+      docId: testDoc.id,
+      collection: "test"
+    });
+    
+    console.log("🎉 Firebase Configuration Test: ALL TESTS PASSED");
+    
+  } catch (error) {
+    console.error("❌ Firebase Configuration Test FAILED:", error);
+    console.error("Error details:", {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
+  }
+}
+
+// Run the test when this module loads
+if (typeof window !== 'undefined') {
+  testFirebaseConfig();
+}
