@@ -13,6 +13,7 @@ import type { HydrationLog, UserProfile } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BarChart, CalendarDays, Terminal, Droplets, Target, TrendingUp, Award } from "lucide-react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
@@ -140,11 +141,20 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Header Section */}
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Welcome back, {user.name || "User"}
-            </h1>
+          <div className="flex items-center gap-4">
+            <Image
+              src="/logo-128.png"
+              alt="Water4WeightLoss"
+              width={40}
+              height={40}
+              className="rounded-lg opacity-80"
+            />
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                Welcome back, {user.name || "User"}
+              </h1>
+            </div>
           </div>
           <p className="text-slate-400 text-lg">Track your hydration journey and stay motivated</p>
         </div>

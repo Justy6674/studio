@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/layout/Header';
@@ -37,7 +38,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="py-6 text-center text-xs text-muted-foreground border-t border-border">
-        HydrateAI &copy; {new Date().getFullYear()}
+        <div className="flex items-center justify-center gap-2">
+          <Image
+            src="/logo-128.png"
+            alt="Water4WeightLoss"
+            width={16}
+            height={16}
+            className="rounded opacity-60"
+          />
+          Water4WeightLoss - HydrateAI &copy; {new Date().getFullYear()}
+        </div>
       </footer>
     </div>
   );

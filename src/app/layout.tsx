@@ -6,8 +6,12 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Hydration Tracker",
-  description: "AI-powered hydration tracking with personalized reminders and motivation",
+  title: "Water4WeightLoss - HydrateAI",
+  description: "AI-powered hydration tracking for healthy weight loss. Track your water intake with personalized Australian support.",
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/logo-192.png',
+  },
 };
 
 export default function RootLayout({
