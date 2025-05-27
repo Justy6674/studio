@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { LogWaterForm } from "@/components/water/LogWaterForm";
 import { WaterProgressDisplay } from "@/components/water/WaterProgressDisplay";
+import { WaterGlass } from "@/components/water/WaterGlass";
 import { StreakDisplay } from "@/components/water/StreakDisplay";
 import { AIMotivationCard } from "@/components/water/AIMotivationCard";
 import { getHydrationLogs, getAIMotivation } from "@/app/actions/hydration";
@@ -160,34 +161,12 @@ export default function DashboardPage() {
                 Today's Progress
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold text-slate-100">
-                  {currentIntake.toLocaleString()}
-                  <span className="text-lg text-slate-400 ml-1">ml</span>
-                </span>
-                <div className="text-right">
-                  <div className="text-sm text-slate-400">Goal</div>
-                  <div className="text-slate-300">{hydrationGoal.toLocaleString()}ml</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Progress</span>
-                  <span className="text-slate-300">{progressPercentage.toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-slate-700 rounded-full h-3">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-              {currentIntake >= hydrationGoal && (
-                <div className="text-center py-2">
-                  <span className="text-green-400 font-semibold">🎉 Goal Achieved! 🎉</span>
-                </div>
-              )}
+            <CardContent className="flex justify-center">
+              <WaterGlass 
+                currentIntake={currentIntake} 
+                goalIntake={hydrationGoal} 
+                size={240}
+              />
             </CardContent>
           </Card>
 
