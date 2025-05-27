@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Droplets, Eye, EyeOff, Loader2, Mail, User, Lock } from "lucide-react";
-import { useAuth as useAuthContext } from "@/contexts/AuthContext";
+import { useAuth as useAuthContext } from "@/hooks/useAuth";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -33,6 +33,13 @@ export function AuthForm({ mode }: AuthFormProps) {
     name: "",
     confirmPassword: "",
   });
+  
+  const [validationErrors, setValidationErrors] = useState({
+    email: "",
+    password: "",
+    name: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
@@ -41,8 +48,20 @@ export function AuthForm({ mode }: AuthFormProps) {
     setError("");
 
     try {
-      if (!isLogin && formData.password !== formData.confirmPassword) {
-        setError("Passwords don't match.");
+      // Enhanced validation
+      const emailError = validateField('email', formData.email);
+      const passwordError = validateField('password', formData.password);
+      const nameError = !isLogin ? validateField('name', formData.name) : "";
+      const confirmError = !isLogin ? validateField('confirmPassword', formData.confirmPassword) : "";
+      
+      if (emailError || passwordError || nameError || confirmError) {
+        setValidationErrors({
+          email: emailError,
+          password: passwordError,
+          name: nameError,
+          confirmPassword: confirmError
+        });
+        setError("Please fix the validation errors above.");
         setIsLoading(false);
         return;
       }
@@ -90,11 +109,41 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   };
 
+  const validateField = (name: string, value: string) => {
+    switch (name) {
+      case 'email':
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Please enter a valid email";
+      case 'password':
+        return value.length >= 6 ? "" : "Password must be at least 6 characters";
+      case 'name':
+        return value.trim().length >= 2 ? "" : "Name must be at least 2 characters";
+      case 'confirmPassword':
+        return value === formData.password ? "" : "Passwords don't match";
+      default:
+        return "";
+    }
+  };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+    
+    // Real-time validation
+    if (value.trim()) {
+      const errorMessage = validateField(name, value);
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: errorMessage
+      }));
+    } else {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
   const toggleMode = () => {
