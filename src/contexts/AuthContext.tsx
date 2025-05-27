@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
@@ -14,6 +15,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfileData: (userId: string, data: Partial<UserProfile>) => Promise<void>;
+  fetchUserProfile: (user: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +24,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchUserProfile = async (user: User) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        setUserProfile(userDoc.data() as UserProfile);
+      } else {
+        // Create default profile for new user
+        const defaultProfile: UserProfile = {
+          uid: user.uid,
+          email: user.email || "",
+          displayName: user.displayName || "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        await setDoc(doc(db, "users", user.uid), defaultProfile);
+        setUserProfile(defaultProfile);
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
 
   useEffect(() => {
     if (!auth) {
@@ -33,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user);
 
       if (user) {
-        await fetchUserProfile(user.uid);
+        await fetchUserProfile(user);
       } else {
         setUserProfile(null);
       }
@@ -43,29 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => unsubscribe();
   }, []);
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (userDoc.exists()) {
-        setUserProfile(userDoc.data() as UserProfile);
-      } else {
-        // Create default profile for new user
-        const defaultProfile: UserProfile = {
-          uid: userId,
-          email: user?.email || "",
-          displayName: user?.displayName || "",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        await setDoc(doc(db, "users", userId), defaultProfile);
-        setUserProfile(defaultProfile);
-      }
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      setLoading(false);
-    }
-  };
 
   const updateUserProfileData = async (userId: string, data: Partial<UserProfile>) => {
     try {
@@ -110,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     logout,
     updateUserProfileData,
+    fetchUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -119,6 +121,14 @@ export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
+
+export function useAuthContext() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
   }
   return context;
 }
