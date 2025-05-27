@@ -1,0 +1,118 @@
+ GET /_next/static/css/app/layout.css?v=1748336728903 404 in 758ms
+ GET /_next/static/chunks/main-app.js?v=1748336728903 404 in 33ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 43ms
+ GET / 200 in 106ms
+ GET / 200 in 54ms
+ GET /_next/static/css/app/layout.css?v=1748336892735 404 in 52ms
+ GET /_next/static/css/app/layout.css?v=1748336893253 404 in 41ms
+ GET /_next/static/chunks/main-app.js?v=1748336892735 404 in 32ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 30ms
+ GET /_next/static/chunks/main-app.js?v=1748336893253 404 in 44ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 31ms
+ ✓ Compiled in 2.2s (2144 modules)
+ ✓ Compiled in 656ms (1399 modules)
+ ✓ Compiled in 363ms (1399 modules)
+🔍 Firebase Environment Debug:
+NEXT_PUBLIC_FIREBASE_API_KEY: SET
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: SET
+NEXT_PUBLIC_FIREBASE_PROJECT_ID: SET
+All env keys: [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_APP_ID',
+  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'
+]
+ GET / 200 in 435ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 728ms (2130 modules)
+🔍 Firebase Environment Debug:
+NEXT_PUBLIC_FIREBASE_API_KEY: SET
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: SET
+NEXT_PUBLIC_FIREBASE_PROJECT_ID: SET
+All env keys: [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_APP_ID',
+  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'
+]
+ GET /_next/static/css/app/layout.css?v=1748337053300 404 in 1073ms
+ GET /_next/static/chunks/main-app.js?v=1748337053300 404 in 325ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 37ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 635ms (2173 modules)
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/runner/workspace/.next/server/pages/_document.js'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/runner/workspace/.next/server/pages/_document.js'
+}
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at ShadowPortal (/home/runner/workspace/node_modules/next/src/client/components/react-dev-overlay/ui/components/shadow-portal.tsx:5:32)
+    at DevOverlay (/home/runner/workspace/node_modules/next/src/client/components/react-dev-overlay/ui/dev-overlay.tsx:14:3)
+    at ReactDevOverlay (/home/runner/workspace/node_modules/next/src/server/dev/next-dev-server.ts:82:10)
+    at div
+    at Body (/home/runner/workspace/node_modules/next/src/server/render.tsx:1263:19)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at ShadowPortal (/home/runner/workspace/node_modules/next/src/client/components/react-dev-overlay/ui/components/shadow-portal.tsx:5:32)
+    at DevOverlay (/home/runner/workspace/node_modules/next/src/client/components/react-dev-overlay/ui/dev-overlay.tsx:14:3)
+    at ReactDevOverlay (/home/runner/workspace/node_modules/next/src/server/dev/next-dev-server.ts:82:10)
+    at div
+    at Body (/home/runner/workspace/node_modules/next/src/server/render.tsx:1263:19)
+ GET /_next/static/chunks/app/page.js 500 in 5659ms
+ ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+   ▲ Next.js 15.2.3
+   - Local:        http://localhost:5000
+   - Network:      http://0.0.0.0:5000
+
+ ✓ Starting...
+ ⚠ Invalid next.config.ts options detected: 
+ ⚠     Unrecognized key(s) in object: 'serverComponentsExternalPackages' at "experimental"
+ ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ ⚠ `experimental.serverComponentsExternalPackages` has been moved to `serverExternalPackages`. Please update your next.config.ts file accordingly.
+ ✓ Ready in 3.2s
+ ○ Compiling / ...
+ ✓ Compiled / in 19.5s (1131 modules)
+🔍 Firebase Environment Debug:
+NEXT_PUBLIC_FIREBASE_API_KEY: SET
+ GET / 200 in 21069ms
+ ✓ Compiled in 1692ms (427 modules)
+ ⚠ Blocked cross-origin request from d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev. To allow this, configure "allowedDevOrigins" in next.config
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 11.2s (2840 modules)
+ GET /dashboard 200 in 11642ms
+ GET /dashboard 200 in 46ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 641ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 586ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 435ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 423ms
+🔍 Firebase Environment Debug:
+NEXT_PUBLIC_FIREBASE_API_KEY: SET
+ GET / 200 in 420ms
+ GET /dashboard 200 in 22ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 978ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 654ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 471ms
+`x-forwarded-host` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev` does not match `origin` header with value `d0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev:5000` from a forwarded Server Actions request. Aborting the action.
+ ⨯ [Error: Invalid Server Actions request.] { digest: '518241869' }
+ POST /dashboard 500 in 493ms
+ GET / 200 in 8ms
+ GET / 200 in 59ms
