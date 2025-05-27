@@ -142,13 +142,11 @@ export default function DashboardPage() {
         {/* Header Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-4">
-            <Image
-              src="/logo-128.png"
-              alt="Water4WeightLoss"
-              width={40}
-              height={40}
-              className="rounded-lg opacity-80"
-            />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+              </svg>
+            </div>
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
