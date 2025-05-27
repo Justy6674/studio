@@ -15,8 +15,8 @@ const requiredEnvVars = [
 // Validate environment variables
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 if (missingVars.length > 0) {
-  console.error('Missing Firebase environment variables:', missingVars);
-  console.error('Please set these in your Replit Secrets or .env file');
+  console.warn('Missing Firebase environment variables:', missingVars);
+  console.warn('Please ensure these are set in your Replit Secrets');
 }
 
 const firebaseConfig = {
@@ -32,22 +32,24 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-try {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApps()[0];
+if (missingVars.length === 0) {
+  try {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
+    
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    console.error('Check your Firebase configuration in Replit Secrets');
+    throw error;
   }
-  
-  auth = getAuth(app);
-  db = getFirestore(app);
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  console.error('Check your Firebase configuration in Replit Secrets');
-  // Create dummy objects to prevent app crash during development
-  app = {} as FirebaseApp;
-  auth = {} as Auth;
-  db = {} as Firestore;
+} else {
+  console.error('Cannot initialize Firebase - missing required environment variables');
+  throw new Error('Firebase configuration incomplete');
 }
 
 export { app, auth, db };
