@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { logHydration } from "@/app/actions/hydration";
+import { logHydration as logHydrationAction } from "@/app/actions/hydration";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Droplets, Plus } from "lucide-react";
@@ -43,14 +43,30 @@ export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
         timestamp: new Date().toISOString()
       });
 
-      toast({ title: "Success!", description: (result.data as any)?.message || `${numericAmount}ml logged.` });
+      toast({ title: "Success!", description: (result.data as any)?.message || `${numericAmount}ml logged successfully.` });
       setAmount("250");
       if (onLogSuccess) {
         onLogSuccess();
       }
     } catch (err: any) {
       console.error("Log hydration failed:", err);
-      toast({ variant: "destructive", title: "Error logging water", description: err.message || "Failed to log hydration." });
+      
+      // If Firebase function fails, try the server action as fallback
+      try {
+        await logHydrationAction(user.uid, numericAmount);
+        toast({ title: "Success!", description: `${numericAmount}ml logged successfully.` });
+        setAmount("250");
+        if (onLogSuccess) {
+          onLogSuccess();
+        }
+      } catch (serverErr: any) {
+        console.error("Server action also failed:", serverErr);
+        toast({ 
+          variant: "destructive", 
+          title: "Error logging water", 
+          description: "Unable to save your water intake. Please try again." 
+        });
+      }
     } finally {
       setIsLoading(false);
     }
