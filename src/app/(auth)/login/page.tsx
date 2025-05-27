@@ -1,10 +1,10 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, ExternalLink, Fingerprint } from "luc
 import Image from "next/image";
 
 export default function LoginPage() {
+  const { user, initialLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -23,12 +24,17 @@ export default function LoginPage() {
   const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [biometricSupported, setBiometricSupported] = useState(false);
   const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!initialLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, initialLoading, router]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.PublicKeyCredential) {
-      setBiometricSupported(true);
     }
   }, []);
 
@@ -50,9 +56,9 @@ export default function LoginPage() {
       }
 
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      router.push("/dashboard");
+      // Navigation will happen automatically via useAuth effect
     } catch (error: any) {
-      setError(error.message || "An error occurred during authentication");
+      setError(error.message || "Invalid email or password");
     } finally {
       setIsLoading(false);
     }
@@ -62,12 +68,20 @@ export default function LoginPage() {
     window.open("https://buy.stripe.com/7sIg1FgK8fPv5hGaEF", "_blank");
   };
 
+  // Show loading while checking auth state
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#334155' }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#334155' }}>
       <div className="w-full max-w-md">
         <Card className="shadow-2xl overflow-hidden rounded-2xl" style={{ backgroundColor: '#1e293b', borderColor: '#b68a71', borderWidth: '2px' }}>
           <CardHeader className="text-center space-y-6 pt-8 pb-6">
-            {/* Logo */}
             <div className="mx-auto">
               <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #5271FF 0%, #4061e0 100%)' }}>
                 <Image
@@ -81,7 +95,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Welcome Message */}
             <div className="space-y-3">
               <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#F7F2D3' }}>
                 Welcome Back!
@@ -100,7 +113,6 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Email Address
@@ -125,7 +137,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password Field */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Password
@@ -158,7 +169,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Stay Logged In Toggle */}
               <div className="flex items-center justify-between py-2">
                 <Label htmlFor="stay-logged-in" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Stay logged in
@@ -171,7 +181,6 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* Submit Button */}
               <Button 
                 type="submit" 
                 className="w-full h-16 font-bold text-xl rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
@@ -195,14 +204,13 @@ export default function LoginPage() {
             </form>
 
             {/* Biometric Support */}
-            {biometricSupported && (
-              <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: '#b68a71' }}>
-                  <Fingerprint className="h-4 w-4" />
-                  Biometric login supported
-                </div>
-              </div>
-            )}
+            
+            
+            
+            
+            
+            
+            
 
             {/* Divider */}
             <div className="relative py-4">
