@@ -1,8 +1,6 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -32,7 +30,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  // Ensure proper hostname binding for Replit
+  // Disable Turbopack temporarily to avoid PostCSS issues
+  turbo: {
+    rules: {
+      '*.css': {
+        loaders: ['css-loader'],
+        as: '*.css',
+      },
+    },
+  },
   async rewrites() {
     return [
       {
@@ -41,7 +47,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Allow cross-origin requests for Replit preview
   async headers() {
     return [
       {
