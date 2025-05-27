@@ -1,7 +1,7 @@
+
 "use client";
 
 import type { ReactNode } from 'react';
-import Image from 'next/image';
 
 export default function AuthLayout({
   children,
@@ -9,7 +9,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#334155]">
+    <div className="min-h-screen bg-slate-700">
       {children}
     </div>
   );

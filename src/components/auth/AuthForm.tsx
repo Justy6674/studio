@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -102,41 +101,38 @@ export function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#334155' }}>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-700">
       <div className="w-full max-w-md">
-        <Card className="shadow-2xl overflow-hidden" style={{ backgroundColor: '#1E293B', borderColor: '#b68a71', borderWidth: '2px' }}>
-          <CardHeader className="text-center space-y-6 pt-8 pb-6">
+        <Card className="bg-slate-800 border-2 border-amber-600 shadow-2xl rounded-2xl overflow-hidden">
+          <CardHeader className="text-center space-y-6 pt-8 pb-6 bg-gradient-to-b from-slate-800 to-slate-900">
             {/* Logo */}
-            <div className="mx-auto">
-              <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #5271FF 0%, #4061e0 100%)' }}>
-                <Image
-                  src="/logo-128.png"
-                  alt="Water4WeightLoss"
-                  width={56}
-                  height={56}
-                  className="rounded-2xl"
-                  priority
-                />
-                <div className="absolute inset-0 rounded-3xl" style={{ background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%)' }}></div>
-              </div>
+            <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl relative">
+              <Image
+                src="/logo-128.png"
+                alt="Water4WeightLoss"
+                width={64}
+                height={64}
+                className="rounded-2xl"
+                priority
+              />
             </div>
 
             {/* Welcome Message */}
             <div className="space-y-3">
-              <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#F7F2D3' }}>
+              <h1 className="text-4xl font-bold tracking-tight text-amber-100">
                 {isLogin ? "Welcome Back!" : "Start Your Journey"}
               </h1>
-              <p className="text-lg font-medium" style={{ color: '#b68a71' }}>
+              <p className="text-lg font-medium text-amber-600">
                 {isLogin ? "Hydration Champion" : "Join thousands achieving their hydration goals"}
               </p>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-6 px-8 pb-8">
+          <CardContent className="space-y-6 px-8 pb-8 bg-slate-800">
             {/* Error Alert */}
             {error && (
-              <Alert className="border-2" style={{ backgroundColor: 'rgba(127, 29, 29, 0.8)', borderColor: '#ef4444' }}>
-                <AlertDescription className="font-medium" style={{ color: '#fecaca' }}>{error}</AlertDescription>
+              <Alert className="border-2 border-red-500 bg-red-900/20">
+                <AlertDescription className="font-medium text-red-300">{error}</AlertDescription>
               </Alert>
             )}
 
@@ -144,11 +140,11 @@ export function AuthForm({ mode }: AuthFormProps) {
               {/* Name Field (Sign Up Only) */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
+                  <Label htmlFor="name" className="font-semibold text-sm text-amber-100">
                     Full Name
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-600" />
                     <Input
                       id="name"
                       name="name"
@@ -156,13 +152,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                       required={!isLogin}
                       value={formData.name}
                       onChange={handleChange}
-                      className="pl-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
-                      style={{ 
-                        backgroundColor: 'rgba(51, 65, 85, 0.5)', 
-                        borderColor: '#b68a71', 
-                        color: '#F7F2D3',
-                        '--tw-ring-color': '#5271FF'
-                      }}
+                      className="pl-12 h-14 border-2 border-amber-600 text-lg rounded-xl bg-slate-700 text-amber-100 placeholder:text-amber-400/60 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -170,11 +160,11 @@ export function AuthForm({ mode }: AuthFormProps) {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
+                <Label htmlFor="email" className="font-semibold text-sm text-amber-100">
                   Email Address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-600" />
                   <Input
                     id="email"
                     name="email"
@@ -183,24 +173,18 @@ export function AuthForm({ mode }: AuthFormProps) {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="pl-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
-                    style={{ 
-                      backgroundColor: 'rgba(51, 65, 85, 0.5)', 
-                      borderColor: '#b68a71', 
-                      color: '#F7F2D3',
-                      '--tw-ring-color': '#5271FF'
-                    }}
+                    className="pl-12 h-14 border-2 border-amber-600 text-lg rounded-xl bg-slate-700 text-amber-100 placeholder:text-amber-400/60 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               </div>
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
+                <Label htmlFor="password" className="font-semibold text-sm text-amber-100">
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-600" />
                   <Input
                     id="password"
                     name="password"
@@ -209,19 +193,12 @@ export function AuthForm({ mode }: AuthFormProps) {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="pl-12 pr-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
-                    style={{ 
-                      backgroundColor: 'rgba(51, 65, 85, 0.5)', 
-                      borderColor: '#b68a71', 
-                      color: '#F7F2D3',
-                      '--tw-ring-color': '#5271FF'
-                    }}
+                    className="pl-12 pr-12 h-14 border-2 border-amber-600 text-lg rounded-xl bg-slate-700 text-amber-100 placeholder:text-amber-400/60 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors"
-                    style={{ color: '#b68a71' }}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-amber-600 hover:text-amber-400 transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -231,11 +208,11 @@ export function AuthForm({ mode }: AuthFormProps) {
               {/* Confirm Password Field (Sign Up Only) */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
+                  <Label htmlFor="confirmPassword" className="font-semibold text-sm text-amber-100">
                     Confirm Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-600" />
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
@@ -244,19 +221,12 @@ export function AuthForm({ mode }: AuthFormProps) {
                       required={!isLogin}
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="pl-12 pr-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
-                      style={{ 
-                        backgroundColor: 'rgba(51, 65, 85, 0.5)', 
-                        borderColor: '#b68a71', 
-                        color: '#F7F2D3',
-                        '--tw-ring-color': '#5271FF'
-                      }}
+                      className="pl-12 pr-12 h-14 border-2 border-amber-600 text-lg rounded-xl bg-slate-700 text-amber-100 placeholder:text-amber-400/60 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors"
-                      style={{ color: '#b68a71' }}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-amber-600 hover:text-amber-400 transition-colors"
                     >
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -266,25 +236,21 @@ export function AuthForm({ mode }: AuthFormProps) {
 
               {/* Stay Logged In Toggle */}
               <div className="flex items-center justify-between py-2">
-                <Label htmlFor="stay-logged-in" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
+                <Label htmlFor="stay-logged-in" className="font-semibold text-sm text-amber-100">
                   Stay logged in
                 </Label>
                 <Switch
                   id="stay-logged-in"
                   checked={stayLoggedIn}
                   onCheckedChange={setStayLoggedIn}
+                  className="data-[state=checked]:bg-blue-500"
                 />
               </div>
 
               {/* Submit Button */}
               <Button 
                 type="submit" 
-                className="w-full h-16 font-bold text-xl rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-105"
-                style={{ 
-                  backgroundColor: '#5271FF', 
-                  color: '#F7F2D3',
-                  '--tw-shadow-color': 'rgba(82, 113, 255, 0.25)'
-                }}
+                className="w-full h-16 font-bold text-xl rounded-xl bg-blue-600 hover:bg-blue-700 text-amber-100 shadow-2xl transition-all duration-300 transform hover:scale-105"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -303,7 +269,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             {/* Biometric Support Indicator */}
             {biometricSupported && isLogin && (
               <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: '#b68a71' }}>
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-amber-600">
                   <Fingerprint className="h-4 w-4" />
                   Biometric login supported
                 </div>
@@ -313,10 +279,10 @@ export function AuthForm({ mode }: AuthFormProps) {
             {/* Divider */}
             <div className="relative py-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t-2" style={{ borderColor: 'rgba(182, 138, 113, 0.3)' }}></div>
+                <div className="w-full border-t-2 border-amber-600/30"></div>
               </div>
               <div className="relative flex justify-center text-sm uppercase">
-                <span className="px-4 font-bold tracking-wider" style={{ backgroundColor: '#1E293B', color: '#b68a71' }}>OR</span>
+                <span className="px-4 font-bold tracking-wider bg-slate-800 text-amber-600">OR</span>
               </div>
             </div>
 
@@ -324,11 +290,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             <Button
               onClick={openSubscription}
               variant="outline"
-              className="w-full h-14 border-2 transition-all duration-300 text-lg font-semibold rounded-xl"
-              style={{ 
-                borderColor: '#5271FF', 
-                color: '#5271FF' 
-              }}
+              className="w-full h-14 border-2 border-blue-600 text-blue-400 hover:bg-blue-600/10 transition-all duration-300 text-lg font-semibold rounded-xl"
             >
               <ExternalLink className="mr-3 h-5 w-5" />
               Not a member? Subscribe for $4.99/month
@@ -339,8 +301,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               <button
                 onClick={toggleMode}
                 type="button"
-                className="font-semibold text-lg transition-colors duration-200 hover:underline"
-                style={{ color: '#5271FF' }}
+                className="font-semibold text-lg text-blue-400 hover:text-blue-300 transition-colors duration-200 hover:underline"
               >
                 {isLogin 
                   ? "New here? Create an account →" 
@@ -353,17 +314,17 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         {/* App Features */}
         <div className="mt-8 text-center">
-          <div className="inline-flex items-center justify-center space-x-8" style={{ color: 'rgba(247, 242, 211, 0.8)' }}>
+          <div className="inline-flex items-center justify-center space-x-8 text-amber-200/80">
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: '#5271FF' }}></div>
+              <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg"></div>
               <span className="font-medium">AI Coaching</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: '#5271FF' }}></div>
+              <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg"></div>
               <span className="font-medium">Smart Reminders</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: '#5271FF' }}></div>
+              <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg"></div>
               <span className="font-medium">Progress Tracking</span>
             </div>
           </div>
