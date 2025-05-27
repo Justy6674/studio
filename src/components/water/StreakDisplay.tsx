@@ -11,10 +11,10 @@ interface StreakDisplayProps {
 export function StreakDisplay({ currentStreak, longestStreak }: StreakDisplayProps) {
   return (
     <Card className="shadow-lg">
-      <CardHeader>
+      <CardHeader className="flex justify-between items-center p-4 bg-secondary/50 rounded-lg">
         <CardTitle className="text-2xl">Hydration Streaks</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="grid grid-cols-2 gap-4">
         <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
           <div className="flex items-center space-x-3">
             <Flame className="h-8 w-8 text-orange-500 animate-pulse" />
