@@ -3,12 +3,10 @@
 
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { GlassWater, CirclePlus, CircleMinus } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 import { getFunctions, httpsCallable } from "firebase/functions";
 
 interface LogWaterFormProps {
@@ -70,76 +68,65 @@ export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
   const quickAmounts = [250, 500, 750, 1000];
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <GlassWater className="h-7 w-7 text-primary" />
-          Log Your Water Intake
-        </CardTitle>
-        <CardDescription>Add the amount of water you've consumed.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-base">Amount (ml)</Label>
-            <div className="flex items-center space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10"
-                onClick={() => adjustAmount(-50)}
-                disabled={isLoading}
-              >
-                <CircleMinus className="h-5 w-5" />
-              </Button>
-              <Input
-                id="amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g., 250"
-                required
-                className="text-center text-lg h-12 md:text-sm"
-                disabled={isLoading}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10"
-                onClick={() => adjustAmount(50)}
-                disabled={isLoading}
-              >
-                <CirclePlus className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {quickAmounts.map((quickAmount) => (
-              <Button
-                key={quickAmount}
-                type="button"
-                variant="outline"
-                className="h-12 text-base"
-                onClick={() => setQuickAmount(quickAmount)}
-                disabled={isLoading}
-              >
-                {quickAmount} ml
-              </Button>
-            ))}
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full h-12 text-lg" 
-            disabled={isLoading || !user}
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Amount Input */}
+        <div className="flex items-center space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300"
+            onClick={() => adjustAmount(-50)}
+            disabled={isLoading}
           >
-            {isLoading ? "Logging..." : "Log Water"}
+            <Minus className="h-4 w-4" />
           </Button>
-        </form>
-      </CardContent>
-    </Card>
+          <Input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Amount"
+            required
+            className="text-center text-lg h-10 bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
+            disabled={isLoading}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300"
+            onClick={() => adjustAmount(50)}
+            disabled={isLoading}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Quick Amount Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          {quickAmounts.map((quickAmount) => (
+            <Button
+              key={quickAmount}
+              type="button"
+              variant="outline"
+              className="h-8 text-sm bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300 hover:text-slate-100"
+              onClick={() => setQuickAmount(quickAmount)}
+              disabled={isLoading}
+            >
+              {quickAmount}ml
+            </Button>
+          ))}
+        </div>
+
+        <Button 
+          type="submit" 
+          className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-medium" 
+          disabled={isLoading || !user}
+        >
+          {isLoading ? "Logging..." : "Log Water"}
+        </Button>
+      </form>
+    </div>
   );
 }
