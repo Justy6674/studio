@@ -2,94 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
-    --background: 217 20% 17%; /* #1e293b desaturated */
-    --foreground: 210 17% 98%; /* #f8fafc */
-
-    --card: 217 20% 22%; /* Slightly lighter than background */
-    --card-foreground: 210 17% 98%;
-
-    --popover: 217 20% 22%;
-    --popover-foreground: 210 17% 98%;
-
-    --primary: 230 100% 66%; /* #5271ff */
-    --primary-foreground: 220 100% 10%; /* Darker text for better contrast on vibrant blue */
-
-    --secondary: 217 20% 28%; /* A bit lighter for secondary elements */
-    --secondary-foreground: 210 17% 98%;
-
-    --muted: 217 20% 30%;
-    --muted-foreground: 210 15% 75%; /* Lighter muted text */
-
-    --accent: 24 31% 58%; /* #b68a71 - warm accent */
-    --accent-foreground: 210 17% 98%; /* Cream text on this accent */
-
-    --destructive: 0 70% 55%; /* A good red for dark mode */
-    --destructive-foreground: 210 17% 98%;
-
-    --border: 217 20% 35%; /* General borders, a bit lighter than card */
-    --input: 24 31% 48%; /* Input borders using a darker shade of the warm accent */
-    --ring: 230 100% 75%; /* Focus ring from primary */
-    --radius: 0.5rem;
-
-    /* Chart colors */
-    --chart-1: hsl(230 100% 66%); /* primary */
-    --chart-2: hsl(24 31% 58%);  /* accent */
-    --chart-3: hsl(180 50% 60%); /* A teal/cyan */
-    --chart-4: hsl(40 90% 60%);  /* An orange */
-    --chart-5: hsl(280 70% 70%); /* A purple */
-    
-    /* Sidebar colors (consistent with the dark theme) */
-    --sidebar-background: 217 20% 15%;
-    --sidebar-foreground: 210 17% 90%;
-    --sidebar-primary: 230 100% 70%;
-    --sidebar-primary-foreground: 210 17% 98%;
-    --sidebar-accent: 217 20% 25%;
-    --sidebar-accent-foreground: 210 17% 98%;
-    --sidebar-border: 217 20% 28%;
-    --sidebar-ring: 230 100% 75%;
+    --background: 60 9% 98%;
+    --foreground: 60 9% 8%;
+    --card: 60 9% 96%;
+    --card-foreground: 60 9% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 203 89% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 60 9% 10%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 60 3.8% 46.1%;
+    --accent: 60 4.8% 95.9%;
+    --accent-foreground: 60 9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 60 5.9% 91.9%;
+    --input: 60 5.9% 91.9%;
+    --ring: 203 89% 53%;
+    --chart-1: 203 89% 53%;
+    --chart-2: 43 74% 66%;
+    --chart-3: 27 87% 67%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 41 63% 48%;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 217 20% 17%;
-    --foreground: 210 17% 98%;
-    --card: 217 20% 22%;
-    --card-foreground: 210 17% 98%;
-    --popover: 217 20% 22%;
-    --popover-foreground: 210 17% 98%;
-    --primary: 230 100% 66%;
-    --primary-foreground: 220 100% 10%;
-    --secondary: 217 20% 28%;
-    --secondary-foreground: 210 17% 98%;
-    --muted: 217 20% 30%;
-    --muted-foreground: 210 15% 75%;
-    --accent: 24 31% 58%;
-    --accent-foreground: 210 17% 98%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 210 17% 98%;
-    --border: 217 20% 35%;
-    --input: 24 31% 48%;
-    --ring: 230 100% 75%;
-
-    --chart-1: hsl(230 100% 66%);
-    --chart-2: hsl(24 31% 58%);
-    --chart-3: hsl(180 50% 60%);
-    --chart-4: hsl(40 90% 60%);
-    --chart-5: hsl(280 70% 70%);
-
-    --sidebar-background: 217 20% 15%;
-    --sidebar-foreground: 210 17% 90%;
-    --sidebar-primary: 230 100% 70%;
-    --sidebar-primary-foreground: 210 17% 98%;
-    --sidebar-accent: 217 20% 25%;
-    --sidebar-accent-foreground: 210 17% 98%;
-    --sidebar-border: 217 20% 28%;
-    --sidebar-ring: 230 100% 75%;
+    --background: 60 9% 8%;
+    --foreground: 60 9% 98%;
+    --card: 60 9% 12%;
+    --card-foreground: 60 9% 96%;
+    --popover: 60 9% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 203 89% 53%;
+    --primary-foreground: 0 0% 2%;
+    --secondary: 60 3.8% 15%;
+    --secondary-foreground: 60 9% 90%;
+    --muted: 60 3.8% 15%;
+    --muted-foreground: 60 3.8% 53.9%;
+    --accent: 60 3.8% 15%;
+    --accent-foreground: 60 9% 90%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 60 3.8% 15%;
+    --input: 60 3.8% 15%;
+    --ring: 203 89% 53%;
+    --chart-1: 203 89% 53%;
+    --chart-2: 43 74% 66%;
+    --chart-3: 27 87% 67%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 41 63% 48%;
   }
 }
 
@@ -102,33 +68,16 @@ body {
   }
 }
 
-/* Custom animations from user's CSS */
-@keyframes waterRipple {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(2px); } /* Subtle ripple */
-  100% { transform: translateY(0); }
-}
+@layer utilities {
+  .water-gradient {
+    background: linear-gradient(135deg, rgb(56, 189, 248) 0%, rgb(14, 165, 233) 50%, rgb(2, 132, 199) 100%);
+  }
 
-@keyframes waterShimmer {
-  0% { opacity: 0.6; } /* Adjusted for visibility */
-  50% { opacity: 0.9; }
-  100% { opacity: 0.6; }
-}
+  .earth-gradient {
+    background: linear-gradient(135deg, rgb(212, 195, 179) 0%, rgb(156, 132, 99) 50%, rgb(117, 94, 71) 100%);
+  }
 
-@keyframes bubbleFloat {
-  0% { transform: translateY(0) scale(0.8); opacity: 0; }
-  20% { opacity: 0.7; }
-  100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
-}
-
-.animate-water-ripple {
-  animation: waterRipple 2s ease-in-out infinite;
-}
-
-.animate-water-shimmer {
-  animation: waterShimmer 3s ease-in-out infinite;
-}
-
-.animate-bubble-float {
-  animation: bubbleFloat 4s ease-out infinite;
+  .cream-gradient {
+    background: linear-gradient(135deg, rgb(254, 249, 232) 0%, rgb(253, 236, 192) 50%, rgb(251, 217, 149) 100%);
+  }
 }
