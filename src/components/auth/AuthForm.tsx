@@ -51,7 +51,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
         await fetchUserProfile(userCredential.user);
         toast({ 
-          title: "G'day! Welcome back!", 
+          title: "Welcome back!", 
           description: "Ready to continue your hydration journey?" 
         });
         router.push("/dashboard");
@@ -72,7 +72,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         await fetchUserProfile(user);
         toast({ 
-          title: "Welcome to the crew!", 
+          title: "Welcome aboard!", 
           description: "Your hydration journey starts now! 💧" 
         });
         router.push("/dashboard");
@@ -145,7 +145,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <Input
                   id="name"
                   name="name"
-                  placeholder="Your name, mate"
+                  placeholder="Your full name"
                   required={!isLogin}
                   value={formData.name}
                   onChange={handleChange}
