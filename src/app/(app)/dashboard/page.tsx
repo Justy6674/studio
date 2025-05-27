@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -38,12 +37,12 @@ export default function DashboardPage() {
     try {
       const fetchLogsFn = httpsCallable(firebaseFunctions, 'fetchHydrationLogs');
       const result = await fetchLogsFn({ daysToFetch: 7 }) as any; 
-      
+
       const logsData = result.data.logs.map((log: any) => ({
         ...log,
         timestamp: new Date(log.timestamp) 
       })) as HydrationLog[];
-      
+
       setHydrationLogs(logsData);
 
       const todayStart = startOfDay(new Date());
@@ -68,7 +67,7 @@ export default function DashboardPage() {
           amount: log.amount,
           timestamp: new Date(log.timestamp).toISOString(),
         }));
-      
+
       const result = await getMotivationFn({ 
         tone: userTone,
         userName: userName,
@@ -116,7 +115,7 @@ export default function DashboardPage() {
   const getWeeklyChartData = () => {
     const today = new Date();
     const last7Days = eachDayOfInterval({ start: subDays(today, 6), end: today });
-    
+
     return last7Days.map(day => {
       const dateStr = format(day, "yyyy-MM-dd");
       const logsForDay = hydrationLogs.filter(log => format(new Date(log.timestamp), "yyyy-MM-dd") === dateStr);
@@ -178,7 +177,7 @@ export default function DashboardPage() {
             isLoading={loadingMotivation} 
             onRefresh={fetchAIMotivation} 
         />
-        <Card className="shadow-lg">
+        <Card className="shadow-lg rounded-lg p-4 bg-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl">
               <BarChart className="h-7 w-7 text-primary" />

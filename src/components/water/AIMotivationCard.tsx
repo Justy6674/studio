@@ -42,7 +42,7 @@ export function AIMotivationCard({ motivation, isLoading, onRefresh }: AIMotivat
           onClick={onRefresh}
           disabled={isLoading}
           className="w-full"
-          variant="outline"
+          variant="primary"
         >
           {isLoading ? (
             <>
