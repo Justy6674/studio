@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
@@ -11,18 +12,27 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''
 };
 
-// Initialize Firebase only if it hasn't been initialized
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Validate Firebase config
+const isValidConfig = Object.values(firebaseConfig).every(value => value && value !== '');
 
+let app: any;
 let auth: Auth;
 let db: Firestore;
 
-try {
-  auth = getAuth(app);
-  db = getFirestore(app);
-} catch (error) {
-  console.warn('Firebase services initialization failed:', error);
-  // Create placeholder objects to prevent crashes
+if (isValidConfig) {
+  try {
+    // Initialize Firebase only if it hasn't been initialized
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.warn('Firebase initialization failed:', error);
+    // Create placeholder objects to prevent crashes
+    auth = {} as Auth;
+    db = {} as Firestore;
+  }
+} else {
+  console.warn('Firebase config incomplete - using placeholder objects');
   auth = {} as Auth;
   db = {} as Firestore;
 }
