@@ -29,7 +29,6 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    serverComponentsExternalPackages: ['@genkit-ai/core', '@genkit-ai/ai', 'genkit']
   },
   serverExternalPackages: ['@google-cloud/vertexai'],
   allowedDevOrigins: [
