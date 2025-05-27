@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuth as useAuthContext } from "@/contexts/AuthContext";
 
 interface AuthFormProps {
   mode: "login" | "signup";
