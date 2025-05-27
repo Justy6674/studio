@@ -158,7 +158,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome, {userName}!</h1>
         <p className="text-muted-foreground">Here's your hydration overview for today.</p>
