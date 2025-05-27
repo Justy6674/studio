@@ -102,13 +102,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#334155] flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#334155' }}>
       <div className="w-full max-w-md">
-        <Card className="bg-[#1E293B] border-[#b68a71] border-2 shadow-2xl overflow-hidden">
+        <Card className="shadow-2xl overflow-hidden" style={{ backgroundColor: '#1E293B', borderColor: '#b68a71', borderWidth: '2px' }}>
           <CardHeader className="text-center space-y-6 pt-8 pb-6">
             {/* Logo */}
             <div className="mx-auto">
-              <div className="w-24 h-24 bg-gradient-to-br from-[#5271FF] to-[#4061e0] rounded-3xl flex items-center justify-center shadow-xl relative overflow-hidden">
+              <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #5271FF 0%, #4061e0 100%)' }}>
                 <Image
                   src="/logo-128.png"
                   alt="Water4WeightLoss"
@@ -117,16 +117,16 @@ export function AuthForm({ mode }: AuthFormProps) {
                   className="rounded-2xl"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/10 rounded-3xl"></div>
+                <div className="absolute inset-0 rounded-3xl" style={{ background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%)' }}></div>
               </div>
             </div>
 
             {/* Welcome Message */}
             <div className="space-y-3">
-              <h1 className="text-4xl font-bold text-[#F7F2D3] tracking-tight">
+              <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#F7F2D3' }}>
                 {isLogin ? "Welcome Back!" : "Start Your Journey"}
               </h1>
-              <p className="text-[#b68a71] text-lg font-medium">
+              <p className="text-lg font-medium" style={{ color: '#b68a71' }}>
                 {isLogin ? "Hydration Champion" : "Join thousands achieving their hydration goals"}
               </p>
             </div>
@@ -135,8 +135,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           <CardContent className="space-y-6 px-8 pb-8">
             {/* Error Alert */}
             {error && (
-              <Alert className="bg-red-950/80 border-red-500 border-2">
-                <AlertDescription className="text-red-200 font-medium">{error}</AlertDescription>
+              <Alert className="border-2" style={{ backgroundColor: 'rgba(127, 29, 29, 0.8)', borderColor: '#ef4444' }}>
+                <AlertDescription className="font-medium" style={{ color: '#fecaca' }}>{error}</AlertDescription>
               </Alert>
             )}
 
@@ -144,11 +144,11 @@ export function AuthForm({ mode }: AuthFormProps) {
               {/* Name Field (Sign Up Only) */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-[#F7F2D3] font-semibold text-sm">
+                  <Label htmlFor="name" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                     Full Name
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#b68a71]" />
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
                     <Input
                       id="name"
                       name="name"
@@ -156,7 +156,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                       required={!isLogin}
                       value={formData.name}
                       onChange={handleChange}
-                      className="pl-12 h-14 bg-[#334155]/50 border-[#b68a71] border-2 text-[#F7F2D3] placeholder:text-[#b68a71]/60 focus:border-[#5271FF] focus:ring-2 focus:ring-[#5271FF]/30 text-lg rounded-xl"
+                      className="pl-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
+                      style={{ 
+                        backgroundColor: 'rgba(51, 65, 85, 0.5)', 
+                        borderColor: '#b68a71', 
+                        color: '#F7F2D3',
+                        '--tw-ring-color': '#5271FF'
+                      }}
                     />
                   </div>
                 </div>
@@ -164,11 +170,11 @@ export function AuthForm({ mode }: AuthFormProps) {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#F7F2D3] font-semibold text-sm">
+                <Label htmlFor="email" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Email Address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#b68a71]" />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
                   <Input
                     id="email"
                     name="email"
@@ -177,18 +183,24 @@ export function AuthForm({ mode }: AuthFormProps) {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="pl-12 h-14 bg-[#334155]/50 border-[#b68a71] border-2 text-[#F7F2D3] placeholder:text-[#b68a71]/60 focus:border-[#5271FF] focus:ring-2 focus:ring-[#5271FF]/30 text-lg rounded-xl"
+                    className="pl-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
+                    style={{ 
+                      backgroundColor: 'rgba(51, 65, 85, 0.5)', 
+                      borderColor: '#b68a71', 
+                      color: '#F7F2D3',
+                      '--tw-ring-color': '#5271FF'
+                    }}
                   />
                 </div>
               </div>
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[#F7F2D3] font-semibold text-sm">
+                <Label htmlFor="password" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#b68a71]" />
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
                   <Input
                     id="password"
                     name="password"
@@ -197,12 +209,19 @@ export function AuthForm({ mode }: AuthFormProps) {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="pl-12 pr-12 h-14 bg-[#334155]/50 border-[#b68a71] border-2 text-[#F7F2D3] placeholder:text-[#b68a71]/60 focus:border-[#5271FF] focus:ring-2 focus:ring-[#5271FF]/30 text-lg rounded-xl"
+                    className="pl-12 pr-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
+                    style={{ 
+                      backgroundColor: 'rgba(51, 65, 85, 0.5)', 
+                      borderColor: '#b68a71', 
+                      color: '#F7F2D3',
+                      '--tw-ring-color': '#5271FF'
+                    }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#b68a71] hover:text-[#F7F2D3] transition-colors"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors"
+                    style={{ color: '#b68a71' }}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -212,11 +231,11 @@ export function AuthForm({ mode }: AuthFormProps) {
               {/* Confirm Password Field (Sign Up Only) */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-[#F7F2D3] font-semibold text-sm">
+                  <Label htmlFor="confirmPassword" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                     Confirm Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#b68a71]" />
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
@@ -225,12 +244,19 @@ export function AuthForm({ mode }: AuthFormProps) {
                       required={!isLogin}
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="pl-12 pr-12 h-14 bg-[#334155]/50 border-[#b68a71] border-2 text-[#F7F2D3] placeholder:text-[#b68a71]/60 focus:border-[#5271FF] focus:ring-2 focus:ring-[#5271FF]/30 text-lg rounded-xl"
+                      className="pl-12 pr-12 h-14 border-2 text-lg rounded-xl focus:ring-2 focus:ring-opacity-30"
+                      style={{ 
+                        backgroundColor: 'rgba(51, 65, 85, 0.5)', 
+                        borderColor: '#b68a71', 
+                        color: '#F7F2D3',
+                        '--tw-ring-color': '#5271FF'
+                      }}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#b68a71] hover:text-[#F7F2D3] transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors"
+                      style={{ color: '#b68a71' }}
                     >
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -240,21 +266,25 @@ export function AuthForm({ mode }: AuthFormProps) {
 
               {/* Stay Logged In Toggle */}
               <div className="flex items-center justify-between py-2">
-                <Label htmlFor="stay-logged-in" className="text-[#F7F2D3] font-semibold text-sm">
+                <Label htmlFor="stay-logged-in" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Stay logged in
                 </Label>
                 <Switch
                   id="stay-logged-in"
                   checked={stayLoggedIn}
                   onCheckedChange={setStayLoggedIn}
-                  className="data-[state=checked]:bg-[#5271FF] data-[state=unchecked]:bg-[#334155]"
                 />
               </div>
 
               {/* Submit Button */}
               <Button 
                 type="submit" 
-                className="w-full h-16 bg-[#5271FF] hover:bg-[#4061e0] text-[#F7F2D3] font-bold text-xl rounded-xl shadow-2xl hover:shadow-[#5271FF]/25 transition-all duration-300 transform hover:scale-[1.02]"
+                className="w-full h-16 font-bold text-xl rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-105"
+                style={{ 
+                  backgroundColor: '#5271FF', 
+                  color: '#F7F2D3',
+                  '--tw-shadow-color': 'rgba(82, 113, 255, 0.25)'
+                }}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -273,7 +303,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             {/* Biometric Support Indicator */}
             {biometricSupported && isLogin && (
               <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 text-[#b68a71] text-sm font-medium">
+                <div className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: '#b68a71' }}>
                   <Fingerprint className="h-4 w-4" />
                   Biometric login supported
                 </div>
@@ -283,10 +313,10 @@ export function AuthForm({ mode }: AuthFormProps) {
             {/* Divider */}
             <div className="relative py-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t-2 border-[#b68a71]/30"></div>
+                <div className="w-full border-t-2" style={{ borderColor: 'rgba(182, 138, 113, 0.3)' }}></div>
               </div>
               <div className="relative flex justify-center text-sm uppercase">
-                <span className="bg-[#1E293B] px-4 text-[#b68a71] font-bold tracking-wider">OR</span>
+                <span className="px-4 font-bold tracking-wider" style={{ backgroundColor: '#1E293B', color: '#b68a71' }}>OR</span>
               </div>
             </div>
 
@@ -294,7 +324,11 @@ export function AuthForm({ mode }: AuthFormProps) {
             <Button
               onClick={openSubscription}
               variant="outline"
-              className="w-full h-14 border-2 border-[#5271FF] text-[#5271FF] hover:bg-[#5271FF] hover:text-[#F7F2D3] transition-all duration-300 text-lg font-semibold rounded-xl"
+              className="w-full h-14 border-2 transition-all duration-300 text-lg font-semibold rounded-xl"
+              style={{ 
+                borderColor: '#5271FF', 
+                color: '#5271FF' 
+              }}
             >
               <ExternalLink className="mr-3 h-5 w-5" />
               Not a member? Subscribe for $4.99/month
@@ -305,7 +339,8 @@ export function AuthForm({ mode }: AuthFormProps) {
               <button
                 onClick={toggleMode}
                 type="button"
-                className="text-[#5271FF] hover:text-[#4061e0] font-semibold text-lg transition-colors duration-200 hover:underline"
+                className="font-semibold text-lg transition-colors duration-200 hover:underline"
+                style={{ color: '#5271FF' }}
               >
                 {isLogin 
                   ? "New here? Create an account →" 
@@ -318,17 +353,17 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         {/* App Features */}
         <div className="mt-8 text-center">
-          <div className="inline-flex items-center justify-center space-x-8 text-[#F7F2D3]/80">
+          <div className="inline-flex items-center justify-center space-x-8" style={{ color: 'rgba(247, 242, 211, 0.8)' }}>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-[#5271FF] rounded-full shadow-lg"></div>
+              <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: '#5271FF' }}></div>
               <span className="font-medium">AI Coaching</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-[#5271FF] rounded-full shadow-lg"></div>
+              <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: '#5271FF' }}></div>
               <span className="font-medium">Smart Reminders</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-[#5271FF] rounded-full shadow-lg"></div>
+              <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: '#5271FF' }}></div>
               <span className="font-medium">Progress Tracking</span>
             </div>
           </div>
