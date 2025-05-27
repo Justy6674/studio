@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [biometricSupported, setBiometricSupported] = useState(false);
   const router = useRouter();
 
   // Redirect if already logged in
@@ -33,8 +35,10 @@ export default function LoginPage() {
     }
   }, [user, initialLoading, router]);
 
+  // Check for biometric support
   useEffect(() => {
     if (typeof window !== 'undefined' && window.PublicKeyCredential) {
+      setBiometricSupported(true);
     }
   }, []);
 
@@ -56,7 +60,7 @@ export default function LoginPage() {
       }
 
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      // Navigation will happen automatically via useAuth effect
+      router.push("/dashboard");
     } catch (error: any) {
       setError(error.message || "Invalid email or password");
     } finally {
@@ -72,7 +76,7 @@ export default function LoginPage() {
   if (initialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#334155' }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#F7F2D3' }}></div>
       </div>
     );
   }
@@ -80,32 +84,33 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#334155' }}>
       <div className="w-full max-w-md">
-        <Card className="shadow-2xl overflow-hidden rounded-2xl" style={{ backgroundColor: '#1e293b', borderColor: '#b68a71', borderWidth: '2px' }}>
+        <Card className="shadow-2xl overflow-hidden rounded-2xl border-2" style={{ backgroundColor: '#3B475B', borderColor: '#B68A71' }}>
           <CardHeader className="text-center space-y-6 pt-8 pb-6">
-            <div className="mx-auto">
-              <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #5271FF 0%, #4061e0 100%)' }}>
-                <Image
-                  src="/logo-128.png"
-                  alt="Water4WeightLoss"
-                  width={64}
-                  height={64}
-                  className="rounded-2xl"
-                  priority
-                />
-              </div>
+            {/* Logo */}
+            <div className="mx-auto w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #5271FF 0%, #4061e0 100%)' }}>
+              <Image
+                src="/logo-128.png"
+                alt="Water4WeightLoss"
+                width={64}
+                height={64}
+                className="rounded-2xl"
+                priority
+              />
             </div>
 
+            {/* Welcome Message */}
             <div className="space-y-3">
               <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#F7F2D3' }}>
                 Welcome Back!
               </h1>
-              <p className="text-lg font-medium" style={{ color: '#b68a71' }}>
+              <p className="text-lg font-medium" style={{ color: '#B68A71' }}>
                 Ready to track your hydration
               </p>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-6 px-8 pb-8">
+            {/* Error Alert */}
             {error && (
               <Alert className="border-2" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444' }}>
                 <AlertDescription className="font-medium" style={{ color: '#fecaca' }}>{error}</AlertDescription>
@@ -113,12 +118,13 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Email Address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#B68A71' }} />
                   <Input
                     id="email"
                     name="email"
@@ -127,22 +133,23 @@ export default function LoginPage() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="pl-12 h-14 border-2 text-lg rounded-xl transition-all duration-200"
+                    className="pl-12 h-14 border-2 text-lg rounded-xl transition-all duration-200 focus:ring-2 focus:ring-offset-0"
                     style={{ 
                       backgroundColor: '#334155', 
-                      borderColor: '#b68a71', 
+                      borderColor: '#B68A71', 
                       color: '#F7F2D3'
                     }}
                   />
                 </div>
               </div>
 
+              {/* Password Field */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#b68a71' }} />
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#B68A71' }} />
                   <Input
                     id="password"
                     name="password"
@@ -151,24 +158,25 @@ export default function LoginPage() {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="pl-12 pr-12 h-14 border-2 text-lg rounded-xl transition-all duration-200"
+                    className="pl-12 pr-12 h-14 border-2 text-lg rounded-xl transition-all duration-200 focus:ring-2 focus:ring-offset-0"
                     style={{ 
                       backgroundColor: '#334155', 
-                      borderColor: '#b68a71', 
+                      borderColor: '#B68A71', 
                       color: '#F7F2D3'
                     }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors"
-                    style={{ color: '#b68a71' }}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors hover:opacity-80"
+                    style={{ color: '#B68A71' }}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
 
+              {/* Stay Logged In Toggle */}
               <div className="flex items-center justify-between py-2">
                 <Label htmlFor="stay-logged-in" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
                   Stay logged in
@@ -177,20 +185,19 @@ export default function LoginPage() {
                   id="stay-logged-in"
                   checked={stayLoggedIn}
                   onCheckedChange={setStayLoggedIn}
-                  style={{ '--tw-accent-color': '#5271FF' } as any}
+                  className="data-[state=checked]:bg-blue-500"
                 />
               </div>
 
+              {/* Submit Button */}
               <Button 
                 type="submit" 
-                className="w-full h-16 font-bold text-xl rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full h-16 font-bold text-xl rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] hover:opacity-90"
                 style={{ 
                   backgroundColor: '#5271FF', 
                   color: '#F7F2D3'
                 }}
                 disabled={isLoading}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4061e0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5271FF'}
               >
                 {isLoading ? (
                   <>
@@ -203,14 +210,15 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Biometric Support */}
-            
-            
-            
-            
-            
-            
-            
+            {/* Biometric Support Indicator */}
+            {biometricSupported && (
+              <div className="text-center py-2">
+                <div className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: '#B68A71' }}>
+                  <Fingerprint className="h-4 w-4" />
+                  Biometric login supported
+                </div>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="relative py-4">
@@ -218,7 +226,7 @@ export default function LoginPage() {
                 <div className="w-full border-t-2" style={{ borderColor: 'rgba(182, 138, 113, 0.3)' }}></div>
               </div>
               <div className="relative flex justify-center text-sm uppercase">
-                <span className="px-4 font-bold tracking-wider" style={{ backgroundColor: '#1e293b', color: '#b68a71' }}>OR</span>
+                <span className="px-4 font-bold tracking-wider" style={{ backgroundColor: '#3B475B', color: '#B68A71' }}>OR</span>
               </div>
             </div>
 
@@ -232,8 +240,6 @@ export default function LoginPage() {
                 color: '#5271FF',
                 backgroundColor: 'transparent'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(82, 113, 255, 0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <ExternalLink className="mr-3 h-5 w-5" />
               Not a member? Subscribe for $4.99/month
@@ -244,10 +250,8 @@ export default function LoginPage() {
               <button
                 onClick={() => router.push('/signup')}
                 type="button"
-                className="font-semibold text-lg transition-colors duration-200 hover:underline"
+                className="font-semibold text-lg transition-colors duration-200 hover:underline hover:opacity-80"
                 style={{ color: '#5271FF' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#4061e0'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#5271FF'}
               >
                 New here? Create an account →
               </button>
