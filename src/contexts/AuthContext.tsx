@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -40,15 +40,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
-  const value: AuthContextType = {
+  const value = {
     user,
     loading,
     signIn,
     signUp,
-    logout,
+    logout
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
