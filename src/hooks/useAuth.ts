@@ -33,17 +33,7 @@ export function useAuth() {
   };
 
   useEffect(() => {
-    // Set a timeout for initial auth check
-    const authTimeout = setTimeout(() => {
-      if (initialLoading) {
-        console.warn('Firebase Auth timeout');
-        setInitialLoading(false);
-        setLoading(false);
-      }
-    }, 8000);
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      clearTimeout(authTimeout);
       setLoading(true);
       
       if (firebaseUser) {
