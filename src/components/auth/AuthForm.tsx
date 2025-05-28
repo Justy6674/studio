@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useAuth as useAuthContext } from "@/contexts/AuthContext";
+import Image from "next/image";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -99,6 +100,14 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <div className="w-full max-w-md space-y-6 rounded-xl bg-card p-8 shadow-2xl">
       <div className="text-center">
+        <Image
+              src="/logo-128.png"
+              alt="Water4WeightLoss"
+              width={80}
+              height={80}
+              className="rounded-xl"
+              priority
+            />
         <h1 className="text-3xl font-bold text-primary">
           {isLogin ? "Welcome Back to Water4WeightLoss" : "Join Water4WeightLoss"}
         </h1>
@@ -114,7 +123,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
           <div className="space-y-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { UserNav } from "./UserNav";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +22,13 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <Link href="/dashboard" className="flex items-center space-x-2">
-          <Droplet className="h-6 w-6 text-primary" />
+          <Image
+            src="/logo-128.png"
+            alt="Water4WeightLoss"
+            width={32}
+            height={32}
+            className="rounded-md"
+          />
           <span className="font-bold text-lg sm:inline-block">Water4WeightLoss</span>
         </Link>
 
@@ -55,7 +62,13 @@ export function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] bg-background p-6">
                 <div className="mb-8 flex items-center space-x-2">
-                  <Droplet className="h-6 w-6 text-primary" />
+                  <Image
+                    src="/logo-128.png"
+                    alt="Water4WeightLoss"
+                    width={32}
+                    height={32}
+                    className="rounded-md"
+                  />
                   <span className="font-bold text-lg">Water4WeightLoss</span>
                 </div>
                 <nav className="flex flex-col space-y-4">
