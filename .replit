@@ -25,7 +25,7 @@ localPort = 9002
 externalPort = 80
 
 [workflows]
-runButton = "Fresh Clean Server"
+runButton = "Reset Dev Server"
 
 [[workflows.workflow]]
 name = "Development Server"
@@ -170,6 +170,19 @@ args = "npm run dev -- --port 5000 --hostname 0.0.0.0"
 name = "Fresh Clean Server"
 author = 41159292
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev -- --port 3000 --hostname 0.0.0.0"
+
+[[workflows.workflow]]
+name = "Reset Dev Server"
+author = 41159292
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "rm -rf .next node_modules/.cache"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
