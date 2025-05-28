@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useAuth as useAuthContext } from "@/contexts/AuthContext";
-import Image from "next/image";
+// Removed Next.js Image import - using direct img tag instead
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -104,17 +104,14 @@ export function AuthForm({ mode }: AuthFormProps) {
           <img
             src="/logo-128.png"
             alt="Water4WeightLoss"
-            width={80}
-            height={80}
-            className="rounded-xl"
+            width="80"
+            height="80"
+            className="rounded-xl w-20 h-20 object-contain"
+            onLoad={() => console.log('✅ Logo loaded successfully!')}
             onError={(e) => {
-              console.error('Logo failed to load:', e);
-              // Fallback to text if image fails
-              e.currentTarget.style.display = 'none';
-              const fallback = document.createElement('div');
-              fallback.className = 'w-20 h-20 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl';
-              fallback.textContent = 'W4W';
-              e.currentTarget.parentNode?.appendChild(fallback);
+              console.error('❌ Logo failed to load from /logo-128.png');
+              // Immediate fallback
+              e.currentTarget.outerHTML = '<div class="w-20 h-20 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl">W4W</div>';
             }}
           />
         </div>
