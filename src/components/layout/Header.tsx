@@ -22,13 +22,9 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <Link href="/dashboard" className="flex items-center space-x-2">
-          <Image
-            src="/logo-128.png"
-            alt="Water4WeightLoss"
-            width={32}
-            height={32}
-            className="rounded-md"
-          />
+          <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+            <span className="text-white font-bold text-sm">W4</span>
+          </div>
           <span className="font-bold text-lg sm:inline-block">Water4WeightLoss</span>
         </Link>
 
@@ -62,13 +58,9 @@ export function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] bg-background p-6">
                 <div className="mb-8 flex items-center space-x-2">
-                  <Image
-                    src="/logo-128.png"
-                    alt="Water4WeightLoss"
-                    width={32}
-                    height={32}
-                    className="rounded-md"
-                  />
+                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">W4</span>
+                  </div>
                   <span className="font-bold text-lg">Water4WeightLoss</span>
                 </div>
                 <nav className="flex flex-col space-y-4">
