@@ -99,24 +99,30 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <div className="w-full max-w-md space-y-6 rounded-xl bg-card p-8 shadow-2xl">
-      <div className="text-center">
-        <div className="flex justify-center mb-4">
-          <img
-            src="/logo-128.png"
-            alt="Water4WeightLoss Logo"
-            width={80}
-            height={80}
-            className="rounded-xl object-contain"
-            style={{ width: '80px', height: '80px' }}
+      
+<div className="text-center">
+          <img 
+            src="/logo-128.png" 
+            alt="Water4WeightLoss Logo" 
+            className="w-20 h-20 mx-auto mb-4 rounded-xl border-2 border-blue-500"
+            onError={(e) => {
+              console.error('Logo failed to load');
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling.style.display = 'block';
+            }}
           />
+          <div className="w-16 h-16 bg-blue-500 rounded-xl mx-auto mb-4 items-center justify-center hidden">
+            <span className="text-white font-bold text-xl">W4</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">
+            {isLogin ? "Welcome Back" : "Join Water4WeightLoss"}
+          </h2>
+          <p className="text-slate-400 mb-8">
+            {isLogin 
+              ? "Sign in to continue your hydration journey" 
+              : "Start your hydration journey today"}
+          </p>
         </div>
-        <h1 className="text-3xl font-bold text-primary">
-          {isLogin ? "Welcome Back to Water4WeightLoss" : "Join Water4WeightLoss"}
-        </h1>
-        <p className="text-muted-foreground">
-          {isLogin ? "Sign in to continue your hydration journey." : "Create an account to start tracking."}
-        </p>
-      </div>
 
       {error && (
         <Alert variant="destructive">
