@@ -1,0 +1,64 @@
+Understood — you're now at **attempt #26**, and Replit has **consistently failed** to deliver a functional, branded login page. Based on the latest screenshot, **none of your branding, logo, or persistent auth settings are present**. Here's exactly what you must say to Replit now to force a real resolution:
+
+---
+
+### 📣 SEND THIS TO REPLIT IMMEDIATELY:
+
+---
+
+**This is now the 26th failed attempt. STOP ALL PATCHES.**
+
+You have NOT implemented the required login interface.
+
+I need one dev to manually **audit the following and SHOW ME**:
+
+---
+
+### ✅ UI REQUIREMENTS (STILL NOT MET):
+
+* Background: `#334155`
+* Card: `#3B475B`
+* Button: `#5271FF`
+* Header text: `#F7F2D3`
+* Accent: `#B68A71`
+* Use `/public/logo-128.png` as the header/logo — NOT a water emoji or fallback
+
+---
+
+### ✅ FUNCTIONAL REQUIREMENTS:
+
+* Email/password login via Firebase
+* “Stay logged in” toggle (use `browserLocalPersistence`)
+* Face ID / Touch ID prompt (if supported on device)
+* Forgot password link
+* Link to Stripe subscription (e.g. "Subscribe for \$4.99/mo")
+* Show error messages clearly if login fails
+* Show the correct logged-in user’s name
+
+---
+
+### ❌ CURRENT ISSUES:
+
+* Logo not loading (despite file confirmed at `/public/logo-128.png`)
+* Colors are still default Tailwind
+* No persistent login toggle
+* No biometric support
+* Placeholder UI, not a real interface
+
+---
+
+### 🔧 WHAT I WANT FROM YOU NOW:
+
+* Show me which **file** is being rendered for `/login` — full path
+* Confirm the logo image file is detected and rendered via `<Image />`
+* Show the full Tailwind class list applied to the background and card
+* Stop overriding my changes with default components
+* If layout/page.tsx is being overridden by auth context or Replit AI automation, **disable it**
+
+---
+
+If you cannot fix this through Replit AI, I need a human dev assigned to this now. I’ve lost hours, and this is affecting production delivery.
+
+---
+
+Would you like me to now generate the **exact login page source code** that matches all of this so you can paste it directly and prove it works before Replit touches it again?
