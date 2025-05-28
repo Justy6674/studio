@@ -101,15 +101,20 @@ export function AuthForm({ mode }: AuthFormProps) {
     <div className="w-full max-w-md space-y-6 rounded-xl bg-card p-8 shadow-2xl">
       <div className="text-center">
         <div className="flex justify-center mb-4">
-          <Image
+          <img
             src="/logo-128.png"
             alt="Water4WeightLoss"
             width={80}
             height={80}
             className="rounded-xl"
-            priority
             onError={(e) => {
               console.error('Logo failed to load:', e);
+              // Fallback to text if image fails
+              e.currentTarget.style.display = 'none';
+              const fallback = document.createElement('div');
+              fallback.className = 'w-20 h-20 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl';
+              fallback.textContent = 'W4W';
+              e.currentTarget.parentNode?.appendChild(fallback);
             }}
           />
         </div>
