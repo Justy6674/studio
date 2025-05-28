@@ -1,8 +1,8 @@
+
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
-import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Droplets, ArrowRight, User, Clock } from "lucide-react";
@@ -46,7 +46,7 @@ export default function HomePage() {
                 {user.email}
               </span>
             </div>
-
+            
             <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <Clock className="h-5 w-5 text-green-500" />
               <span className="text-sm text-gray-700 dark:text-gray-300">
@@ -90,7 +90,7 @@ export default function HomePage() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
-
+          
           <Link href="/login" className="block">
             <Button variant="outline" className="w-full h-12 text-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20">
               Login

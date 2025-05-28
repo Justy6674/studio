@@ -22,7 +22,8 @@ console.log('All env keys:', Object.keys(process.env).filter(key => key.startsWi
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getFirestore(appp);
 const functions = getFunctions(app);
 
-export { auth, db, functions };
+export { auth, db, functions };stFirebaseConfig();
+}
