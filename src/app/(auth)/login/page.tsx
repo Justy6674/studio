@@ -1,281 +1,233 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Mail, Lock, Eye, EyeOff, Loader2, ExternalLink, Fingerprint } from "lucide-react";
-import Image from "next/image";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff, Mail, Lock, Smartphone, Chrome } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const { user, initialLoading } = useAuth();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [stayLoggedIn, setStayLoggedIn] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [stayLoggedIn, setStayLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (!initialLoading && user) {
-      router.replace("/dashboard");
-    }
-  }, [user, initialLoading, router]);
-
-  // Check for biometric support
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.PublicKeyCredential) {
-      setBiometricSupported(true);
-    }
-  }, []);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    setLoading(true);
+    setError('');
 
     try {
-      if (stayLoggedIn) {
-        await setPersistence(auth, browserLocalPersistence);
-      }
-
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      router.push("/dashboard");
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/dashboard');
     } catch (error: any) {
-      setError(error.message || "Invalid email or password");
+      setError(error.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const openSubscription = () => {
-    window.open("https://buy.stripe.com/7sIg1FgK8fPv5hGaEF", "_blank");
-  };
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
 
-  // Show loading while checking auth state
-  if (initialLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#334155' }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#F7F2D3' }}></div>
-      </div>
-    );
-  }
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      router.push('/dashboard');
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#334155' }}>
-      <div className="w-full max-w-md">
-        <Card className="shadow-2xl overflow-hidden rounded-2xl border-2" style={{ backgroundColor: '#3B475B', borderColor: '#B68A71' }}>
-          <CardHeader className="text-center space-y-6 pt-8 pb-6">
-            {/* Logo */}
-            <div className="mx-auto w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #5271FF 0%, #4061e0 100%)' }}>
-              <Image
-                src="/logo-128.png"
-                alt="Water4WeightLoss"
-                width={64}
-                height={64}
-                className="rounded-2xl"
-                priority
-              />
-            </div>
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo and Header */}
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <Image
+              src="/logo-128.png"
+              alt="Water4WeightLoss"
+              width={80}
+              height={80}
+              className="rounded-lg"
+              priority
+            />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold" style={{ color: '#F7F2D3' }}>
+              Welcome Back
+            </h1>
+            <p className="text-lg" style={{ color: '#B68A71' }}>
+              Continue your hydration journey
+            </p>
+          </div>
+        </div>
 
-            {/* Welcome Message */}
-            <div className="space-y-3">
-              <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#F7F2D3' }}>
-                Welcome Back!
-              </h1>
-              <p className="text-lg font-medium" style={{ color: '#B68A71' }}>
-                Ready to track your hydration
-              </p>
-            </div>
+        {/* Login Card */}
+        <Card className="border-0 shadow-2xl" style={{ backgroundColor: '#3B475B' }}>
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl text-center" style={{ color: '#F7F2D3' }}>
+              Sign In
+            </CardTitle>
+            <CardDescription className="text-center" style={{ color: '#B68A71' }}>
+              Enter your credentials to access your account
+            </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6 px-8 pb-8">
+          <CardContent className="space-y-6">
             {/* Error Alert */}
             {error && (
-              <Alert className="border-2" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444' }}>
-                <AlertDescription className="font-medium" style={{ color: '#fecaca' }}>{error}</AlertDescription>
+              <Alert className="border-red-500 bg-red-500/10">
+                <AlertDescription className="text-red-400">
+                  {error}
+                </AlertDescription>
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email Field */}
+            {/* Email/Password Form */}
+            <form onSubmit={handleEmailLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
+                <Label htmlFor="email" className="text-sm font-medium" style={{ color: '#F7F2D3' }}>
                   Email Address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#B68A71' }} />
+                  <Mail className="absolute left-3 top-3 h-4 w-4" style={{ color: '#B68A71' }} />
                   <Input
                     id="email"
-                    name="email"
                     type="email"
-                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 focus:border-blue-500"
+                    placeholder="Enter your email"
                     required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="pl-12 h-14 border-2 text-lg rounded-xl transition-all duration-200 focus:ring-2 focus:ring-offset-0"
-                    style={{ 
-                      backgroundColor: '#334155', 
-                      borderColor: '#B68A71', 
-                      color: '#F7F2D3'
-                    }}
                   />
                 </div>
               </div>
 
-              {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
+                <Label htmlFor="password" className="text-sm font-medium" style={{ color: '#F7F2D3' }}>
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#B68A71' }} />
+                  <Lock className="absolute left-3 top-3 h-4 w-4" style={{ color: '#B68A71' }} />
                   <Input
                     id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10 bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 focus:border-blue-500"
+                    placeholder="Enter your password"
                     required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="pl-12 pr-12 h-14 border-2 text-lg rounded-xl transition-all duration-200 focus:ring-2 focus:ring-offset-0"
-                    style={{ 
-                      backgroundColor: '#334155', 
-                      borderColor: '#B68A71', 
-                      color: '#F7F2D3'
-                    }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors hover:opacity-80"
-                    style={{ color: '#B68A71' }}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-200"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* Stay Logged In Toggle */}
-              <div className="flex items-center justify-between py-2">
-                <Label htmlFor="stay-logged-in" className="font-semibold text-sm" style={{ color: '#F7F2D3' }}>
-                  Stay logged in
-                </Label>
-                <Switch
+              {/* Stay Logged In */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
                   id="stay-logged-in"
                   checked={stayLoggedIn}
                   onCheckedChange={setStayLoggedIn}
-                  className="data-[state=checked]:bg-blue-500"
+                  className="border-slate-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                 />
+                <Label
+                  htmlFor="stay-logged-in"
+                  className="text-sm font-medium cursor-pointer"
+                  style={{ color: '#F7F2D3' }}
+                >
+                  Stay logged in for 30 days
+                </Label>
               </div>
 
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full h-16 font-bold text-xl rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] hover:opacity-90"
-                style={{ 
-                  backgroundColor: '#5271FF', 
-                  color: '#F7F2D3'
-                }}
-                disabled={isLoading}
+              {/* Biometric Support Indicator */}
+              <div className="flex items-center space-x-2 text-sm" style={{ color: '#B68A71' }}>
+                <Smartphone className="h-4 w-4" />
+                <span>Biometric login available on supported devices</span>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full text-white font-semibold py-3 rounded-lg transition-colors"
+                style={{ backgroundColor: '#5271FF' }}
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-3 h-6 w-6 animate-spin" />
-                    Signing In...
-                  </>
-                ) : (
-                  "Go to Dashboard"
-                )}
+                {loading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
 
-            {/* Biometric Support Indicator */}
-            {biometricSupported && (
-              <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: '#B68A71' }}>
-                  <Fingerprint className="h-4 w-4" />
-                  Biometric login supported
-                </div>
-              </div>
-            )}
-
             {/* Divider */}
-            <div className="relative py-4">
+            <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t-2" style={{ borderColor: 'rgba(182, 138, 113, 0.3)' }}></div>
+                <Separator className="w-full bg-slate-600" />
               </div>
-              <div className="relative flex justify-center text-sm uppercase">
-                <span className="px-4 font-bold tracking-wider" style={{ backgroundColor: '#3B475B', color: '#B68A71' }}>OR</span>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-slate-700 px-2" style={{ color: '#B68A71' }}>
+                  Or continue with
+                </span>
               </div>
             </div>
 
-            {/* Subscription Link */}
+            {/* Google Login */}
             <Button
-              onClick={openSubscription}
+              type="button"
               variant="outline"
-              className="w-full h-14 border-2 transition-all duration-300 text-lg font-semibold rounded-xl hover:bg-opacity-10"
-              style={{ 
-                borderColor: '#5271FF', 
-                color: '#5271FF',
-                backgroundColor: 'transparent'
-              }}
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600"
             >
-              <ExternalLink className="mr-3 h-5 w-5" />
-              Not a member? Subscribe for $4.99/month
+              <Chrome className="mr-2 h-4 w-4" />
+              Sign in with Google
             </Button>
 
-            {/* Toggle Mode */}
-            <div className="text-center pt-4">
-              <button
-                onClick={() => router.push('/signup')}
-                type="button"
-                className="font-semibold text-lg transition-colors duration-200 hover:underline hover:opacity-80"
+            {/* Footer Links */}
+            <div className="text-center space-y-2">
+              <Link
+                href="/signup"
+                className="text-sm hover:underline transition-colors"
                 style={{ color: '#5271FF' }}
               >
-                New here? Create an account →
-              </button>
+                Don't have an account? Sign up
+              </Link>
+
+              <div className="text-xs" style={{ color: '#B68A71' }}>
+                <Link href="/subscription" className="hover:underline">
+                  Subscribe for $4.99 AUD/month
+                </Link>
+                {' • '}
+                <Link href="/terms" className="hover:underline">
+                  Terms
+                </Link>
+                {' • '}
+                <Link href="/privacy" className="hover:underline">
+                  Privacy
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* App Features */}
-        <div className="mt-8 text-center">
-          <div className="inline-flex items-center justify-center space-x-8" style={{ color: 'rgba(247, 242, 211, 0.8)' }}>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full shadow-lg animate-pulse" style={{ backgroundColor: '#5271FF' }}></div>
-              <span className="font-medium">AI Coaching</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full shadow-lg animate-pulse" style={{ backgroundColor: '#5271FF', animationDelay: '0.5s' }}></div>
-              <span className="font-medium">Smart Reminders</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full shadow-lg animate-pulse" style={{ backgroundColor: '#5271FF', animationDelay: '1s' }}></div>
-              <span className="font-medium">Progress Tracking</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
