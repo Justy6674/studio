@@ -18,6 +18,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [user, initialLoading, router]);
 
+  // Add timeout for loading state
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (initialLoading) {
+        console.warn('Auth loading timeout - redirecting to login');
+        router.replace('/login');
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [initialLoading, router]);
+
   if (initialLoading || !user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
