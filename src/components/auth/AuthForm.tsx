@@ -101,19 +101,9 @@ export function AuthForm({ mode }: AuthFormProps) {
     <div className="w-full max-w-md space-y-6 rounded-xl bg-card p-8 shadow-2xl">
       <div className="text-center">
         <div className="flex justify-center mb-4">
-          <img
-            src="/logo-128.png"
-            alt="Water4WeightLoss"
-            width="80"
-            height="80"
-            className="rounded-xl w-20 h-20 object-contain"
-            onLoad={() => console.log('✅ Logo loaded successfully!')}
-            onError={(e) => {
-              console.error('❌ Logo failed to load from /logo-128.png');
-              // Immediate fallback
-              e.currentTarget.outerHTML = '<div class="w-20 h-20 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl">W4W</div>';
-            }}
-          />
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+            W4W
+          </div>
         </div>
         <h1 className="text-3xl font-bold text-primary">
           {isLogin ? "Welcome Back to Water4WeightLoss" : "Join Water4WeightLoss"}
