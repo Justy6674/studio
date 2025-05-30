@@ -307,11 +307,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Tabbed Content */}
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs defaultValue="water" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-800 border border-slate-600">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+            <TabsTrigger value="water" className="flex items-center gap-2">
               <Droplets className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
+              <span className="hidden sm:inline">Water</span>
             </TabsTrigger>
             <TabsTrigger value="metrics" className="flex items-center gap-2">
               <Scale className="h-4 w-4" />
@@ -324,7 +324,7 @@ export default function DashboardPage() {
           </TabsList>
 
           {/* Overview Tab - Original Dashboard */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="water" className="space-y-6">
             {/* Main Progress & Action Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Progress Glass - Main Event */}
