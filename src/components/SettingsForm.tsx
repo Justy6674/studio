@@ -17,18 +17,21 @@ import { SlidersHorizontal, Palette, Clock, Phone, TestTube, Sparkles, Bell, Bel
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
 
 const aiTones = [
-  { value: 'motivational', label: 'Motivational' },
-  { value: 'friendly', label: 'Friendly' },
-  { value: 'professional', label: 'Professional' },
-  { value: 'funny', label: 'Funny' },
-  { value: 'encouraging', label: 'Encouraging' },
+  { value: 'Default', label: 'Default - Balanced & Friendly' },
+  { value: 'Clinical', label: 'Clinical - Professional & Educational' },
+  { value: 'Funny', label: 'Funny - Humorous & Playful' },
+  { value: 'Crass', label: 'Crass - Raw & Unfiltered' },
+  { value: 'Sarcastic', label: 'Sarcastic - Witty & Cheeky' },
+  { value: 'Warm', label: 'Warm - Caring & Supportive' },
+  { value: 'Kind', label: 'Kind - Gentle & Compassionate' },
+  { value: 'Educational', label: 'Educational - Informative & Learning' },
 ];
 
 const reminderPresets = [
-  { value: 'hourly', label: 'Every Hour (8AM-8PM)', times: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'] },
-  { value: 'every2h', label: 'Every 2 Hours', times: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'] },
-  { value: 'meals', label: 'Meal Times', times: ['08:00', '12:00', '18:00'] },
-  { value: 'custom', label: 'Custom Times', times: [] },
+  { value: 'twice', label: '2 Times Daily (Recommended)', times: ['08:00', '18:00'] },
+  { value: 'meals', label: 'Morning & Evening', times: ['08:00', '20:00'] },
+  { value: 'workday', label: 'Start & End of Workday', times: ['09:00', '17:00'] },
+  { value: 'custom', label: 'Custom Times (Max 2)', times: [] },
 ];
 
 const availableTimes = [
@@ -47,7 +50,7 @@ export function SettingsForm() {
     sipAmount: 50,
     phoneNumber: '',
     smsEnabled: false,
-    aiTone: 'motivational',
+    aiTone: 'Default',
     motivationTone: 'Default',
     motivationFrequency: 'Every log',
     reminderPreset: 'meals',
@@ -56,6 +59,8 @@ export function SettingsForm() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
+  const [testingAI, setTestingAI] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<any>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [requestingPermission, setRequestingPermission] = useState(false);
 
@@ -67,7 +72,7 @@ export function SettingsForm() {
         sipAmount: userProfile.sipAmount || 50,
         phoneNumber: userProfile.phoneNumber || '',
         smsEnabled: userProfile.smsEnabled || false,
-        aiTone: userProfile.aiTone || 'motivational',
+        aiTone: userProfile.aiTone || 'Default',
         motivationTone: userProfile.motivationTone || 'Default',
         motivationFrequency: userProfile.motivationFrequency || 'Every log',
         reminderPreset: 'custom', // Default to custom since we're loading existing times
@@ -110,6 +115,19 @@ export function SettingsForm() {
   };
 
   const handleTimeToggle = (time: string) => {
+    const currentCount = Object.values(settings.reminderTimes).filter(Boolean).length;
+    const isCurrentlyEnabled = settings.reminderTimes[time];
+    
+    // Enforce 2 SMS limit
+    if (!isCurrentlyEnabled && currentCount >= 2) {
+      toast({
+        variant: "destructive",
+        title: "SMS Limit Reached",
+        description: "Maximum 2 SMS reminders per day to keep costs down and avoid being spammy.",
+      });
+      return;
+    }
+    
     setSettings(prev => ({
       ...prev,
       reminderPreset: 'custom',
@@ -155,6 +173,64 @@ export function SettingsForm() {
       });
     } finally {
       setTestingSMS(false);
+    }
+  };
+
+  const handleTestAI = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please log in to test AI motivation.",
+      });
+      return;
+    }
+
+    setTestingAI(true);
+    setAiTestResult(null);
+    
+    try {
+      const testData = {
+        userId: user.uid,
+        ml_logged_today: 1200,
+        goal_ml: settings.hydrationGoal,
+        percent_of_goal: (1200 / settings.hydrationGoal) * 100,
+        current_streak: 5,
+        best_streak: 12,
+        last_log_time: new Date().toISOString(),
+        is_first_log: false,
+        day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+        time_of_day: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        debug_mode: true
+      };
+
+      const response = await fetch('/api/ai/motivation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAiTestResult(result);
+        
+        toast({
+          title: "AI Test Complete! 🤖",
+          description: `Generated message with ${settings.motivationTone || settings.aiTone} tone`,
+          duration: 4000,
+        });
+      } else {
+        throw new Error('Failed to test AI');
+      }
+    } catch (error) {
+      console.error('Error testing AI:', error);
+      toast({
+        variant: "destructive",
+        title: "AI Test Failed",
+        description: "Could not test AI motivation. Please try again.",
+      });
+    } finally {
+      setTestingAI(false);
     }
   };
 
@@ -457,23 +533,89 @@ export function SettingsForm() {
             
             <div className="space-y-2">
               <Label className="text-slate-300">AI Tone</Label>
-              <Select
-                value={settings.aiTone}
-                onValueChange={(value) => setSettings(prev => ({ ...prev, aiTone: value }))}
-                disabled={isLoading}
-              >
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-100">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  {aiTones.map((tone) => (
-                    <SelectItem key={tone.value} value={tone.value} className="text-slate-100">
-                      {tone.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={settings.motivationTone}
+                  onValueChange={(value) => setSettings(prev => ({ ...prev, motivationTone: value, aiTone: value }))}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-100 flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    {aiTones.map((tone) => (
+                      <SelectItem key={tone.value} value={tone.value} className="text-slate-100">
+                        {tone.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTestAI}
+                  disabled={testingAI}
+                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                >
+                  {testingAI ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      Testing...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Test AI
+                    </div>
+                  )}
+                </Button>
+              </div>
+              
+              <p className="text-xs text-slate-400">
+                Choose how your AI motivation coach speaks to you. Test it to see the tone in action!
+              </p>
             </div>
+
+            {/* AI Test Result */}
+            {aiTestResult && (
+              <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+                  <Sparkles className="h-4 w-4 text-brown-400" />
+                  AI Test Result
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="p-3 bg-slate-800 rounded border border-slate-600">
+                    <div className="text-sm text-slate-300 mb-1">Generated Message:</div>
+                    <div className="text-slate-100 font-medium">"{aiTestResult.message}"</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-slate-400">
+                    <div>
+                      <span className="font-medium">Source:</span> {aiTestResult.source}
+                    </div>
+                    <div>
+                      <span className="font-medium">Tone:</span> {aiTestResult.tone}
+                    </div>
+                    <div>
+                      <span className="font-medium">Time:</span> {aiTestResult.response_time_ms}ms
+                    </div>
+                  </div>
+                  
+                  {aiTestResult.debug && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-slate-400 hover:text-slate-300">
+                        Debug Info
+                      </summary>
+                      <pre className="mt-2 p-2 bg-slate-900 rounded text-slate-300 overflow-auto text-xs">
+                        {JSON.stringify(aiTestResult.debug, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SMS Reminders */}
@@ -529,8 +671,12 @@ export function SettingsForm() {
                 disabled={isLoading}
               />
               <Label htmlFor="smsEnabled" className="text-slate-300">
-                Enable SMS reminders
+                Enable SMS reminders (Max 2/day)
               </Label>
+            </div>
+            
+            <div className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded p-2">
+              ⚠️ <strong>Important:</strong> SMS messages may incur standard carrier charges. We limit reminders to 2 per day to keep it helpful, not spammy.
             </div>
 
             {settings.smsEnabled && (

@@ -17,10 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale } from "lucide-react";
+import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale, Flame, Award } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
+import { OnboardingTip } from "@/components/onboarding/OnboardingTip";
+import { StreakCelebration } from "@/components/celebrations/StreakCelebration";
 
 interface DailyLogSummary {
   date: string; // YYYY-MM-DD
@@ -41,9 +43,22 @@ export default function DashboardPage() {
   const [glassAnimation, setGlassAnimation] = useState(false);
   const [aiMotivation, setAIMotivation] = useState<string>("");
   const [loadingMotivation, setLoadingMotivation] = useState(false);
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [celebrationStreak, setCelebrationStreak] = useState(0);
+  const [isNewRecord, setIsNewRecord] = useState(false);
 
   const userName = userProfile?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Friend';
   const hydrationGoal = userProfile?.hydrationGoal || 2000;
+
+  // Enhanced onboarding tip for first-time users
+  const [showOnboardingTip, setShowOnboardingTip] = useState(false);
+
+  useEffect(() => {
+    // Show onboarding tip for new users (first 3 logs)
+    if (hydrationLogs.length <= 3 && hydrationLogs.length > 0) {
+      setShowOnboardingTip(true);
+    }
+  }, [hydrationLogs]);
 
   // Generate smart AI tip based on progress
   const generateSmartTip = useCallback(() => {
@@ -87,6 +102,13 @@ export default function DashboardPage() {
       // Calculate streaks
       const dailyTotals = calculateDailyTotals(logs);
       const { currentStreak, longestStreak: maxStreak } = calculateStreaks(dailyTotals, hydrationGoal);
+      
+      // Celebrate streak milestones
+      if (currentStreak > dailyStreak && (currentStreak === 3 || currentStreak === 7 || currentStreak % 10 === 0)) {
+        setShowStreakCelebration(true);
+        setTimeout(() => setShowStreakCelebration(false), 3000);
+      }
+      
       setDailyStreak(currentStreak);
       setLongestStreak(maxStreak);
       
@@ -96,7 +118,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, hydrationGoal]);
+  }, [user, hydrationGoal, dailyStreak]);
 
   const fetchMotivation = useCallback(async () => {
     if (!user) return;
@@ -124,21 +146,44 @@ export default function DashboardPage() {
 
   const handleLogWater = async (amount: number) => {
     if (!user) return;
-    
+
     try {
+      setGlassAnimation(true);
+      
       const result = await logHydration(amount);
+      
       if (result.success) {
+        // Update current intake
         setCurrentIntake(prev => prev + amount);
-        setGlassAnimation(true);
         
+        // Refresh hydration logs
+        const updatedLogs = await getHydrationLogs(30);
+        setHydrationLogs(updatedLogs);
+        
+        // Calculate streaks from daily totals
+        const dailyTotals = calculateDailyTotals(updatedLogs);
+        const { currentStreak: newStreak } = calculateStreaks(dailyTotals, hydrationGoal);
+        const { currentStreak: oldStreak } = calculateStreaks(calculateDailyTotals(hydrationLogs), hydrationGoal);
+        
+        // Show celebration for milestones (3, 7, 14, 21, 30+ days)
+        const milestones = [3, 7, 14, 21, 30];
+        const shouldCelebrate = milestones.includes(newStreak) || 
+                               (newStreak > oldStreak && newStreak > 0 && (newStreak % 7 === 0 || newStreak >= 30));
+        
+        if (shouldCelebrate) {
+          setCelebrationStreak(newStreak);
+          setIsNewRecord(newStreak > oldStreak);
+          setShowStreakCelebration(true);
+        }
+        
+        // Show success toast
         toast({
           title: "Water logged! 💧",
           description: `Added ${amount}ml to your daily intake`,
           duration: 2000,
         });
         
-        setTimeout(() => setGlassAnimation(false), 2000);
-        
+        // Check for goal achievement
         const newPercentage = ((currentIntake + amount) / hydrationGoal) * 100;
         if (newPercentage >= 100 && currentIntake < hydrationGoal) {
           showMotivationNotification("🎉 Daily goal achieved! Great hydration work!");
@@ -150,7 +195,12 @@ export default function DashboardPage() {
           variant: "destructive",
         });
       }
+      
+      // Reset glass animation after a delay
+      setTimeout(() => setGlassAnimation(false), 1000);
+      
     } catch (error) {
+      console.error('Error logging water:', error);
       toast({
         title: "Error",
         description: "Failed to log water. Please try again.",
@@ -293,22 +343,33 @@ export default function DashboardPage() {
   const progressPercentage = hydrationGoal > 0 ? Math.min((currentIntake / hydrationGoal) * 100, 100) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
-      <div className="max-w-7xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
-        {/* Header Section */}
-        <div className="space-y-2 md:space-y-3">
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-2 h-2 md:w-3 md:h-3 bg-hydration-400 rounded-full animate-pulse"></div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-hydration-400 to-brown-400 bg-clip-text text-transparent">
-              Welcome back, {userName}!
-            </h1>
-          </div>
-          <p className="text-slate-400 text-sm md:text-base lg:text-lg">Track your hydration journey and stay motivated with AI insights</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Onboarding Tip */}
+      {user && <OnboardingTip userId={user.uid} />}
+      
+      {/* Streak Celebration */}
+      {showStreakCelebration && (
+        <StreakCelebration
+          streak={celebrationStreak}
+          isNewRecord={isNewRecord}
+          onDismiss={() => setShowStreakCelebration(false)}
+        />
+      )}
+
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+            Water4WeightLoss
+          </h1>
+          <p className="text-slate-300 text-lg">
+            Track your hydration journey, {userName}! 💧
+          </p>
         </div>
 
-        {/* Main Tabbed Content */}
+        {/* Main Tabbed Content with Brown Borders */}
         <Tabs defaultValue="water" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4 md:mb-6 bg-slate-800 border border-slate-600 h-12 md:h-10">
+          <TabsList className="grid w-full grid-cols-3 mb-4 md:mb-6 bg-slate-800 border border-[#b68a71] h-12 md:h-10">
             <TabsTrigger value="water" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
               <Droplets className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Water</span>
@@ -326,11 +387,11 @@ export default function DashboardPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Water Tab - Original Dashboard */}
+          {/* Water Tab - Streamlined Dashboard */}
           <TabsContent value="water" className="space-y-4 md:space-y-6">
-            {/* Main Progress & Action Section */}
+            {/* Main Hero Section - Large Glass & Quick Actions Above Fold */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {/* Progress Glass - Main Event */}
+              {/* Progress Glass - Larger, More Prominent */}
               <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
                 <CardHeader className="pb-3 md:pb-4">
                   <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
@@ -344,12 +405,12 @@ export default function DashboardPage() {
                   <WaterGlass 
                     currentIntake={currentIntake} 
                     goalIntake={hydrationGoal} 
-                    size={280} 
+                    size={320} 
                     triggerAnimation={glassAnimation}
                   />
                   
-                  {/* AI Smart Tip */}
-                  <div className="w-full p-3 md:p-4 bg-slate-700/50 rounded-lg border border-[#b68a71]/30">
+                  {/* Enhanced Smart Tip with Brown Border */}
+                  <div className="w-full p-3 md:p-4 bg-slate-700/50 border border-[#b68a71]/30 rounded-lg">
                     <div className="flex items-start gap-2 md:gap-3">
                       <div className="p-1 md:p-1.5 bg-hydration-400/20 rounded-lg">
                         <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-hydration-400" />
@@ -357,18 +418,13 @@ export default function DashboardPage() {
                       <div>
                         <h4 className="text-xs md:text-sm font-semibold text-slate-200 mb-1">Smart Tip</h4>
                         <p className="text-xs md:text-sm text-slate-300">{generateSmartTip()}</p>
-                        {dailyStreak > 0 && (
-                          <p className="text-xs text-brown-400 mt-1">
-                            🔥 Current streak: {dailyStreak} day{dailyStreak !== 1 ? 's' : ''}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Log Water - Action Area */}
+              {/* Log Water - Thumb-Friendly, Above Fold */}
               <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
                 <CardHeader className="pb-3 md:pb-4">
                   <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
@@ -384,12 +440,23 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {/* 7-Day Chart - Full Width Below Main Features */}
+            {/* AI Motivation - Streamlined */}
+            <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
+              <CardContent className="p-4 md:p-6">
+                <AIMotivationCard 
+                  motivation={aiMotivation} 
+                  loading={loadingMotivation}
+                  onRefresh={fetchMotivation}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 7-Day Chart - Optional Below Fold */}
             <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
               <CardHeader className="pb-3 md:pb-4">
                 <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
-                  <div className="p-1.5 md:p-2 bg-brown-400/20 rounded-lg">
-                    <BarChart className="h-4 w-4 md:h-6 md:w-6 text-brown-400" />
+                  <div className="p-1.5 md:p-2 bg-[#b68a71]/20 rounded-lg">
+                    <BarChart className="h-4 w-4 md:h-6 md:w-6 text-[#b68a71]" />
                   </div>
                   7-Day Overview
                 </CardTitle>
@@ -424,17 +491,6 @@ export default function DashboardPage() {
                 </ChartContainer>
               </CardContent>
             </Card>
-
-            {/* AI Motivation */}
-            <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-              <CardContent className="p-4 md:p-6">
-                <AIMotivationCard 
-                  motivation={aiMotivation} 
-                  loading={loadingMotivation}
-                  onRefresh={fetchMotivation}
-                />
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Body Metrics Tab */}
@@ -442,11 +498,18 @@ export default function DashboardPage() {
             <BodyMetricsTracker />
           </TabsContent>
 
-          {/* Export Tab */}
+          {/* Export Tab - Keep as is */}
           <TabsContent value="export" className="space-y-6">
             <WaterLogExporter />
           </TabsContent>
         </Tabs>
+
+        {/* Privacy Notice - Subtle Footer */}
+        <div className="text-center py-4 border-t border-slate-700">
+          <p className="text-xs text-slate-500">
+            🔒 Your data is private and only you can download it. No data sold or shared.
+          </p>
+        </div>
       </div>
     </div>
   );
