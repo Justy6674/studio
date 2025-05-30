@@ -13,7 +13,8 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { UserProfile } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlidersHorizontal, Palette, Clock, Phone, TestTube, Sparkles } from "lucide-react";
+import { SlidersHorizontal, Palette, Clock, Phone, TestTube, Sparkles, Bell, BellRing } from "lucide-react";
+import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
 
 const aiTones = [
   { value: 'motivational', label: 'Motivational' },
@@ -48,12 +49,15 @@ export function SettingsForm() {
     smsEnabled: false,
     aiTone: 'motivational',
     motivationTone: 'Default',
-    motivationFrequency: 'After each log',
+    motivationFrequency: 'Every log',
     reminderPreset: 'meals',
     reminderTimes: {} as Record<string, boolean>,
+    pushNotifications: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [requestingPermission, setRequestingPermission] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
@@ -65,12 +69,20 @@ export function SettingsForm() {
         smsEnabled: userProfile.smsEnabled || false,
         aiTone: userProfile.aiTone || 'motivational',
         motivationTone: userProfile.motivationTone || 'Default',
-        motivationFrequency: userProfile.motivationFrequency || 'After each log',
+        motivationFrequency: userProfile.motivationFrequency || 'Every log',
         reminderPreset: 'custom', // Default to custom since we're loading existing times
         reminderTimes: userProfile.reminderTimes || { '08:00': true, '12:00': true, '18:00': true },
+        pushNotifications: userProfile.pushNotifications || false,
       });
     }
   }, [userProfile]);
+
+  // Check notification permission on mount
+  useEffect(() => {
+    if (isNotificationSupported()) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -146,6 +158,42 @@ export function SettingsForm() {
     }
   };
 
+  const handleRequestNotificationPermission = async () => {
+    setRequestingPermission(true);
+    try {
+      const permission = await requestNotificationPermission();
+      setNotificationPermission(permission);
+      
+      if (permission === 'granted') {
+        toast({
+          title: "Notifications Enabled! 🔔",
+          description: "You'll now receive motivational messages as push notifications.",
+        });
+        
+        // Show a test notification
+        await showMotivationNotification(
+          "Test notification! Your hydration coach is ready to motivate you! 💧",
+          settings.motivationTone
+        );
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "Push notifications were not enabled. You can enable them in your browser settings.",
+        });
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to request notification permission.",
+      });
+    } finally {
+      setRequestingPermission(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -165,6 +213,7 @@ export function SettingsForm() {
         motivationTone: settings.motivationTone,
         motivationFrequency: settings.motivationFrequency,
         reminderTimes: settings.reminderTimes,
+        pushNotifications: settings.pushNotifications,
       };
 
       // Update Firestore
@@ -287,22 +336,22 @@ export function SettingsForm() {
                     <SelectValue placeholder="Select tone" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Default">Default - Friendly & encouraging</SelectItem>
-                    <SelectItem value="Educational">Educational - Health facts & benefits</SelectItem>
-                    <SelectItem value="Funny">Funny - Humor & water puns</SelectItem>
-                    <SelectItem value="Sarcastic">Sarcastic - Witty but supportive</SelectItem>
-                    <SelectItem value="Supportive">Supportive - Warm & caring</SelectItem>
+                    <SelectItem value="Clinical">Clinical/Educational - Health facts & scientific benefits</SelectItem>
+                    <SelectItem value="Funny">Crass/Funny - Humor, puns & playful language</SelectItem>
+                    <SelectItem value="Sarcastic">Sarcastic - Witty, clever & cheeky motivation</SelectItem>
+                    <SelectItem value="Warm">Warm - Caring, supportive & encouraging</SelectItem>
+                    <SelectItem value="Default">Default - Balanced & friendly</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-slate-400">
-                  Choose the style of motivational messages you prefer
+                  Choose the personality style for your AI motivation coach
                 </p>
               </div>
 
               {/* Motivation Frequency */}
               <div className="space-y-2">
                 <Label htmlFor="motivationFrequency" className="text-slate-200">
-                  Show Motivation
+                  Motivation Frequency
                 </Label>
                 <Select 
                   value={settings.motivationFrequency} 
@@ -312,16 +361,87 @@ export function SettingsForm() {
                     <SelectValue placeholder="Select frequency" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="After each log">After each log</SelectItem>
-                    <SelectItem value="Once per day">Once per day</SelectItem>
-                    <SelectItem value="On goal achieved">Only when goal is achieved</SelectItem>
-                    <SelectItem value="Every 500ml">Every 500ml logged</SelectItem>
-                    <SelectItem value="Manual only">Manual refresh only</SelectItem>
+                    <SelectItem value="Every log">After every water log</SelectItem>
+                    <SelectItem value="Every few logs">Every 3-4 logs</SelectItem>
+                    <SelectItem value="Once per day">Once per day maximum</SelectItem>
+                    <SelectItem value="Goal achieved">Only when daily goal is reached</SelectItem>
+                    <SelectItem value="Never">Never (manual refresh only)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-slate-400">
-                  Control when motivational messages appear automatically
+                  Control how often you receive motivational messages
                 </p>
+              </div>
+
+              {/* Push Notifications */}
+              <div className="space-y-4 p-4 bg-slate-700/30 rounded-lg border border-slate-600">
+                <div className="space-y-2">
+                  <Label className="text-slate-200 flex items-center gap-2">
+                    <span>📱 Push Notifications</span>
+                    {notificationPermission === 'granted' && (
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                        Enabled
+                      </span>
+                    )}
+                    {notificationPermission === 'denied' && (
+                      <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">
+                        Blocked
+                      </span>
+                    )}
+                  </Label>
+                  
+                  {!isNotificationSupported() ? (
+                    <div className="text-sm text-slate-400 p-3 bg-slate-600/50 rounded">
+                      ⚠️ Push notifications are not supported in this browser.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="pushNotifications"
+                          checked={settings.pushNotifications && notificationPermission === 'granted'}
+                          onCheckedChange={(checked) => setSettings(prev => ({ ...prev, pushNotifications: !!checked }))}
+                          disabled={isLoading || notificationPermission !== 'granted'}
+                        />
+                        <Label htmlFor="pushNotifications" className="text-slate-300">
+                          Enable motivational push notifications
+                        </Label>
+                      </div>
+                      
+                      {notificationPermission !== 'granted' && (
+                        <Button
+                          type="button"
+                          onClick={handleRequestNotificationPermission}
+                          disabled={requestingPermission}
+                          variant="outline"
+                          size="sm"
+                          className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                        >
+                          {requestingPermission ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                              Requesting...
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <BellRing className="h-4 w-4" />
+                              {notificationPermission === 'denied' ? 'Re-enable' : 'Enable'} Notifications
+                            </div>
+                          )}
+                        </Button>
+                      )}
+                      
+                      <p className="text-xs text-slate-400">
+                        {notificationPermission === 'granted' 
+                          ? "✅ You'll receive motivational messages as push notifications based on your frequency settings."
+                          : notificationPermission === 'denied'
+                          ? "❌ Notifications are blocked. Click above to request permission again or enable them in your browser settings."
+                          : "🔔 Allow notifications to receive motivational messages on your device."
+                        }
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

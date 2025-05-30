@@ -26,8 +26,8 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
     switch (tone.toLowerCase()) {
       case 'funny': return "🎉 Welcome to the hydration station! Your first drop in the bucket - literally! 💧";
       case 'sarcastic': return "Oh wow, your first log. I'm impressed you remembered water exists. 💧";
-      case 'educational': return "Welcome! Proper hydration improves cognitive function by 15%. Great first step! 🧠💧";
-      case 'supportive': return "Welcome to your hydration journey! Every great habit starts with a single sip. You've got this! 💧❤️";
+      case 'clinical': return "Welcome! Proper hydration improves cognitive function by 15%. Great first step! 🧠💧";
+      case 'warm': return "Welcome to your hydration journey! Every great habit starts with a single sip. You've got this! 💧❤️";
       default: return "🎉 Welcome! Great first step on your hydration journey. Every sip counts! 💧";
     }
   }
@@ -37,8 +37,8 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
     switch (tone.toLowerCase()) {
       case 'funny': return `🎉 You did it! ${ml_logged_today}ml logged! Your bladder probably wants to have a word with you though... 🚽💧`;
       case 'sarcastic': return `Congratulations, you remembered how to drink water like a functioning human. Gold star! ⭐💧`;
-      case 'educational': return `Excellent! Goal achieved: ${ml_logged_today}ml. Optimal hydration supports cellular function and metabolism! 🔬💧`;
-      case 'supportive': return `Amazing work! You've reached your ${goal_ml}ml goal! Your body is thanking you right now. Keep it up! 🌟💧`;
+      case 'clinical': return `Excellent! Goal achieved: ${ml_logged_today}ml. Optimal hydration supports cellular function and metabolism! 🔬💧`;
+      case 'warm': return `Amazing work! You've reached your ${goal_ml}ml goal! Your body is thanking you right now. Keep it up! 🌟💧`;
       default: return `🎉 Goal smashed! ${ml_logged_today}ml logged. You're a hydration hero! 💧`;
     }
   }
@@ -48,8 +48,8 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
     switch (tone.toLowerCase()) {
       case 'funny': return `${ml_logged_today}ml down, ${goal_ml - ml_logged_today}ml to go! Your kidneys are sending you reminder texts... 💧📱`;
       case 'sarcastic': return `${percent_of_goal}%? Really? Your houseplants are more hydrated than you are. Step it up! 🌱💧`;
-      case 'educational': return `Currently at ${percent_of_goal}% of goal. Mild dehydration reduces performance by 10%. Time to hydrate! 📊💧`;
-      case 'supportive': return `You're at ${percent_of_goal}% - every sip gets you closer! Small steps lead to big changes. You can do this! 💪💧`;
+      case 'clinical': return `Currently at ${percent_of_goal}% of goal. Mild dehydration reduces performance by 10%. Time to hydrate! 📊💧`;
+      case 'warm': return `You're at ${percent_of_goal}% - every sip gets you closer! Small steps lead to big changes. You can do this! 💪💧`;
       default: return `${percent_of_goal}% of your goal reached! Keep going, you're building a great habit! 💧`;
     }
   }
@@ -58,8 +58,8 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
   switch (tone.toLowerCase()) {
     case 'funny': return `${percent_of_goal}% there! You're like a camel, but cooler and with better hydration habits! 🐪💧`;
     case 'sarcastic': return `${percent_of_goal}% done. Look who's actually taking care of themselves. Shocking! 💧`;
-    case 'educational': return `Great progress at ${percent_of_goal}%! Consistent hydration optimizes physical and mental performance. 🎯💧`;
-    case 'supportive': return `Wonderful progress! ${percent_of_goal}% complete. You're doing such a great job staying on track! 🌈💧`;
+    case 'clinical': return `Great progress at ${percent_of_goal}%! Consistent hydration optimizes physical and mental performance. 🎯💧`;
+    case 'warm': return `Wonderful progress! ${percent_of_goal}% complete. You're doing such a great job staying on track! 🌈💧`;
     default: return `Excellent progress! ${percent_of_goal}% of your daily goal achieved. Keep it flowing! 💧`;
   }
 };
@@ -120,11 +120,11 @@ ${time_of_day ? `- Time: ${time_of_day}` : ''}
 - If it's evening: Consider end-of-day motivation
 
 🗣️ TONE: ${motivationTone}
-- Default: Friendly and encouraging
-- Educational: Include health facts/benefits
-- Funny: Use humor and water puns
-- Sarcastic: Witty but not mean
-- Supportive: Warm, caring, and uplifting
+- Default: Balanced, friendly and encouraging
+- Clinical: Professional, educational with health facts and scientific benefits
+- Funny: Crass/funny with humor, puns and playful language
+- Sarcastic: Witty, clever and cheeky motivation (but still supportive)
+- Warm: Caring, supportive, encouraging and nurturing
 
 📝 FORMAT:
 - Keep under 160 characters for mobile
