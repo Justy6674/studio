@@ -4,22 +4,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { logHydration as logHydrationAction } from "@/app/actions/hydration";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Droplets, Plus } from "lucide-react";
-import { getFunctions, httpsCallable } from "firebase/functions";
 
 interface LogWaterFormProps {
-  onLogSuccess?: () => void;
+  onLogWater: (amount: number) => Promise<void>;
 }
 
-export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
+export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [amount, setAmount] = useState("250");
   const [isLoading, setIsLoading] = useState(false);
-  const firebaseFunctions = getFunctions();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,38 +32,11 @@ export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
     }
 
     setIsLoading(true);
-    const logHydrationFn = httpsCallable(firebaseFunctions, 'logHydration');
-
     try {
-      const result = await logHydrationFn({
-        amount: numericAmount,
-        timestamp: new Date().toISOString()
-      });
-
-      toast({ title: "Success!", description: (result.data as any)?.message || `${numericAmount}ml logged successfully.` });
-      setAmount("250");
-      if (onLogSuccess) {
-        onLogSuccess();
-      }
-    } catch (err: any) {
-      console.error("Log hydration failed:", err);
-      
-      // If Firebase function fails, try the server action as fallback
-      try {
-        await logHydrationAction(user.uid, numericAmount);
-        toast({ title: "Success!", description: `${numericAmount}ml logged successfully.` });
-        setAmount("250");
-        if (onLogSuccess) {
-          onLogSuccess();
-        }
-      } catch (serverErr: any) {
-        console.error("Server action also failed:", serverErr);
-        toast({ 
-          variant: "destructive", 
-          title: "Error logging water", 
-          description: "Unable to save your water intake. Please try again." 
-        });
-      }
+      await onLogWater(numericAmount);
+      setAmount("250"); // Reset to default after successful log
+    } catch (error) {
+      console.error("Error in LogWaterForm:", error);
     } finally {
       setIsLoading(false);
     }
@@ -81,8 +51,6 @@ export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
   const setQuickAmount = (quickAmount: number) => {
     setAmount(quickAmount.toString());
   };
-
-  const quickAmounts = [250, 500, 750, 1000];
 
   return (
     <div className="space-y-4">
@@ -115,14 +83,14 @@ export function LogWaterForm({ onLogSuccess }: LogWaterFormProps) {
             placeholder="Enter amount"
             min="1"
             max="5000"
-            className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 focus:border-cyan-400"
+            className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 focus:border-hydration-400"
             required
           />
         </div>
         <Button 
           type="submit" 
           disabled={isLoading} 
-          className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-medium"
+          className="w-full bg-hydration-500 hover:bg-hydration-600 text-white font-medium"
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
