@@ -59,8 +59,7 @@ export async function GET(request: NextRequest) {
     // Get body metrics ordered by timestamp (newest first)
     const q = query(
       collection(db, "body_metrics"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc")
+      where("userId", "==", userId)
     );
 
     const querySnapshot = await getDocs(q);
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
         notes: data.notes || "",
         timestamp: (data.timestamp as Timestamp).toDate(),
       };
-    });
+    }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort in JavaScript
 
     // Calculate statistics
     let stats: BodyMetricsStats = {
