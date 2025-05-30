@@ -58,7 +58,7 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
   switch (tone.toLowerCase()) {
     case 'funny': return `${percent_of_goal}% there! You're like a camel, but cooler and with better hydration habits! 🐪💧`;
     case 'sarcastic': return `${percent_of_goal}% done. Look who's actually taking care of themselves. Shocking! 💧`;
-    case 'clinical': return `Great progress at ${percent_of_goal}%! Consistent hydration optimizes physical and mental performance. 🎯💧`;
+    case 'clinical': return `Great progress at ${percent_of_goal}%! Consistent hydration optimises physical and mental performance. 🎯💧`;
     case 'warm': return `Wonderful progress! ${percent_of_goal}% complete. You're doing such a great job staying on track! 🌈💧`;
     default: return `Excellent progress! ${percent_of_goal}% of your daily goal achieved. Keep it flowing! 💧`;
   }
@@ -122,7 +122,7 @@ ${time_of_day ? `- Time: ${time_of_day}` : ''}
 🗣️ TONE: ${motivationTone}
 - Default: Balanced, friendly and encouraging
 - Clinical: Professional, educational with health facts and scientific benefits
-- Funny: Crass/funny with humor, puns and playful language
+- Funny: Crass/funny with humour, puns and playful language
 - Sarcastic: Witty, clever and cheeky motivation (but still supportive)
 - Warm: Caring, supportive, encouraging and nurturing
 

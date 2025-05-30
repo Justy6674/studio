@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogWaterForm } from "@/components/water/LogWaterForm";
 import { WaterProgressDisplay } from "@/components/water/WaterProgressDisplay";
@@ -12,9 +13,10 @@ import { showMotivationNotification } from "@/lib/notifications";
 import type { HydrationLog, UserProfile } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
-import { BarChart, CalendarDays, Terminal, Droplets, Target, TrendingUp, Award } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { BarChart, CalendarDays, Terminal, Droplets, Target, TrendingUp, Award, Lock } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
@@ -25,7 +27,8 @@ interface DailyLogSummary {
 }
 
 export default function DashboardPage() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { user, userProfile, loading: authLoading, hasActiveSubscription, isSubscriptionLoading } = useAuth();
   const { toast } = useToast();
   const [hydrationLogs, setHydrationLogs] = useState<HydrationLog[]>([]);
   const [currentIntake, setCurrentIntake] = useState(0);
@@ -39,6 +42,13 @@ export default function DashboardPage() {
   const dailyStreak = userProfile?.dailyStreak || 0;
   const longestStreak = userProfile?.longestStreak || 0;
   const userName = userProfile?.name || user?.email?.split('@')[0] || "User";
+
+  // Check subscription status and redirect if needed
+  useEffect(() => {
+    if (user && !isSubscriptionLoading && !hasActiveSubscription()) {
+      router.push("/billing");
+    }
+  }, [user, hasActiveSubscription, isSubscriptionLoading, router]);
 
   const fetchDashboardData = useCallback(async () => {
     if (!user) return;
@@ -143,14 +153,14 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && hasActiveSubscription()) {
       fetchDashboardData();
       fetchMotivation();
     }
-  }, [user, fetchDashboardData, fetchMotivation]);
+  }, [user, hasActiveSubscription, fetchDashboardData, fetchMotivation]);
 
   // Recalculate current intake when logs change (after new log added)
-   useEffect(() => {
+  useEffect(() => {
     const todayStart = startOfDay(new Date());
     const todayLogs = hydrationLogs.filter(log => isSameDay(log.timestamp, todayStart));
     const todayIntake = todayLogs.reduce((sum, log) => sum + log.amount, 0);
@@ -179,7 +189,7 @@ export default function DashboardPage() {
     goal: { label: "Goal (ml)", color: "#b68a71" },
   };
 
-  if (authLoading || (loadingData && !user)) {
+  if (authLoading || isSubscriptionLoading || (loadingData && !user)) {
     return (
       <div className="min-h-screen bg-slate-900 p-6">
         <div className="max-w-7xl mx-auto space-y-8">
@@ -205,6 +215,53 @@ export default function DashboardPage() {
           <AlertTitle className="text-slate-200">Not Logged In</AlertTitle>
           <AlertDescription className="text-slate-400">Please log in to view your dashboard.</AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  // Show subscription required message if user doesn't have active subscription
+  if (!hasActiveSubscription()) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100">
+        <div className="max-w-4xl mx-auto p-6 flex items-center justify-center min-h-screen">
+          <Card className="w-full max-w-md bg-slate-800 border-slate-700 shadow-2xl">
+            <CardHeader className="text-center pb-4">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <Lock className="h-8 w-8 text-red-400" />
+                </div>
+              </div>
+              <CardTitle className="text-xl text-slate-200">Subscription Required</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-slate-400">
+                Your subscription is inactive. Please subscribe to continue using Water4WeightLoss.
+              </p>
+              
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => router.push("/billing")}
+                  className="w-full bg-hydration-500 hover:bg-hydration-600 text-white"
+                >
+                  <Droplets className="h-4 w-4 mr-2" />
+                  Subscribe Now
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => router.push("/settings")}
+                  className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  Manage Account
+                </Button>
+              </div>
+              
+              <p className="text-xs text-slate-500 mt-4">
+                Questions? Contact support@water4weightloss.com
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

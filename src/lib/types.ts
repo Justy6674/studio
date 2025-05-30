@@ -25,6 +25,11 @@ export interface UserProfile {
   dailyStreak?: number;
   longestStreak?: number;
   lastLogDate?: string; // YYYY-MM-DD format
+  // Stripe subscription fields
+  stripeCustomerId?: string;
+  subscriptionId?: string;
+  subscriptionStatus?: 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete' | 'incomplete_expired' | null;
+  subscriptionEndDate?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }

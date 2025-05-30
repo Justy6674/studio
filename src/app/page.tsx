@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,16 +83,16 @@ export default function HomePage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Link href="/signup" className="block">
+          <Link href="/login" className="block">
             <Button className="w-full h-12 text-lg bg-blue-500 hover:bg-blue-600 text-white">
-              Sign Up
+              Login
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
           
-          <Link href="/login" className="block">
+          <Link href="/signup" className="block">
             <Button variant="outline" className="w-full h-12 text-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20">
-              Login
+              Sign Up
             </Button>
           </Link>
         </CardContent>

@@ -96,7 +96,7 @@ export async function getHydrationLogs(limit = 7): Promise<HydrationLog[]> {
 export async function getAIMotivation(hydrationGoal: number): Promise<{ message: string; error?: string; source?: string; tone?: string }> {
   const user = auth.currentUser;
   if (!user) {
-    return { message: "Login to get personalized motivation.", error: "Not authenticated" };
+    return { message: "Login to get personalised motivation.", error: "Not authenticated" };
   }
 
   try {

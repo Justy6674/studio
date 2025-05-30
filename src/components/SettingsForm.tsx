@@ -248,7 +248,7 @@ export function SettingsForm() {
           Your Preferences
         </CardTitle>
         <CardDescription className="text-slate-400">
-          Customize your Water4WeightLoss experience and notifications.
+          Customise your Water4WeightLoss experience and notifications.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -319,7 +319,7 @@ export function SettingsForm() {
                 AI Motivation Settings
               </CardTitle>
               <CardDescription>
-                Customize how and when you receive motivational messages
+                Customise how and when you receive motivational messages
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -337,7 +337,7 @@ export function SettingsForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Clinical">Clinical/Educational - Health facts & scientific benefits</SelectItem>
-                    <SelectItem value="Funny">Crass/Funny - Humor, puns & playful language</SelectItem>
+                    <SelectItem value="Funny">Crass/Funny - Humour, puns & playful language</SelectItem>
                     <SelectItem value="Sarcastic">Sarcastic - Witty, clever & cheeky motivation</SelectItem>
                     <SelectItem value="Warm">Warm - Caring, supportive & encouraging</SelectItem>
                     <SelectItem value="Default">Default - Balanced & friendly</SelectItem>
