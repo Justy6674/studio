@@ -1,17 +1,26 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface WaterGlassProps {
   currentIntake: number;
   goalIntake: number;
   size?: number;
+  triggerAnimation?: boolean;
 }
 
-export function WaterGlass({ currentIntake, goalIntake, size = 240 }: WaterGlassProps) {
+export function WaterGlass({ currentIntake, goalIntake, size = 240, triggerAnimation = false }: WaterGlassProps) {
+  const [isAnimating, setIsAnimating] = useState(false);
   const fillPercentage = Math.min((currentIntake / goalIntake) * 100, 100);
   const glassHeight = size * 0.8;
   const glassWidth = size * 0.5;
   const fillHeight = (fillPercentage / 100) * glassHeight * 0.85;
+
+  useEffect(() => {
+    if (triggerAnimation) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [triggerAnimation]);
 
   return (
     <div className="flex flex-col items-center space-y-4">
@@ -32,6 +41,7 @@ export function WaterGlass({ currentIntake, goalIntake, size = 240 }: WaterGlass
             fill="rgba(148, 163, 184, 0.1)"
             stroke="rgba(148, 163, 184, 0.3)"
             strokeWidth="2"
+            className={isAnimating ? "animate-pulse" : ""}
           />
           
           {/* Water fill */}
@@ -62,7 +72,7 @@ export function WaterGlass({ currentIntake, goalIntake, size = 240 }: WaterGlass
               height={(fillHeight / glassHeight) * (size * 0.8)}
               fill="url(#waterGradient)"
               clipPath="url(#glassClip)"
-              className="animate-pulse"
+              className={`transition-all duration-500 ${isAnimating ? "animate-bounce" : "animate-pulse"}`}
             />
           )}
           
@@ -85,7 +95,20 @@ export function WaterGlass({ currentIntake, goalIntake, size = 240 }: WaterGlass
               rx={glassWidth * 0.45}
               ry={size * 0.02}
               fill="rgba(14, 165, 233, 0.6)"
-              className="animate-pulse"
+              className={`transition-all duration-300 ${isAnimating ? "animate-ping" : "animate-pulse"}`}
+            />
+          )}
+
+          {/* Ripple effect during animation */}
+          {isAnimating && (
+            <circle
+              cx={size * 0.5}
+              cy={size * 0.9 - (fillHeight / glassHeight) * (size * 0.8)}
+              r={glassWidth * 0.2}
+              fill="none"
+              stroke="rgba(59, 130, 246, 0.4)"
+              strokeWidth="2"
+              className="animate-ping"
             />
           )}
         </svg>
@@ -93,16 +116,23 @@ export function WaterGlass({ currentIntake, goalIntake, size = 240 }: WaterGlass
         {/* Percentage display */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-2xl font-bold text-white drop-shadow-lg">
+            <div className={`text-2xl font-bold text-white drop-shadow-lg transition-all duration-300 ${isAnimating ? "scale-110" : ""}`}>
               {Math.round(fillPercentage)}%
             </div>
           </div>
         </div>
+
+        {/* Sip animation overlay */}
+        {isAnimating && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-4xl animate-bounce">💧</div>
+          </div>
+        )}
       </div>
       
       {/* Stats below glass */}
       <div className="text-center space-y-1">
-        <div className="text-lg font-semibold text-slate-200">
+        <div className={`text-lg font-semibold text-slate-200 transition-all duration-300 ${isAnimating ? "scale-105 text-hydration-400" : ""}`}>
           {currentIntake.toLocaleString()}ml
         </div>
         <div className="text-sm text-slate-400">

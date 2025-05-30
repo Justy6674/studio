@@ -6,17 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Droplets, Plus } from "lucide-react";
+import { Droplets, Plus, Coffee } from "lucide-react";
 
 interface LogWaterFormProps {
   onLogWater: (amount: number) => Promise<void>;
 }
 
 export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [amount, setAmount] = useState("250");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLogging, setIsLogging] = useState(false);
+  const [isSipping, setIsSipping] = useState(false);
+
+  const sipAmount = userProfile?.sipAmount || 50;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,14 +34,35 @@ export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
       return;
     }
 
-    setIsLoading(true);
+    setIsLogging(true);
     try {
       await onLogWater(numericAmount);
       setAmount("250"); // Reset to default after successful log
     } catch (error) {
       console.error("Error in LogWaterForm:", error);
     } finally {
-      setIsLoading(false);
+      setIsLogging(false);
+    }
+  };
+
+  const handleSip = async () => {
+    if (!user) {
+      toast({ variant: "destructive", title: "Not logged in", description: "You must be logged in to log water." });
+      return;
+    }
+
+    setIsSipping(true);
+    try {
+      await onLogWater(sipAmount);
+      toast({ 
+        title: "Sip Logged! 💧", 
+        description: `Added ${sipAmount}ml to your hydration.`,
+        duration: 2000
+      });
+    } catch (error) {
+      console.error("Error in sip logging:", error);
+    } finally {
+      setIsSipping(false);
     }
   };
 
@@ -54,6 +78,31 @@ export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
 
   return (
     <div className="space-y-4">
+      {/* Quick Sip Button */}
+      <div className="mb-4">
+        <Button
+          type="button"
+          onClick={handleSip}
+          disabled={isSipping || isLogging}
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-3 transition-all duration-200 transform hover:scale-105"
+        >
+          {isSipping ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Sipping...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Coffee className="h-5 w-5" />
+              Quick Sip ({sipAmount}ml)
+            </div>
+          )}
+        </Button>
+        <p className="text-xs text-slate-400 text-center mt-1">
+          Quick log {sipAmount}ml • Customize in Settings
+        </p>
+      </div>
+
       {/* Quick Amount Buttons */}
       <div className="grid grid-cols-4 gap-2">
         {[250, 500, 750, 1000].map((quickAmount) => (
@@ -89,10 +138,10 @@ export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
         </div>
         <Button 
           type="submit" 
-          disabled={isLoading} 
+          disabled={isLogging || isSipping} 
           className="w-full bg-hydration-500 hover:bg-hydration-600 text-white font-medium"
         >
-          {isLoading ? (
+          {isLogging ? (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
               Logging...

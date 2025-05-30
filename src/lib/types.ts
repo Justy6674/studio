@@ -14,6 +14,7 @@ export interface UserProfile {
   email?: string | null;
   name?: string;
   hydrationGoal?: number; // in ml
+  sipAmount?: number; // in ml - customizable amount for quick sip logging
   phoneNumber?: string;
   smsEnabled?: boolean;
   aiTone?: string;
