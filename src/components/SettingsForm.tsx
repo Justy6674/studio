@@ -43,6 +43,7 @@ export function SettingsForm() {
   const [settings, setSettings] = useState({
     name: '',
     hydrationGoal: 2000,
+    sipAmount: 50,
     phoneNumber: '',
     smsEnabled: false,
     aiTone: 'motivational',
@@ -59,6 +60,7 @@ export function SettingsForm() {
       setSettings({
         name: userProfile.name || '',
         hydrationGoal: userProfile.hydrationGoal || 2000,
+        sipAmount: userProfile.sipAmount || 50,
         phoneNumber: userProfile.phoneNumber || '',
         smsEnabled: userProfile.smsEnabled || false,
         aiTone: userProfile.aiTone || 'motivational',
@@ -74,7 +76,7 @@ export function SettingsForm() {
     const { name, value, type, checked } = e.target;
     setSettings(prev => ({ 
       ...prev, 
-      [name]: type === 'checkbox' ? checked : (name === 'hydrationGoal' ? parseInt(value) || 0 : value)
+      [name]: type === 'checkbox' ? checked : (name === 'hydrationGoal' || name === 'sipAmount' ? parseInt(value) || 0 : value)
     }));
   };
 
@@ -156,6 +158,7 @@ export function SettingsForm() {
       const updatedProfile: Partial<UserProfile> = {
         name: settings.name,
         hydrationGoal: settings.hydrationGoal,
+        sipAmount: settings.sipAmount,
         phoneNumber: settings.phoneNumber,
         smsEnabled: settings.smsEnabled,
         aiTone: settings.aiTone,
@@ -237,6 +240,25 @@ export function SettingsForm() {
                 className="bg-slate-700 border-slate-600 text-slate-100"
                 disabled={isLoading}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sipAmount" className="text-slate-300">Quick Sip Amount (ml)</Label>
+              <Input
+                id="sipAmount"
+                name="sipAmount"
+                type="number"
+                value={settings.sipAmount}
+                onChange={handleInputChange}
+                min="10"
+                max="500"
+                step="10"
+                className="bg-slate-700 border-slate-600 text-slate-100"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-slate-400">
+                Amount logged when using the quick "Sip" button
+              </p>
             </div>
           </div>
 

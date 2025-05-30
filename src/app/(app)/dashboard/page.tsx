@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [loadingMotivation, setLoadingMotivation] = useState(false);
   const [isLogging, setIsLogging] = useState(false);
+  const [glassAnimation, setGlassAnimation] = useState(false);
 
   const hydrationGoal = userProfile?.hydrationGoal || 2000;
   const dailyStreak = userProfile?.dailyStreak || 0;
@@ -93,6 +94,10 @@ export default function DashboardPage() {
       const result = await logHydration(amount);
       if (result.success) {
         toast({ title: "Success", description: result.success });
+        
+        // Trigger glass animation
+        setGlassAnimation(true);
+        setTimeout(() => setGlassAnimation(false), 100); // Reset trigger after brief moment
         
         // Refresh data immediately
         await Promise.all([
@@ -223,6 +228,7 @@ export default function DashboardPage() {
                 currentIntake={currentIntake} 
                 goalIntake={hydrationGoal} 
                 size={240}
+                triggerAnimation={glassAnimation}
               />
             </CardContent>
           </Card>
