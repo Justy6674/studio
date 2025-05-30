@@ -41,7 +41,7 @@ export function AIMotivationCard({ motivation, loading, onRefresh }: AIMotivatio
         {loading ? (
           <div className="flex items-center gap-3 text-slate-400 w-full justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-hydration-400" />
-            <span className="text-lg">Generating personalized motivation...</span>
+            <span className="text-lg">Generating personalised motivation...</span>
           </div>
         ) : motivation ? (
           <p className="text-lg text-slate-200 leading-relaxed font-medium text-center">
@@ -49,7 +49,7 @@ export function AIMotivationCard({ motivation, loading, onRefresh }: AIMotivatio
           </p>
         ) : (
           <p className="text-lg text-slate-400 italic text-center">
-            Click the refresh button to get personalized AI motivation! 💧
+            Click the refresh button to get personalised AI motivation! 💧
           </p>
         )}
       </div>

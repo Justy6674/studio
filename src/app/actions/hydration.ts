@@ -95,7 +95,7 @@ export async function getHydrationLogs(userId: string, limit = 7): Promise<Hydra
 
 export async function getAIMotivation(userId: string, hydrationGoal: number): Promise<string> {
   if (!userId) {
-    return "Login to get personalized motivation.";
+    return "Login to get personalised motivation.";
   }
 
   try {
