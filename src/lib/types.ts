@@ -50,3 +50,30 @@ export interface UserSettings {
   reminderTimes: Record<string, boolean>;
   preferences?: UserPreferences;
 }
+
+// New: Body Metrics Interfaces
+export interface BodyMetrics {
+  id: string;
+  userId: string;
+  weight_kg: number;
+  waist_cm: number;
+  timestamp: Date;
+  notes?: string;
+}
+
+export interface BodyMetricsEntry {
+  weight_kg: number;
+  waist_cm: number;
+  notes?: string;
+}
+
+export interface BodyMetricsStats {
+  latest: BodyMetrics | null;
+  earliest: BodyMetrics | null;
+  total_entries: number;
+  weight_change_kg: number;
+  waist_change_cm: number;
+  avg_weight_kg: number;
+  avg_waist_cm: number;
+  trend_period_days: number;
+}
