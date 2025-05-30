@@ -294,66 +294,69 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+      <div className="max-w-7xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
         {/* Header Section */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-hydration-400 rounded-full animate-pulse"></div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-hydration-400 to-brown-400 bg-clip-text text-transparent">
+        <div className="space-y-2 md:space-y-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-2 h-2 md:w-3 md:h-3 bg-hydration-400 rounded-full animate-pulse"></div>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-hydration-400 to-brown-400 bg-clip-text text-transparent">
               Welcome back, {userName}!
             </h1>
           </div>
-          <p className="text-slate-400 text-base md:text-lg">Track your hydration journey and stay motivated with AI insights</p>
+          <p className="text-slate-400 text-sm md:text-base lg:text-lg">Track your hydration journey and stay motivated with AI insights</p>
         </div>
 
         {/* Main Tabbed Content */}
         <Tabs defaultValue="water" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-800 border border-slate-600">
-            <TabsTrigger value="water" className="flex items-center gap-2">
-              <Droplets className="h-4 w-4" />
+          <TabsList className="grid w-full grid-cols-3 mb-4 md:mb-6 bg-slate-800 border border-slate-600 h-12 md:h-10">
+            <TabsTrigger value="water" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
+              <Droplets className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Water</span>
+              <span className="sm:hidden">H₂O</span>
             </TabsTrigger>
-            <TabsTrigger value="metrics" className="flex items-center gap-2">
-              <Scale className="h-4 w-4" />
+            <TabsTrigger value="metrics" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
+              <Scale className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Body Metrics</span>
+              <span className="sm:hidden">Body</span>
             </TabsTrigger>
-            <TabsTrigger value="export" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
+            <TabsTrigger value="export" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
+              <Download className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Export</span>
+              <span className="sm:hidden">📁</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab - Original Dashboard */}
-          <TabsContent value="water" className="space-y-6">
+          {/* Water Tab - Original Dashboard */}
+          <TabsContent value="water" className="space-y-4 md:space-y-6">
             {/* Main Progress & Action Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {/* Progress Glass - Main Event */}
               <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-3 text-slate-200">
-                    <div className="p-2 bg-hydration-400/20 rounded-lg">
-                      <Target className="h-6 w-6 text-hydration-400" />
+                <CardHeader className="pb-3 md:pb-4">
+                  <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
+                    <div className="p-1.5 md:p-2 bg-hydration-400/20 rounded-lg">
+                      <Target className="h-4 w-4 md:h-6 md:w-6 text-hydration-400" />
                     </div>
                     Today's Progress
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center space-y-4">
+                <CardContent className="flex flex-col items-center space-y-3 md:space-y-4">
                   <WaterGlass 
                     currentIntake={currentIntake} 
                     goalIntake={hydrationGoal} 
-                    size={360} 
+                    size={280} 
                     triggerAnimation={glassAnimation}
                   />
                   
                   {/* AI Smart Tip */}
-                  <div className="w-full p-4 bg-slate-700/50 rounded-lg border border-[#b68a71]/30">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 bg-hydration-400/20 rounded-lg">
-                        <Lightbulb className="h-4 w-4 text-hydration-400" />
+                  <div className="w-full p-3 md:p-4 bg-slate-700/50 rounded-lg border border-[#b68a71]/30">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <div className="p-1 md:p-1.5 bg-hydration-400/20 rounded-lg">
+                        <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-hydration-400" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-slate-200 mb-1">Smart Tip</h4>
-                        <p className="text-sm text-slate-300">{generateSmartTip()}</p>
+                        <h4 className="text-xs md:text-sm font-semibold text-slate-200 mb-1">Smart Tip</h4>
+                        <p className="text-xs md:text-sm text-slate-300">{generateSmartTip()}</p>
                         {dailyStreak > 0 && (
                           <p className="text-xs text-brown-400 mt-1">
                             🔥 Current streak: {dailyStreak} day{dailyStreak !== 1 ? 's' : ''}
@@ -367,10 +370,10 @@ export default function DashboardPage() {
 
               {/* Log Water - Action Area */}
               <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-3 text-slate-200">
-                    <div className="p-2 bg-slate-600/20 rounded-lg">
-                      <Droplets className="h-6 w-6 text-slate-400" />
+                <CardHeader className="pb-3 md:pb-4">
+                  <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
+                    <div className="p-1.5 md:p-2 bg-slate-600/20 rounded-lg">
+                      <Droplets className="h-4 w-4 md:h-6 md:w-6 text-slate-400" />
                     </div>
                     Log Water
                   </CardTitle>
@@ -383,29 +386,29 @@ export default function DashboardPage() {
 
             {/* 7-Day Chart - Full Width Below Main Features */}
             <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-slate-200">
-                  <div className="p-2 bg-brown-400/20 rounded-lg">
-                    <BarChart className="h-6 w-6 text-brown-400" />
+              <CardHeader className="pb-3 md:pb-4">
+                <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
+                  <div className="p-1.5 md:p-2 bg-brown-400/20 rounded-lg">
+                    <BarChart className="h-4 w-4 md:h-6 md:w-6 text-brown-400" />
                   </div>
                   7-Day Overview
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[200px] md:h-[250px]">
+                <ChartContainer config={chartConfig} className="h-[180px] md:h-[200px] lg:h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsBarChart data={weeklyChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                       <XAxis 
                         dataKey="date" 
                         stroke="#9CA3AF" 
-                        fontSize={12}
+                        fontSize={10}
                         tickLine={false}
                         axisLine={false}
                       />
                       <YAxis 
                         stroke="#9CA3AF" 
-                        fontSize={12}
+                        fontSize={10}
                         tickLine={false}
                         axisLine={false}
                       />
@@ -424,7 +427,7 @@ export default function DashboardPage() {
 
             {/* AI Motivation */}
             <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <AIMotivationCard 
                   motivation={aiMotivation} 
                   loading={loadingMotivation}

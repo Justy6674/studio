@@ -7,13 +7,29 @@ interface WaterGlassProps {
   triggerAnimation?: boolean;
 }
 
-export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnimation = false }: WaterGlassProps) {
+export function WaterGlass({ currentIntake, goalIntake, size = 320, triggerAnimation = false }: WaterGlassProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [showBubbles, setShowBubbles] = useState(false);
+  const [finalSize, setFinalSize] = useState(size);
   const fillPercentage = Math.min((currentIntake / goalIntake) * 100, 100);
-  const glassHeight = size * 0.8;
-  const glassWidth = size * 0.5;
+  
+  const glassHeight = finalSize * 0.8;
+  const glassWidth = finalSize * 0.5;
   const fillHeight = (fillPercentage / 100) * glassHeight * 0.85;
+
+  // Handle responsive sizing
+  useEffect(() => {
+    const updateSize = () => {
+      if (typeof window !== 'undefined') {
+        const responsiveSize = Math.min(size, window.innerWidth * 0.7);
+        setFinalSize(Math.max(responsiveSize, 240)); // Minimum size for mobile
+      }
+    };
+    
+    updateSize();
+    window?.addEventListener('resize', updateSize);
+    return () => window?.removeEventListener('resize', updateSize);
+  }, [size]);
 
   useEffect(() => {
     if (triggerAnimation) {
@@ -34,18 +50,18 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
   // Generate more bubbles for larger glass
   const bubbles = Array.from({ length: 8 }, (_, i) => ({
     id: i,
-    x: size * (0.35 + Math.random() * 0.3),
+    x: finalSize * (0.35 + Math.random() * 0.3),
     delay: i * 0.15,
     size: 3 + Math.random() * 4,
   }));
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <div className="relative" style={{ width: size, height: size }}>
+      <div className="relative" style={{ width: finalSize, height: finalSize }}>
         <svg
-          width={size}
-          height={size}
-          viewBox={`0 0 ${size} ${size}`}
+          width={finalSize}
+          height={finalSize}
+          viewBox={`0 0 ${finalSize} ${finalSize}`}
           className="drop-shadow-2xl"
         >
           {/* Definitions for gradients and animations */}
@@ -61,10 +77,10 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
             {/* Glass clip path */}
             <clipPath id="glassClip">
               <path
-                d={`M ${size * 0.25} ${size * 0.1} 
-                    L ${size * 0.75} ${size * 0.1}
-                    L ${size * 0.7} ${size * 0.9}
-                    L ${size * 0.3} ${size * 0.9}
+                d={`M ${finalSize * 0.25} ${finalSize * 0.1} 
+                    L ${finalSize * 0.75} ${finalSize * 0.1}
+                    L ${finalSize * 0.7} ${finalSize * 0.9}
+                    L ${finalSize * 0.3} ${finalSize * 0.9}
                     Z`}
               />
             </clipPath>
@@ -72,10 +88,10 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
 
           {/* Glass container with enhanced styling */}
           <path
-            d={`M ${size * 0.25} ${size * 0.1} 
-                L ${size * 0.75} ${size * 0.1}
-                L ${size * 0.7} ${size * 0.9}
-                L ${size * 0.3} ${size * 0.9}
+            d={`M ${finalSize * 0.25} ${finalSize * 0.1} 
+                L ${finalSize * 0.75} ${finalSize * 0.1}
+                L ${finalSize * 0.7} ${finalSize * 0.9}
+                L ${finalSize * 0.3} ${finalSize * 0.9}
                 Z`}
             fill="rgba(148, 163, 184, 0.08)"
             stroke="rgba(148, 163, 184, 0.4)"
@@ -86,10 +102,10 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
           {/* Water fill with smooth transition */}
           {fillPercentage > 0 && (
             <rect
-              x={size * 0.25}
-              y={size * 0.9 - (fillHeight / glassHeight) * (size * 0.8)}
+              x={finalSize * 0.25}
+              y={finalSize * 0.9 - (fillHeight / glassHeight) * (finalSize * 0.8)}
               width={glassWidth}
-              height={(fillHeight / glassHeight) * (size * 0.8)}
+              height={(fillHeight / glassHeight) * (finalSize * 0.8)}
               fill="url(#waterGradient)"
               clipPath="url(#glassClip)"
               className="transition-all duration-1000 ease-out"
@@ -98,10 +114,10 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
           
           {/* Enhanced glass rim */}
           <ellipse
-            cx={size * 0.5}
-            cy={size * 0.1}
+            cx={finalSize * 0.5}
+            cy={finalSize * 0.1}
             rx={glassWidth * 0.5}
-            ry={size * 0.03}
+            ry={finalSize * 0.03}
             fill="rgba(148, 163, 184, 0.15)"
             stroke="rgba(148, 163, 184, 0.5)"
             strokeWidth="2"
@@ -111,10 +127,10 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
           {fillPercentage > 0 && (
             <g>
               <ellipse
-                cx={size * 0.5}
-                cy={size * 0.9 - (fillHeight / glassHeight) * (size * 0.8)}
+                cx={finalSize * 0.5}
+                cy={finalSize * 0.9 - (fillHeight / glassHeight) * (finalSize * 0.8)}
                 rx={glassWidth * 0.45}
-                ry={size * 0.02}
+                ry={finalSize * 0.02}
                 fill="rgba(14, 165, 233, 0.7)"
                 className={`transition-all duration-1000 ease-out ${isAnimating ? 'animate-pulse' : ''}`}
               />
@@ -123,10 +139,10 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
               {isAnimating && (
                 <g>
                   <ellipse
-                    cx={size * 0.5}
-                    cy={size * 0.9 - (fillHeight / glassHeight) * (size * 0.8)}
+                    cx={finalSize * 0.5}
+                    cy={finalSize * 0.9 - (fillHeight / glassHeight) * (finalSize * 0.8)}
                     rx={glassWidth * 0.3}
-                    ry={size * 0.015}
+                    ry={finalSize * 0.015}
                     fill="none"
                     stroke="rgba(59, 130, 246, 0.5)"
                     strokeWidth="2"
@@ -147,10 +163,10 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
                   </ellipse>
                   
                   <ellipse
-                    cx={size * 0.5}
-                    cy={size * 0.9 - (fillHeight / glassHeight) * (size * 0.8)}
+                    cx={finalSize * 0.5}
+                    cy={finalSize * 0.9 - (fillHeight / glassHeight) * (finalSize * 0.8)}
                     rx={glassWidth * 0.35}
-                    ry={size * 0.01}
+                    ry={finalSize * 0.01}
                     fill="none"
                     stroke="rgba(14, 165, 233, 0.4)"
                     strokeWidth="1.5"
@@ -183,14 +199,14 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
                 <circle
                   key={bubble.id}
                   cx={bubble.x}
-                  cy={size * 0.85}
+                  cy={finalSize * 0.85}
                   r={bubble.size}
                   fill="rgba(255, 255, 255, 0.7)"
                   opacity="0"
                 >
                   <animate
                     attributeName="cy"
-                    values={`${size * 0.85}; ${size * 0.9 - (fillHeight / glassHeight) * (size * 0.8)}`}
+                    values={`${finalSize * 0.85}; ${finalSize * 0.9 - (fillHeight / glassHeight) * (finalSize * 0.8)}`}
                     dur="2s"
                     begin={`${bubble.delay}s`}
                     repeatCount="1"
@@ -234,17 +250,35 @@ export function WaterGlass({ currentIntake, goalIntake, size = 360, triggerAnima
         )}
       </div>
       
-      {/* Enhanced stats below glass */}
-      <div className="text-center space-y-2">
-        <div className={`text-2xl md:text-3xl font-semibold text-slate-200 transition-all duration-500 ${isAnimating ? "scale-105 text-hydration-400" : ""}`}>
-          {currentIntake.toLocaleString()}ml
+      {/* Progress Display - Mobile Optimized */}
+      <div className="text-center space-y-2 w-full max-w-sm">
+        {/* Current vs Goal */}
+        <div className="flex items-center justify-center gap-2 text-slate-300">
+          <span className="text-xl md:text-2xl font-bold text-hydration-400">
+            {currentIntake}ml
+          </span>
+          <span className="text-sm md:text-base text-slate-400">of</span>
+          <span className="text-lg md:text-xl font-semibold text-slate-300">
+            {goalIntake}ml
+          </span>
         </div>
-        <div className="text-base md:text-lg text-slate-400">
-          Goal: {goalIntake.toLocaleString()}ml
+        
+        {/* Percentage */}
+        <div className="text-2xl md:text-3xl font-bold text-slate-200">
+          {fillPercentage.toFixed(0)}%
         </div>
+        
+        {/* Remaining */}
+        {fillPercentage < 100 && (
+          <div className="text-xs md:text-sm text-slate-400">
+            {goalIntake - currentIntake}ml remaining
+          </div>
+        )}
+        
+        {/* Goal achieved */}
         {fillPercentage >= 100 && (
-          <div className="text-base font-medium text-green-400 animate-pulse">
-            🎉 Goal Achieved!
+          <div className="text-xs md:text-sm text-green-400 font-medium">
+            🎉 Daily goal achieved!
           </div>
         )}
       </div>
