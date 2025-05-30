@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale, Settings } from "lucide-react";
+import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
@@ -308,7 +308,7 @@ export default function DashboardPage() {
 
         {/* Main Tabbed Content */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-800 border border-slate-600">
+          <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-800 border border-slate-600">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Droplets className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -320,10 +320,6 @@ export default function DashboardPage() {
             <TabsTrigger value="export" className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Export</span>
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Admin</span>
             </TabsTrigger>
           </TabsList>
 
@@ -446,26 +442,6 @@ export default function DashboardPage() {
           {/* Export Tab */}
           <TabsContent value="export" className="space-y-6">
             <WaterLogExporter />
-          </TabsContent>
-
-          {/* Admin Tab */}
-          <TabsContent value="admin" className="space-y-6">
-            <Card className="bg-slate-800 border-amber-500/30">
-              <CardHeader>
-                <CardTitle className="text-amber-400">Admin Tools</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-slate-300">Access admin debugging tools and testing features.</p>
-                  <Button
-                    onClick={() => window.open('/admin/test', '_blank')}
-                    className="bg-amber-600 hover:bg-amber-700"
-                  >
-                    Open Admin Testing Dashboard
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>
