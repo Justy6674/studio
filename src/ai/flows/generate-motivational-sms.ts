@@ -32,50 +32,27 @@ export async function generateMotivationalSms(input: GenerateMotivationalSmsInpu
   return generateMotivationalSmsFlow(input);
 }
 
-const includeSpecificLogsTool = ai.defineTool({
-  name: 'includeSpecificLogs',
-  description: 'Decide whether or not to include specific logged details in the SMS message.',
-  inputSchema: z.object({
-    shouldInclude: z.boolean().describe('Whether or not to include specific logged details.'),
-  }),
-  outputSchema: z.boolean(),
-}, async (input) => {
-  return input.shouldInclude;
-});
-
 const prompt = ai.definePrompt({
   name: 'generateMotivationalSmsPrompt',
   input: {schema: GenerateMotivationalSmsInputSchema},
   output: {schema: GenerateMotivationalSmsOutputSchema},
-  tools: [includeSpecificLogsTool],
   system: `You are a motivational AI assistant that generates encouraging SMS messages based on the user's hydration data. The goal is to motivate the user to stay consistent with their hydration goals. Be friendly and supportive. Avoid shaming or negative language.
 
-  You have access to the user's hydration logs from the past 24-48 hours, their hydration goal, and a tool to decide whether or not to include specific logged details.`,
+Keep messages under 160 characters for SMS compatibility.`,
   prompt: `Based on this user's hydration log:
 
 {{#if hydrationLogs}}
+Recent hydration activity:
   {{#each hydrationLogs}}
-    - Logged {{amount}}ml on {{timestamp}}
+    - {{amount}}ml logged on {{timestamp}}
   {{/each}}
 {{else}}
   No hydration data available for the past 24-48 hours.
 {{/if}}
 
-Their hydration goal is {{hydrationGoal}}ml.
+Their daily hydration goal is {{hydrationGoal}}ml.
 
-{{~#tool_call includeSpecificLogsTool~}}
-{{~#if (eq name \"includeSpecificLogs\")~}}
-{{~#with parameters~}}
-{{~#if shouldInclude~}}
-Include specific details from the logs
-{{~else}}
-Do not include specific details from the logs
-{{~/if~}}
-{{~/with~}}
-{{~/if~}}
-{{~/tool_call~}}
-
-Write a short, kind motivational message.`, 
+Write a short, encouraging SMS message (under 160 chars) that motivates them to stay hydrated. Be specific to their data if available.`, 
 });
 
 const generateMotivationalSmsFlow = ai.defineFlow(

@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -51,42 +50,54 @@ const config: Config = {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
-        // Custom hydration app colors
-        water: {
-          50: "#f0f9ff",
-          100: "#e0f2fe", 
-          200: "#bae6fd",
-          300: "#7dd3fc",
-          400: "#38bdf8",
-          500: "#0ea5e9",
-          600: "#0284c7",
-          700: "#0369a1",
-          800: "#075985",
-          900: "#0c4a6e",
+        // Water4WeightLoss Design System Colors
+        hydration: {
+          50: "#f0f6ff",
+          100: "#e0edff", 
+          200: "#bad9ff",
+          300: "#7bb8ff",
+          400: "#5271ff", // Primary - vibrant blue-purple
+          500: "#4f63d2",
+          600: "#4450a0",
+          700: "#3a3f82",
+          800: "#33366b",
+          900: "#2e3059",
+        },
+        brown: {
+          50: "#fdf8f6",
+          100: "#f2e8e4",
+          200: "#e9d4ca",
+          300: "#d9b5a5",
+          400: "#c49982",
+          500: "#b68a71", // Accent - warm brown
+          600: "#a3705a",
+          700: "#885c4a",
+          800: "#704d3f",
+          900: "#5c4136",
+        },
+        slate: {
+          50: "#f8fafc",
+          100: "#f1f5f9",
+          200: "#e2e8f0",
+          300: "#cbd5e1",
+          400: "#94a3b8",
+          500: "#64748b",
+          600: "#475569",
+          700: "#334155",
+          800: "#1e293b", // Background - dark slate gray
+          900: "#0f172a",
         },
         cream: {
-          50: "#fefcf0",
-          100: "#fef7e0",
-          200: "#fdecc0",
-          300: "#fbd995",
-          400: "#f8c168",
-          500: "#f5a843",
-          600: "#e68e26",
-          700: "#bf6f1c",
-          800: "#9c5a1c",
-          900: "#7f491b",
-        },
-        earth: {
-          50: "#f6f3f0",
-          100: "#e7e0d9",
-          200: "#d1c3b3",
-          300: "#b4a085",
-          400: "#9c8463",
-          500: "#8b7355",
-          600: "#755e47",
-          700: "#5e4a3a",
-          800: "#4f3d32",
-          900: "#44352c",
+          50: "#fefdfb",
+          100: "#fdf9f3",
+          200: "#fbf2e4",
+          300: "#f7e8d1",
+          400: "#f1d7b5",
+          500: "#e8c094",
+          600: "#daa76f",
+          700: "#c88a4e",
+          800: "#b5733a",
+          900: "#915e32",
         }
       },
       borderRadius: {
@@ -111,6 +122,22 @@ const config: Config = {
         "fill": {
           "0%": { transform: "scaleY(0)" },
           "100%": { transform: "scaleY(1)" },
+        },
+        "shimmer": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        "ripple": {
+          "0%": { transform: "scale(0)", opacity: "1" },
+          "100%": { transform: "scale(4)", opacity: "0" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "bounce-water": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-25%)" },
         }
       },
       animation: {
@@ -118,6 +145,10 @@ const config: Config = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "wave": "wave 2s ease-in-out infinite",
         "fill": "fill 1s ease-out",
+        "shimmer": "shimmer 2s infinite",
+        "ripple": "ripple 0.6s linear",
+        "float": "float 3s ease-in-out infinite",
+        "bounce-water": "bounce-water 1s infinite",
       },
     },
   },

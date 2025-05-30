@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Firebase Function to fetch user settings.
  */
@@ -15,7 +14,7 @@ interface UserSettingsOutput {
   preferences?: UserPreferences;
 }
 
-export const fetchUserSettings = functions.https.onCall(async (data, context) => {
+export const getUserSettings = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }

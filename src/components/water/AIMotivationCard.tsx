@@ -1,62 +1,58 @@
 'use client';
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Loader2, Sparkles } from "lucide-react";
+import { Lightbulb, Loader2, Sparkles, RefreshCw } from "lucide-react";
 
 interface AIMotivationCardProps {
   motivation: string | null;
-  isLoading: boolean;
-  onRefresh: () => void;
+  loading: boolean;
+  onRefresh: () => Promise<void>;
 }
 
-export function AIMotivationCard({ motivation, isLoading, onRefresh }: AIMotivationCardProps) {
+export function AIMotivationCard({ motivation, loading, onRefresh }: AIMotivationCardProps) {
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <Lightbulb className="h-7 w-7 text-primary" />
-          AI Wisdom
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="p-4 rounded-lg bg-secondary/50 border border-border min-h-[80px] flex items-center">
-          {isLoading ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>A little boost to keep you going...</span>
-            </div>
-          ) : motivation ? (
-            <p className="text-sm text-foreground leading-relaxed">
-              {motivation}
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              Click below to get personalized hydration motivation!
-            </p>
-          )}
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-hydration-400/20 rounded-lg">
+            <Sparkles className="h-6 w-6 text-hydration-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-200">AI Motivation</h3>
         </div>
-
         <Button 
           onClick={onRefresh}
-          disabled={isLoading}
-          className="w-full"
-          variant="primary"
+          disabled={loading}
+          variant="outline"
+          size="sm"
+          className="bg-slate-700 border-slate-600 hover:bg-slate-600"
         >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
-            </>
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              New Motivation
-            </>
+            <RefreshCw className="h-4 w-4" />
           )}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Motivation Content */}
+      <div className="p-6 rounded-xl bg-gradient-to-br from-hydration-500/10 to-brown-500/10 border border-slate-600/50 min-h-[120px] flex items-center">
+        {loading ? (
+          <div className="flex items-center gap-3 text-slate-400 w-full justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-hydration-400" />
+            <span className="text-lg">Generating personalized motivation...</span>
+          </div>
+        ) : motivation ? (
+          <p className="text-lg text-slate-200 leading-relaxed font-medium text-center">
+            {motivation}
+          </p>
+        ) : (
+          <p className="text-lg text-slate-400 italic text-center">
+            Click the refresh button to get personalized AI motivation! 💧
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

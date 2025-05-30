@@ -1,17 +1,17 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { LogWaterForm } from "@/components/water/LogWaterForm";
 import { WaterProgressDisplay } from "@/components/water/WaterProgressDisplay";
 import { WaterGlass } from "@/components/water/WaterGlass";
 import { StreakDisplay } from "@/components/water/StreakDisplay";
 import { AIMotivationCard } from "@/components/water/AIMotivationCard";
-import { getHydrationLogs, getAIMotivation } from "@/app/actions/hydration";
+import { getHydrationLogs, getAIMotivation, logHydration } from "@/lib/hydration";
 import type { HydrationLog, UserProfile } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 import { BarChart, CalendarDays, Terminal, Droplets, Target, TrendingUp, Award } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -24,22 +24,25 @@ interface DailyLogSummary {
 }
 
 export default function DashboardPage() {
-  const { user, loading: authLoading, updateUserProfileData } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [hydrationLogs, setHydrationLogs] = useState<HydrationLog[]>([]);
   const [currentIntake, setCurrentIntake] = useState(0);
   const [aiMotivation, setAiMotivation] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [loadingMotivation, setLoadingMotivation] = useState(true);
+  const [loadingMotivation, setLoadingMotivation] = useState(false);
+  const [isLogging, setIsLogging] = useState(false);
 
-  const hydrationGoal = user?.hydrationGoal || 2000;
-  const dailyStreak = user?.dailyStreak || 0;
-  const longestStreak = user?.longestStreak || 0;
+  const hydrationGoal = userProfile?.hydrationGoal || 2000;
+  const dailyStreak = userProfile?.dailyStreak || 0;
+  const longestStreak = userProfile?.longestStreak || 0;
+  const userName = userProfile?.name || user?.email?.split('@')[0] || "User";
 
   const fetchDashboardData = useCallback(async () => {
     if (!user) return;
     setLoadingData(true);
     try {
-      const logs = await getHydrationLogs(user.uid);
+      const logs = await getHydrationLogs();
       setHydrationLogs(logs);
 
       const todayStart = startOfDay(new Date());
@@ -49,23 +52,76 @@ export default function DashboardPage() {
 
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Data",
+        description: "Failed to load your hydration data. Please try refreshing.",
+      });
     } finally {
       setLoadingData(false);
     }
-  }, [user]);
+  }, [user, toast]);
 
   const fetchMotivation = useCallback(async () => {
     if (!user) return;
     setLoadingMotivation(true);
     try {
-      const motivation = await getAIMotivation(user.uid, hydrationGoal);
-      setAiMotivation(motivation);
+      const result = await getAIMotivation(hydrationGoal);
+      setAiMotivation(result.message);
+      
+      if (result.error) {
+        toast({
+          title: "AI Unavailable",
+          description: `Using ${result.source || 'fallback'} message`,
+          variant: "default",
+        });
+      } else if (result.source === 'gemini') {
+        // Optional: Show success feedback for Gemini responses
+        console.log(`AI motivation generated with ${result.tone} tone`);
+      }
     } catch (error) {
       console.error("Error fetching AI motivation:", error);
+      setAiMotivation("Keep hydrating! Every sip brings you closer to your goal! 💧");
     } finally {
       setLoadingMotivation(false);
     }
-  }, [user, hydrationGoal]);
+  }, [user, hydrationGoal, toast]);
+
+  const handleLogWater = async (amount: number) => {
+    setIsLogging(true);
+    try {
+      const result = await logHydration(amount);
+      if (result.success) {
+        toast({ title: "Success", description: result.success });
+        
+        // Refresh data immediately
+        await Promise.all([
+          fetchDashboardData(),
+          fetchMotivation()
+        ]);
+        
+        // Auto-fetch new AI motivation after logging water
+        if (userProfile?.motivationFrequency !== 'Manual only') {
+          fetchMotivation();
+        }
+      } else {
+        toast({ 
+          variant: "destructive", 
+          title: "Error", 
+          description: result.error || "Failed to log water" 
+        });
+      }
+    } catch (error) {
+      console.error("Error in handleLogWater:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "Something went wrong. Please try again." 
+      });
+    } finally {
+      setIsLogging(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -97,6 +153,7 @@ export default function DashboardPage() {
       };
     });
   };
+  
   const weeklyChartData = getWeeklyChartData();
   const chartConfig = {
     water: { label: "Water Intake (ml)", color: "#5271ff" },
@@ -141,12 +198,12 @@ export default function DashboardPage() {
         {/* Header Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Welcome back, {user.name || "User"}
+            <div className="w-3 h-3 bg-hydration-400 rounded-full animate-pulse"></div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-hydration-400 to-brown-400 bg-clip-text text-transparent">
+              Welcome back, {userName}!
             </h1>
           </div>
-          <p className="text-slate-400 text-lg">Track your hydration journey and stay motivated</p>
+          <p className="text-slate-400 text-lg">Track your hydration journey and stay motivated with AI insights</p>
         </div>
 
         {/* Stats Overview */}
@@ -155,8 +212,8 @@ export default function DashboardPage() {
           <Card className="bg-slate-800 border-slate-700 shadow-2xl">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Target className="h-6 w-6 text-blue-400" />
+                <div className="p-2 bg-hydration-400/20 rounded-lg">
+                  <Target className="h-6 w-6 text-hydration-400" />
                 </div>
                 Today's Progress
               </CardTitle>
@@ -174,8 +231,8 @@ export default function DashboardPage() {
           <Card className="bg-slate-800 border-slate-700 shadow-2xl">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <Award className="h-6 w-6 text-orange-400" />
+                <div className="p-2 bg-brown-400/20 rounded-lg">
+                  <Award className="h-6 w-6 text-brown-400" />
                 </div>
                 Streak Stats
               </CardTitle>
@@ -183,7 +240,7 @@ export default function DashboardPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-400">{dailyStreak}</div>
+                  <div className="text-3xl font-bold text-brown-400">{dailyStreak}</div>
                   <div className="text-sm text-slate-400">Current</div>
                 </div>
                 <div className="text-center">
@@ -199,126 +256,93 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Log Card */}
+          {/* Log Water Card */}
           <Card className="bg-slate-800 border-slate-700 shadow-2xl">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-cyan-500/20 rounded-lg">
-                  <Droplets className="h-6 w-6 text-cyan-400" />
+                <div className="p-2 bg-slate-600/20 rounded-lg">
+                  <Droplets className="h-6 w-6 text-slate-400" />
                 </div>
-                Quick Log
+                Log Water
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <LogWaterForm onLogSuccess={() => {
-                fetchDashboardData();
-                // Force a small delay to ensure Firestore has time to update
-                setTimeout(fetchDashboardData, 500);
-              }} />
+              <LogWaterForm onLogWater={handleLogWater} />
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts and Activity Section */}
+        {/* Progress & Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Daily Progress */}
+          <Card className="bg-slate-800 border-slate-700 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-slate-200">
+                <div className="p-2 bg-hydration-400/20 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-hydration-400" />
+                </div>
+                Daily Progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WaterProgressDisplay
+                currentIntake={currentIntake}
+                goalIntake={hydrationGoal}
+                percentage={progressPercentage}
+              />
+            </CardContent>
+          </Card>
+
           {/* Weekly Chart */}
           <Card className="bg-slate-800 border-slate-700 shadow-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-purple-400" />
+                <div className="p-2 bg-brown-400/20 rounded-lg">
+                  <BarChart className="h-6 w-6 text-brown-400" />
                 </div>
-                Weekly Overview
+                7-Day Overview
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {weeklyChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                  <RechartsBarChart 
-                    data={weeklyChartData} 
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
+              <ChartContainer config={chartConfig} className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={weeklyChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis 
                       dataKey="date" 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                      stroke="#9CA3AF" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
                     />
                     <YAxis 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                      stroke="#9CA3AF" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
                     />
-                    <ChartTooltip 
-                      content={<ChartTooltipContent className="bg-slate-700 border-slate-600" />} 
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar 
+                      dataKey="water" 
+                      fill="#5271ff" 
+                      radius={[4, 4, 0, 0]}
+                      name="Water Intake"
                     />
-                    <Bar dataKey="water" fill="#5271ff" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="goal" fill="#b68a71" radius={[4, 4, 0, 0]} opacity={0.6} />
                   </RechartsBarChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center">
-                  <div className="text-center">
-                    <Droplets className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-400">Start logging water to see your progress!</p>
-                  </div>
-                </div>
-              )}
+                </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
-
-          {/* AI Motivation */}
-          <AIMotivationCard 
-            motivation={aiMotivation} 
-            isLoading={loadingMotivation} 
-            onRefresh={fetchMotivation} 
-          />
         </div>
 
-        {/* Recent Activity */}
+        {/* AI Motivation */}
         <Card className="bg-slate-800 border-slate-700 shadow-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-slate-200">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <CalendarDays className="h-6 w-6 text-green-400" />
-              </div>
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingData ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full bg-slate-700" />
-                ))}
-              </div>
-            ) : hydrationLogs.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {hydrationLogs.slice(0, 10).map((log, index) => (
-                  <div 
-                    key={log.id} 
-                    className="flex justify-between items-center p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="font-semibold text-slate-200">
-                        {log.amount}ml
-                      </span>
-                    </div>
-                    <span className="text-sm text-slate-400">
-                      {format(log.timestamp, "MMM d, 'at' h:mm a")}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Droplets className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400 text-lg">No activity yet</p>
-                <p className="text-slate-500 text-sm">Start your hydration journey by logging your first drink!</p>
-              </div>
-            )}
+          <CardContent className="p-6">
+            <AIMotivationCard 
+              motivation={aiMotivation} 
+              loading={loadingMotivation}
+              onRefresh={fetchMotivation}
+            />
           </CardContent>
         </Card>
       </div>
