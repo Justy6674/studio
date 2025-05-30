@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VoiceLogger } from "./VoiceLogger";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Droplets } from "lucide-react";
+import { Plus, Droplets, Coffee, FlaskConical } from "lucide-react";
 
 interface LogWaterFormProps {
   onLogWater: (amount: number) => Promise<void>;
@@ -19,6 +19,14 @@ export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
   const [isLogging, setIsLogging] = useState(false);
 
   const sipAmount = userProfile?.sipAmount || 50;
+
+  // Quick-add drink options
+  const drinkOptions = [
+    { name: "Small Glass", amount: 150, icon: Coffee, color: "from-blue-500 to-blue-600" },
+    { name: "Tall Glass", amount: 250, icon: Coffee, color: "from-cyan-500 to-cyan-600" },
+    { name: "Water Bottle", amount: 500, icon: FlaskConical, color: "from-teal-500 to-teal-600" },
+    { name: "Large Bottle", amount: 750, icon: FlaskConical, color: "from-blue-600 to-blue-700" },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +42,10 @@ export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
     }
   };
 
-  const handleSip = async () => {
+  const handleQuickAdd = async (drinkAmount: number) => {
     setIsLogging(true);
     try {
-      await onLogWater(sipAmount);
+      await onLogWater(drinkAmount);
     } finally {
       setIsLogging(false);
     }
@@ -54,35 +62,91 @@ export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
 
   return (
     <div className="space-y-6">
-      {/* Quick Sip Button */}
+      {/* Quick Add Buttons */}
       <Card className="bg-gradient-to-br from-hydration-500/20 to-hydration-600/10 border-hydration-400/30">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
             <Droplets className="h-5 w-5 text-hydration-400" />
-            Quick Sip
+            Quick Add
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleSip}
-            disabled={isLogging}
-            className="w-full bg-gradient-to-r from-hydration-500 to-hydration-600 hover:from-hydration-600 hover:to-hydration-700 text-white py-6 text-lg font-semibold shadow-lg transition-all duration-200 hover:shadow-hydration-500/25"
-          >
-            {isLogging ? (
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                Logging...
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Droplets className="h-6 w-6" />
-                Sip {sipAmount}ml
-              </div>
-            )}
-          </Button>
-          <p className="text-xs text-slate-400 text-center mt-2">
-            Quick log for small sips
-          </p>
+        <CardContent className="space-y-4">
+          {/* First row - Glasses */}
+          <div className="grid grid-cols-2 gap-3">
+            {drinkOptions.slice(0, 2).map((drink) => {
+              const IconComponent = drink.icon;
+              return (
+                <Button
+                  key={drink.amount}
+                  onClick={() => handleQuickAdd(drink.amount)}
+                  disabled={isLogging}
+                  className={`bg-gradient-to-r ${drink.color} hover:scale-105 text-white py-4 text-sm font-semibold shadow-lg transition-all duration-200 hover:shadow-lg`}
+                >
+                  {isLogging ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      <span className="text-xs">Adding...</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <IconComponent className="h-5 w-5" />
+                      <span className="text-xs">{drink.name}</span>
+                      <span className="text-xs font-bold">{drink.amount}ml</span>
+                    </div>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+          
+          {/* Second row - Bottles */}
+          <div className="grid grid-cols-2 gap-3">
+            {drinkOptions.slice(2).map((drink) => {
+              const IconComponent = drink.icon;
+              return (
+                <Button
+                  key={drink.amount}
+                  onClick={() => handleQuickAdd(drink.amount)}
+                  disabled={isLogging}
+                  className={`bg-gradient-to-r ${drink.color} hover:scale-105 text-white py-4 text-sm font-semibold shadow-lg transition-all duration-200 hover:shadow-lg`}
+                >
+                  {isLogging ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      <span className="text-xs">Adding...</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <IconComponent className="h-5 w-5" />
+                      <span className="text-xs">{drink.name}</span>
+                      <span className="text-xs font-bold">{drink.amount}ml</span>
+                    </div>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Custom Sip Amount */}
+          <div className="border-t border-slate-600 pt-3">
+            <Button
+              onClick={() => handleQuickAdd(sipAmount)}
+              disabled={isLogging}
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 text-sm font-semibold shadow-lg transition-all duration-200 hover:shadow-purple-500/25"
+            >
+              {isLogging ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  Adding...
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Droplets className="h-5 w-5" />
+                  Quick Sip ({sipAmount}ml)
+                </div>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
