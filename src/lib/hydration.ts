@@ -93,7 +93,7 @@ export async function getHydrationLogs(limit = 7): Promise<HydrationLog[]> {
   }
 }
 
-export async function getAIMotivation(hydrationGoal: number): Promise<{ message: string; error?: string; source?: string; tone?: string }> {
+export async function getAIMotivation(hydrationGoal: number, debugMode = false): Promise<{ message: string; error?: string; source?: string; tone?: string; debug?: any }> {
   const user = auth.currentUser;
   if (!user) {
     return { message: "Login to get personalised motivation.", error: "Not authenticated" };
@@ -177,6 +177,7 @@ export async function getAIMotivation(hydrationGoal: number): Promise<{ message:
         is_first_log: isFirstLog,
         day_of_week: dayOfWeek,
         time_of_day: timeOfDay,
+        debug_mode: debugMode,
       }),
     });
 
@@ -188,7 +189,8 @@ export async function getAIMotivation(hydrationGoal: number): Promise<{ message:
     return { 
       message: result.message || "Keep hydrating! 💧", 
       source: result.source,
-      tone: result.tone 
+      tone: result.tone,
+      debug: result.debug
     };
     
   } catch (error) {
