@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, orderBy, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, BodyMetrics } from '@/lib/types';
 
 interface HydrationLogExport {
   date: string;
@@ -14,6 +14,13 @@ interface HydrationLogExport {
   streak_day: number;
 }
 
+interface BodyMetricsExport {
+  date: string;
+  weight_kg?: number;
+  waist_cm?: number;
+  notes?: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -21,6 +28,9 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get('format') || 'csv'; // csv or json
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const includeBodyMetrics = searchParams.get('includeBodyMetrics') === 'true';
+    const includeWeight = searchParams.get('includeWeight') === 'true';
+    const includeWaist = searchParams.get('includeWaist') === 'true';
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
@@ -151,6 +161,71 @@ export async function GET(request: NextRequest) {
     const maxStreak = Math.max(...Array.from(dailyStreaks.values()));
     const currentActiveStreak = dailyStreaks.get(sortedDates[sortedDates.length - 1]) || 0;
 
+    // Fetch body metrics if requested
+    let bodyMetricsData: BodyMetricsExport[] = [];
+    if (includeBodyMetrics && (includeWeight || includeWaist)) {
+      let bodyQ = query(
+        collection(db, "body_metrics"),
+        where("userId", "==", userId)
+      );
+
+      // Add date range filters for body metrics
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        bodyQ = query(
+          collection(db, "body_metrics"),
+          where("userId", "==", userId),
+          where("timestamp", ">=", Timestamp.fromDate(start))
+        );
+      }
+
+      if (endDate && startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        
+        bodyQ = query(
+          collection(db, "body_metrics"),
+          where("userId", "==", userId),
+          where("timestamp", ">=", Timestamp.fromDate(start)),
+          where("timestamp", "<=", Timestamp.fromDate(end))
+        );
+      }
+
+      const bodyQuerySnapshot = await getDocs(bodyQ);
+      const bodyMetrics = bodyQuerySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          weight_kg: data.weight_kg,
+          waist_cm: data.waist_cm,
+          notes: data.notes || "",
+          timestamp: (data.timestamp as Timestamp).toDate(),
+        } as BodyMetrics;
+      }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+      // Process body metrics for export
+      bodyMetricsData = bodyMetrics.map(metric => {
+        const exportEntry: BodyMetricsExport = {
+          date: metric.timestamp.toISOString().split('T')[0],
+          notes: metric.notes
+        };
+        
+        if (includeWeight) {
+          exportEntry.weight_kg = metric.weight_kg;
+        }
+        
+        if (includeWaist) {
+          exportEntry.waist_cm = metric.waist_cm;
+        }
+        
+        return exportEntry;
+      });
+    }
+
     const summaryStats = {
       export_date: new Date().toISOString(),
       user_id: userId,
@@ -176,7 +251,8 @@ export async function GET(request: NextRequest) {
     if (format === 'json') {
       return NextResponse.json({
         summary: summaryStats,
-        logs: exportData
+        logs: exportData,
+        body_metrics: bodyMetricsData
       });
     }
 
@@ -192,33 +268,94 @@ export async function GET(request: NextRequest) {
       'Streak Day'
     ];
 
-    let csvContent = csvHeaders.join(',') + '\\n';
+    // Add body metrics headers if included
+    if (includeBodyMetrics && includeWeight) {
+      csvHeaders.push('Weight (kg)');
+    }
+    if (includeBodyMetrics && includeWaist) {
+      csvHeaders.push('Waist (cm)');
+    }
+    if (includeBodyMetrics && (includeWeight || includeWaist)) {
+      csvHeaders.push('Body Notes');
+    }
+
+    let csvContent = csvHeaders.join(',') + '\n';
     
     // Add summary stats as comments
-    csvContent += `# Water4WeightLoss Hydration Export\\n`;
-    csvContent += `# Generated: ${summaryStats.export_date}\\n`;
-    csvContent += `# User: ${summaryStats.user_name} (${summaryStats.user_email})\\n`;
-    csvContent += `# Period: ${summaryStats.date_range.start} to ${summaryStats.date_range.end}\\n`;
-    csvContent += `# Total Logs: ${summaryStats.total_logs}\\n`;
-    csvContent += `# Total Days: ${summaryStats.date_range.total_days}\\n`;
-    csvContent += `# Goal Achievement: ${summaryStats.totals.goal_achievement_rate_percent}% (${summaryStats.totals.days_goal_achieved}/${summaryStats.date_range.total_days} days)\\n`;
-    csvContent += `# Max Streak: ${summaryStats.totals.max_streak_days} days\\n`;
-    csvContent += `# Current Streak: ${summaryStats.totals.current_streak_days} days\\n`;
-    csvContent += `#\\n`;
+    csvContent += `# Water4WeightLoss Comprehensive Export\n`;
+    csvContent += `# Generated: ${summaryStats.export_date}\n`;
+    csvContent += `# User: ${summaryStats.user_name} (${summaryStats.user_email})\n`;
+    csvContent += `# Date Range: ${summaryStats.date_range.start} to ${summaryStats.date_range.end}\n`;
+    csvContent += `# Total Days: ${summaryStats.date_range.total_days}\n`;
+    csvContent += `# Hydration Goal: ${summaryStats.hydration_goal_ml}ml\n`;
+    csvContent += `# Goal Achievement Rate: ${summaryStats.totals.goal_achievement_rate_percent}%\n`;
+    if (includeBodyMetrics && bodyMetricsData.length > 0) {
+      csvContent += `# Body Metrics Entries: ${bodyMetricsData.length}\n`;
+    }
+    csvContent += `#\n`;
 
+    // Create a map of body metrics by date for easy lookup
+    const bodyMetricsByDate = new Map<string, BodyMetricsExport>();
+    bodyMetricsData.forEach(metric => {
+      bodyMetricsByDate.set(metric.date, metric);
+    });
+
+    // Add data rows
     exportData.forEach(log => {
       const row = [
         log.date,
         log.time,
-        log.amount_ml,
-        log.daily_total_ml,
-        log.goal_ml,
-        log.percentage_of_goal,
+        log.amount_ml.toString(),
+        log.daily_total_ml.toString(),
+        log.goal_ml.toString(),
+        log.percentage_of_goal.toString(),
         log.day_of_week,
-        log.streak_day
+        log.streak_day.toString()
       ];
-      csvContent += row.join(',') + '\\n';
+
+      // Add body metrics data if available for this date
+      const bodyMetric = bodyMetricsByDate.get(log.date);
+      
+      if (includeBodyMetrics && includeWeight) {
+        row.push(bodyMetric?.weight_kg?.toString() || '');
+      }
+      if (includeBodyMetrics && includeWaist) {
+        row.push(bodyMetric?.waist_cm?.toString() || '');
+      }
+      if (includeBodyMetrics && (includeWeight || includeWaist)) {
+        row.push(bodyMetric?.notes ? `"${bodyMetric.notes.replace(/"/g, '""')}"` : '');
+      }
+
+      csvContent += row.join(',') + '\n';
     });
+
+    // Add separate body metrics section if there are entries not matched with hydration logs
+    const unMatchedBodyMetrics = bodyMetricsData.filter(metric => 
+      !exportData.some(log => log.date === metric.date)
+    );
+
+    if (unMatchedBodyMetrics.length > 0) {
+      csvContent += '\n# Additional Body Metrics (dates without hydration logs)\n';
+      unMatchedBodyMetrics.forEach(metric => {
+        const row = [
+          metric.date,
+          '', // No time for body metrics
+          '', '', '', '', '', '' // Empty hydration columns
+        ];
+        
+        if (includeBodyMetrics && includeWeight) {
+          row.push(metric.weight_kg?.toString() || '');
+        }
+        if (includeBodyMetrics && includeWaist) {
+          row.push(metric.waist_cm?.toString() || '');
+        }
+        if (includeBodyMetrics && (includeWeight || includeWaist)) {
+          row.push(metric.notes ? `"${metric.notes.replace(/"/g, '""')}"` : '');
+        }
+
+        csvContent += row.join(',') + '\n';
+      });
+    }
 
     const filename = `hydration-export-${userId}-${new Date().toISOString().split('T')[0]}.csv`;
 

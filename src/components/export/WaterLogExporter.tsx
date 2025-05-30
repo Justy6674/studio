@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Calendar, FileText, FileSpreadsheet } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Download, Calendar, FileText, FileSpreadsheet, Scale, Droplets } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +18,9 @@ export function WaterLogExporter() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [format, setFormat] = useState("csv");
+  const [includeBodyMetrics, setIncludeBodyMetrics] = useState(true);
+  const [includeWeight, setIncludeWeight] = useState(true);
+  const [includeWaist, setIncludeWaist] = useState(true);
 
   // Set default date range (last 30 days)
   const getDefaultDates = () => {
@@ -73,6 +77,9 @@ export function WaterLogExporter() {
         format: format,
         startDate: startDate,
         endDate: endDate,
+        includeBodyMetrics: includeBodyMetrics.toString(),
+        includeWeight: includeWeight.toString(),
+        includeWaist: includeWaist.toString(),
       });
 
       const response = await fetch(`/api/export/water-logs?${params.toString()}`);
@@ -89,7 +96,7 @@ export function WaterLogExporter() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `hydration-export-${user.uid}-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `comprehensive-export-${user.uid}-${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -100,7 +107,7 @@ export function WaterLogExporter() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `hydration-export-${user.uid}-${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `comprehensive-export-${user.uid}-${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -109,7 +116,7 @@ export function WaterLogExporter() {
 
       toast({
         title: "Export Successful! 📁",
-        description: `Your hydration data has been downloaded as ${format.toUpperCase()}.`,
+        description: `Your ${includeBodyMetrics && (includeWeight || includeWaist) ? 'comprehensive' : 'hydration'} data has been downloaded as ${format.toUpperCase()}.`,
       });
 
     } catch (error) {
@@ -138,7 +145,7 @@ export function WaterLogExporter() {
       <CardHeader>
         <CardTitle className="flex items-center gap-3 text-slate-200">
           <Download className="h-6 w-6 text-brown-400" />
-          Export Hydration Data
+          Export Your Data
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -233,6 +240,71 @@ export function WaterLogExporter() {
           </Select>
         </div>
 
+        {/* Data Selection Options */}
+        <div className="space-y-4">
+          <Label className="text-slate-300">Data to Include</Label>
+          
+          {/* Hydration Data - Always included */}
+          <div className="flex items-center space-x-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600">
+            <Checkbox 
+              checked={true} 
+              disabled={true}
+              className="data-[state=checked]:bg-hydration-500 data-[state=checked]:border-hydration-500"
+            />
+            <div className="flex items-center gap-2">
+              <Droplets className="h-4 w-4 text-hydration-400" />
+              <div>
+                <Label className="text-slate-200">Hydration Data</Label>
+                <p className="text-xs text-slate-400">Water intake logs, daily totals, streaks (always included)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Body Metrics Toggle */}
+          <div className="flex items-center space-x-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600">
+            <Checkbox 
+              checked={includeBodyMetrics} 
+              onCheckedChange={(checked) => {
+                setIncludeBodyMetrics(checked as boolean);
+                if (!checked) {
+                  setIncludeWeight(false);
+                  setIncludeWaist(false);
+                }
+              }}
+              className="data-[state=checked]:bg-brown-500 data-[state=checked]:border-brown-500"
+            />
+            <div className="flex items-center gap-2">
+              <Scale className="h-4 w-4 text-brown-400" />
+              <div>
+                <Label className="text-slate-200">Body Metrics Data</Label>
+                <p className="text-xs text-slate-400">Include your weight and waist measurements</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Individual Body Metrics Options */}
+          {includeBodyMetrics && (
+            <div className="ml-6 space-y-3">
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  checked={includeWeight} 
+                  onCheckedChange={(checked) => setIncludeWeight(checked as boolean)}
+                  className="data-[state=checked]:bg-brown-500 data-[state=checked]:border-brown-500"
+                />
+                <Label className="text-slate-300">Weight measurements (kg)</Label>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  checked={includeWaist} 
+                  onCheckedChange={(checked) => setIncludeWaist(checked as boolean)}
+                  className="data-[state=checked]:bg-brown-500 data-[state=checked]:border-brown-500"
+                />
+                <Label className="text-slate-300">Waist measurements (cm)</Label>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Export Info */}
         <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
           <h4 className="text-sm font-semibold text-slate-200 mb-2">📊 What's Included:</h4>
@@ -242,7 +314,19 @@ export function WaterLogExporter() {
             <li>• Streak calculations and statistics</li>
             <li>• Summary analytics and achievement rates</li>
             <li>• Goal achievement tracking</li>
+            {includeBodyMetrics && (includeWeight || includeWaist) && (
+              <>
+                <li className="text-brown-300">• Body metrics data:</li>
+                {includeWeight && <li className="ml-4 text-brown-300">- Weight measurements with trends</li>}
+                {includeWaist && <li className="ml-4 text-brown-300">- Waist measurements with progress</li>}
+              </>
+            )}
           </ul>
+          {includeBodyMetrics && (!includeWeight && !includeWaist) && (
+            <p className="text-xs text-slate-400 mt-2">
+              💡 Select weight and/or waist to include body metrics data
+            </p>
+          )}
         </div>
 
         {/* Export Button */}
@@ -259,7 +343,7 @@ export function WaterLogExporter() {
           ) : (
             <>
               <Download className="mr-2 h-4 w-4" />
-              Export Hydration Data
+              Export {includeBodyMetrics && (includeWeight || includeWaist) ? 'Comprehensive' : 'Hydration'} Data
             </>
           )}
         </Button>
