@@ -22,6 +22,8 @@ export interface UserProfile {
   motivationFrequency?: string; // New: How often to show motivational messages
   pushNotifications?: boolean; // New: Enable device push notifications
   reminderTimes?: Record<string, boolean>;
+  customMilestones?: number[]; // New: Custom milestone percentages (e.g., [25, 50, 75, 100])
+  milestoneAnimations?: boolean; // New: Enable/disable milestone animations
   dailyStreak?: number;
   longestStreak?: number;
   lastLogDate?: string; // YYYY-MM-DD format

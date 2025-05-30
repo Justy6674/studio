@@ -13,7 +13,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { UserProfile } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlidersHorizontal, Palette, Clock, Phone, TestTube, Sparkles, Bell, BellRing } from "lucide-react";
+import { SlidersHorizontal, Palette, Clock, Phone, TestTube, Sparkles, Bell, BellRing, Target } from "lucide-react";
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
 
 const aiTones = [
@@ -56,6 +56,8 @@ export function SettingsForm() {
     reminderPreset: 'meals',
     reminderTimes: {} as Record<string, boolean>,
     pushNotifications: false,
+    customMilestones: [50, 100] as number[],
+    milestoneAnimations: true,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
@@ -78,6 +80,8 @@ export function SettingsForm() {
         reminderPreset: 'custom', // Default to custom since we're loading existing times
         reminderTimes: userProfile.reminderTimes || { '08:00': true, '12:00': true, '18:00': true },
         pushNotifications: userProfile.pushNotifications || false,
+        customMilestones: userProfile.customMilestones || [50, 100],
+        milestoneAnimations: userProfile.milestoneAnimations || true,
       });
     }
   }, [userProfile]);
@@ -290,6 +294,8 @@ export function SettingsForm() {
         motivationFrequency: settings.motivationFrequency,
         reminderTimes: settings.reminderTimes,
         pushNotifications: settings.pushNotifications,
+        customMilestones: settings.customMilestones,
+        milestoneAnimations: settings.milestoneAnimations,
       };
 
       // Update Firestore
@@ -724,6 +730,77 @@ export function SettingsForm() {
 
                 <div className="text-sm text-slate-400">
                   Selected times: {selectedTimes.length > 0 ? selectedTimes.join(', ') : 'None'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Custom Milestones Settings */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+              <div className="p-1 bg-purple-400/20 rounded">
+                <Target className="h-4 w-4 text-purple-400" />
+              </div>
+              Milestone Celebrations
+            </h3>
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="milestoneAnimations"
+                  checked={settings.milestoneAnimations}
+                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, milestoneAnimations: !!checked }))}
+                  disabled={isLoading}
+                />
+                <Label htmlFor="milestoneAnimations" className="text-slate-300">
+                  Enable milestone celebrations
+                </Label>
+              </div>
+              <p className="text-xs text-slate-400">
+                Show celebratory animations when you reach hydration milestones
+              </p>
+            </div>
+
+            {settings.milestoneAnimations && (
+              <div className="space-y-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Celebrate at these percentages:</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[25, 50, 75, 100].map((percentage) => (
+                      <div key={percentage} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`milestone-${percentage}`}
+                          checked={settings.customMilestones.includes(percentage)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSettings(prev => ({
+                                ...prev,
+                                customMilestones: [...prev.customMilestones, percentage].sort((a, b) => a - b)
+                              }));
+                            } else {
+                              setSettings(prev => ({
+                                ...prev,
+                                customMilestones: prev.customMilestones.filter(m => m !== percentage)
+                              }));
+                            }
+                          }}
+                          disabled={isLoading}
+                        />
+                        <Label htmlFor={`milestone-${percentage}`} className="text-sm text-slate-300">
+                          {percentage}%
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="text-sm text-slate-400">
+                  Selected milestones: {settings.customMilestones.length > 0 ? settings.customMilestones.join('%, ') + '%' : 'None'}
+                </div>
+                
+                <div className="text-xs text-slate-500 p-2 bg-slate-800/50 rounded">
+                  💡 <strong>Tip:</strong> 50% shows "Halfway there!" and 100% shows confetti celebration. 
+                  25% and 75% give encouraging progress boosts!
                 </div>
               </div>
             )}

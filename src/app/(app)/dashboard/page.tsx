@@ -23,6 +23,7 @@ import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, Respons
 import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
 import { OnboardingTip } from "@/components/onboarding/OnboardingTip";
 import { StreakCelebration } from "@/components/celebrations/StreakCelebration";
+import { MilestoneCelebration } from "@/components/celebrations/MilestoneCelebration";
 
 interface DailyLogSummary {
   date: string; // YYYY-MM-DD
@@ -46,6 +47,9 @@ export default function DashboardPage() {
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
   const [celebrationStreak, setCelebrationStreak] = useState(0);
   const [isNewRecord, setIsNewRecord] = useState(false);
+  const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
+  const [milestoneCelebrated, setMilestoneCelebrated] = useState(0);
+  const [lastMilestoneReached, setLastMilestoneReached] = useState(0);
 
   const userName = userProfile?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Friend';
   const hydrationGoal = userProfile?.hydrationGoal || 2000;
@@ -153,8 +157,11 @@ export default function DashboardPage() {
       const result = await logHydration(amount);
       
       if (result.success) {
+        const oldIntake = currentIntake;
+        const newIntake = currentIntake + amount;
+        
         // Update current intake
-        setCurrentIntake(prev => prev + amount);
+        setCurrentIntake(newIntake);
         
         // Refresh hydration logs
         const updatedLogs = await getHydrationLogs(30);
@@ -165,7 +172,28 @@ export default function DashboardPage() {
         const { currentStreak: newStreak } = calculateStreaks(dailyTotals, hydrationGoal);
         const { currentStreak: oldStreak } = calculateStreaks(calculateDailyTotals(hydrationLogs), hydrationGoal);
         
-        // Show celebration for milestones (3, 7, 14, 21, 30+ days)
+        // Check for milestone celebrations (only if user has them enabled)
+        const customMilestones = userProfile?.customMilestones || [50, 100];
+        const milestoneAnimations = userProfile?.milestoneAnimations !== false; // Default to true
+        
+        if (milestoneAnimations && customMilestones.length > 0) {
+          const oldPercentage = (oldIntake / hydrationGoal) * 100;
+          const newPercentage = (newIntake / hydrationGoal) * 100;
+          
+          // Find the highest milestone reached with this log
+          const milestonesReached = customMilestones.filter(milestone => 
+            newPercentage >= milestone && oldPercentage < milestone
+          );
+          
+          if (milestonesReached.length > 0) {
+            const highestMilestone = Math.max(...milestonesReached);
+            setMilestoneCelebrated(highestMilestone);
+            setShowMilestoneCelebration(true);
+            setLastMilestoneReached(highestMilestone);
+          }
+        }
+        
+        // Show celebration for streak milestones (3, 7, 14, 21, 30+ days)
         const milestones = [3, 7, 14, 21, 30];
         const shouldCelebrate = milestones.includes(newStreak) || 
                                (newStreak > oldStreak && newStreak > 0 && (newStreak % 7 === 0 || newStreak >= 30));
@@ -183,9 +211,9 @@ export default function DashboardPage() {
           duration: 2000,
         });
         
-        // Check for goal achievement
-        const newPercentage = ((currentIntake + amount) / hydrationGoal) * 100;
-        if (newPercentage >= 100 && currentIntake < hydrationGoal) {
+        // Check for goal achievement notification (separate from celebration)
+        const newPercentage = (newIntake / hydrationGoal) * 100;
+        if (newPercentage >= 100 && oldIntake < hydrationGoal) {
           showMotivationNotification("🎉 Daily goal achieved! Great hydration work!");
         }
       } else {
@@ -353,6 +381,16 @@ export default function DashboardPage() {
           streak={celebrationStreak}
           isNewRecord={isNewRecord}
           onDismiss={() => setShowStreakCelebration(false)}
+        />
+      )}
+      
+      {/* Milestone Celebration */}
+      {showMilestoneCelebration && (
+        <MilestoneCelebration
+          milestone={milestoneCelebrated}
+          currentAmount={currentIntake}
+          goalAmount={hydrationGoal}
+          onDismiss={() => setShowMilestoneCelebration(false)}
         />
       )}
 

@@ -36,6 +36,11 @@ interface MotivationLog {
 const getContextualFallback = (stats: MotivationRequest, tone: string = "Default"): string => {
   const { percent_of_goal, current_streak, is_first_log, ml_logged_today, goal_ml } = stats;
   
+  // Determine streak status
+  const hasRealStreak = current_streak >= 2;
+  const isFreshStart = current_streak === 1;
+  const noStreak = current_streak === 0;
+  
   // First log ever
   if (is_first_log) {
     switch (tone.toLowerCase()) {
@@ -52,42 +57,64 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
   
   // Goal achieved (100%+)
   if (percent_of_goal >= 100) {
+    let streakMessage = "";
+    if (hasRealStreak) {
+      streakMessage = ` Day ${current_streak} strong!`;
+    } else if (isFreshStart) {
+      streakMessage = " Great fresh start!";
+    }
+    
     switch (tone.toLowerCase()) {
-      case 'funny': return `🎉 You did it! ${ml_logged_today}ml logged! Your bladder probably wants to have a word with you though... 🚽💧`;
-      case 'crass': return `F*ck yeah! ${ml_logged_today}ml down the hatch! You absolute hydration legend! 🏆💧`;
-      case 'sarcastic': return `Congratulations, you remembered how to drink water like a functioning human. Gold star! ⭐💧`;
-      case 'clinical': return `Excellent! Goal achieved: ${ml_logged_today}ml. Optimal hydration supports cellular function and metabolism! 🔬💧`;
-      case 'warm': return `Amazing work! You've reached your ${goal_ml}ml goal! Your body is thanking you right now. Keep it up! 🌟💧`;
-      case 'kind': return `You're absolutely amazing! Goal achieved with such dedication. I'm so proud of you! 💧❤️`;
-      case 'educational': return `Goal reached! This supports kidney function, joint lubrication, and nutrient transport! 💧🎓`;
-      default: return `🎉 Goal smashed! ${ml_logged_today}ml logged. You're a hydration hero! 💧`;
+      case 'funny': return `🎉 Goal smashed! ${ml_logged_today}ml logged!${streakMessage} Your bladder probably wants to chat... 🚽💧`;
+      case 'crass': return `F*ck yeah! ${ml_logged_today}ml down!${streakMessage} You absolute hydration legend! 🏆💧`;
+      case 'sarcastic': return `${ml_logged_today}ml logged. Look who remembered how to be a functional human.${streakMessage} ⭐💧`;
+      case 'clinical': return `Goal achieved: ${ml_logged_today}ml/${goal_ml}ml.${streakMessage} Optimal hydration supports cellular function! 🔬💧`;
+      case 'warm': return `Amazing! ${ml_logged_today}ml logged!${streakMessage} Your body is thanking you right now! 🌟💧`;
+      case 'kind': return `You're amazing! Goal reached with ${ml_logged_today}ml!${streakMessage} So proud of you! 💧❤️`;
+      case 'educational': return `Goal reached: ${ml_logged_today}ml!${streakMessage} This supports kidney function and nutrient transport! 💧🎓`;
+      default: return `🎉 Goal achieved! ${ml_logged_today}ml logged!${streakMessage} You're a hydration hero! 💧`;
     }
   }
   
   // Under 50% - needs encouragement
   if (percent_of_goal < 50) {
+    const remaining = goal_ml - ml_logged_today;
+    let streakMessage = "";
+    if (hasRealStreak) {
+      streakMessage = ` Keep that ${current_streak}-day streak alive!`;
+    } else if (isFreshStart) {
+      streakMessage = " Build on yesterday's good start!";
+    }
+    
     switch (tone.toLowerCase()) {
-      case 'funny': return `${ml_logged_today}ml down, ${goal_ml - ml_logged_today}ml to go! Your kidneys are sending you reminder texts... 💧📱`;
-      case 'crass': return `${percent_of_goal}%? Come on, you're drier than a nun's nasty! Time to wet your whistle! 💧😤`;
-      case 'sarcastic': return `${percent_of_goal}%? Really? Your houseplants are more hydrated than you are. Step it up! 🌱💧`;
-      case 'clinical': return `Currently at ${percent_of_goal}% of goal. Mild dehydration reduces performance by 10%. Time to hydrate! 📊💧`;
-      case 'warm': return `You're at ${percent_of_goal}% - every sip gets you closer! Small steps lead to big changes. You can do this! 💪💧`;
-      case 'kind': return `${percent_of_goal}% is a great start! Be gentle with yourself - progress, not perfection! 💧💝`;
-      case 'educational': return `At ${percent_of_goal}% - dehydration affects concentration first. Let's boost that brainpower! 💧🧠`;
-      default: return `${percent_of_goal}% of your goal reached! Keep going, you're building a great habit! 💧`;
+      case 'funny': return `${ml_logged_today}ml down, ${remaining}ml to go!${streakMessage} Your kidneys are sending reminder texts... 💧📱`;
+      case 'crass': return `${percent_of_goal.toFixed(0)}%? Come on, you're drier than stale toast!${streakMessage} Time to wet your whistle! 💧😤`;
+      case 'sarcastic': return `${percent_of_goal.toFixed(0)}%? Really? Your houseplants are more hydrated.${streakMessage} Step it up! 🌱💧`;
+      case 'clinical': return `${percent_of_goal.toFixed(0)}% of goal.${streakMessage} Mild dehydration reduces performance by 10%. Time to hydrate! 📊💧`;
+      case 'warm': return `You're at ${percent_of_goal.toFixed(0)}%!${streakMessage} Every sip gets you closer. You can do this! 💪💧`;
+      case 'kind': return `${percent_of_goal.toFixed(0)}% is progress!${streakMessage} Be gentle with yourself - you're doing great! 💧💝`;
+      case 'educational': return `At ${percent_of_goal.toFixed(0)}% - dehydration affects concentration first.${streakMessage} Let's boost brainpower! 💧🧠`;
+      default: return `${percent_of_goal.toFixed(0)}% of goal reached!${streakMessage} Keep going, you're building a great habit! 💧`;
     }
   }
   
   // 50-99% - good progress
+  let streakMessage = "";
+  if (hasRealStreak) {
+    streakMessage = ` ${current_streak} days and counting!`;
+  } else if (isFreshStart) {
+    streakMessage = " Great momentum from yesterday!";
+  }
+  
   switch (tone.toLowerCase()) {
-    case 'funny': return `${percent_of_goal}% there! You're like a camel, but cooler and with better hydration habits! 🐪💧`;
-    case 'crass': return `${percent_of_goal}%! Not bad, you beautiful bastard! Keep that liquid flowing! 💧🔥`;
-    case 'sarcastic': return `${percent_of_goal}% done. Look who's actually taking care of themselves. Shocking! 💧`;
-    case 'clinical': return `Great progress at ${percent_of_goal}%! Consistent hydration optimises physical and mental performance. 🎯💧`;
-    case 'warm': return `Wonderful progress! ${percent_of_goal}% complete. You're doing such a great job staying on track! 🌈💧`;
-    case 'kind': return `${percent_of_goal}% - you're doing brilliantly! Your commitment to health is inspiring! 💧✨`;
-    case 'educational': return `${percent_of_goal}% achieved! This hydration supports muscle function and energy levels! 💧⚡`;
-    default: return `Excellent progress! ${percent_of_goal}% of your daily goal achieved. Keep it flowing! 💧`;
+    case 'funny': return `${percent_of_goal.toFixed(0)}% there!${streakMessage} You're like a camel, but cooler and with better habits! 🐪💧`;
+    case 'crass': return `${percent_of_goal.toFixed(0)}%!${streakMessage} Not bad, you beautiful hydration beast! Keep it flowing! 💧🔥`;
+    case 'sarcastic': return `${percent_of_goal.toFixed(0)}% done.${streakMessage} Look who's actually taking care of themselves. Shocking! 💧`;
+    case 'clinical': return `Great progress: ${percent_of_goal.toFixed(0)}%!${streakMessage} Consistent hydration optimises performance. 🎯💧`;
+    case 'warm': return `Wonderful! ${percent_of_goal.toFixed(0)}% complete!${streakMessage} You're doing such a great job! 🌈💧`;
+    case 'kind': return `${percent_of_goal.toFixed(0)}% achieved!${streakMessage} Your commitment to health is so inspiring! 💧✨`;
+    case 'educational': return `${percent_of_goal.toFixed(0)}% done!${streakMessage} This hydration supports muscle function and energy! 💧⚡`;
+    default: return `Excellent! ${percent_of_goal.toFixed(0)}% of goal!${streakMessage} Keep the momentum flowing! 💧`;
   }
 };
 
@@ -153,7 +180,7 @@ export async function POST(request: NextRequest) {
     // Enhanced contextual prompt with more tone examples
     const contextualPrompt = `Generate a motivational hydration message for a user. Here is their current status:
 
-📊 HYDRATION STATS:
+📊 HYDRATION STATS (DO NOT INVENT OR CHANGE THESE):
 - Daily Goal: ${goal_ml}ml
 - Logged Today: ${ml_logged_today}ml (${percent_of_goal}%)
 - Current Streak: ${current_streak} days
@@ -163,11 +190,20 @@ export async function POST(request: NextRequest) {
 ${day_of_week ? `- Day: ${day_of_week}` : ''}
 ${time_of_day ? `- Time: ${time_of_day}` : ''}
 
+🚨 CRITICAL RULES:
+- DO NOT INVENT STREAKS OR GOAL DATA - only use the exact numbers provided above
+- If current_streak is 0: DO NOT mention any streak
+- If current_streak is 1: Call it a "fresh start" or "just beginning" - NOT a streak
+- If current_streak is 2+: You can celebrate the actual streak
+- Only mention goal achievement if percent_of_goal is 100% or more
+- Use the EXACT ml_logged_today and goal_ml numbers provided
+- Be truthful about their actual progress
+
 🎯 CONTEXT GUIDELINES:
 - If they just hit their goal (100%+): CELEBRATE! 🎉
 - If they're under 50%: Be encouraging but motivating
 - If it's their first log: Welcome them warmly
-- If they have a good streak: Acknowledge their consistency
+- If they have a real streak (2+ days): Acknowledge their consistency
 - If it's early morning: Consider "good morning" energy
 - If it's evening: Consider end-of-day motivation
 
@@ -185,9 +221,10 @@ TONE EXAMPLES:
 📝 FORMAT:
 - Keep under 160 characters for mobile
 - Include relevant emoji
-- Be specific to their actual progress
+- Be specific to their actual progress (use exact numbers provided)
 - Make it personal and actionable
 - MATCH THE TONE EXACTLY - be creative and authentic to the selected style
+- NEVER invent data or exaggerate achievements
 
 Generate ONE motivational message now:`;
 
