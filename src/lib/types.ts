@@ -20,6 +20,7 @@ export interface UserProfile {
   aiTone?: string;
   motivationTone?: string; // New: AI motivation tone preference
   motivationFrequency?: string; // New: How often to show motivational messages
+  pushNotifications?: boolean; // New: Enable device push notifications
   reminderTimes?: Record<string, boolean>;
   dailyStreak?: number;
   longestStreak?: number;

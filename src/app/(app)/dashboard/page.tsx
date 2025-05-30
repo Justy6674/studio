@@ -8,6 +8,7 @@ import { WaterGlass } from "@/components/water/WaterGlass";
 import { StreakDisplay } from "@/components/water/StreakDisplay";
 import { AIMotivationCard } from "@/components/water/AIMotivationCard";
 import { getHydrationLogs, getAIMotivation, logHydration } from "@/lib/hydration";
+import { showMotivationNotification } from "@/lib/notifications";
 import type { HydrationLog, UserProfile } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -107,7 +108,20 @@ export default function DashboardPage() {
         
         // Auto-fetch new AI motivation after logging water
         if (userProfile?.motivationFrequency !== 'Manual only') {
-          fetchMotivation();
+          const motivationResult = await getAIMotivation(hydrationGoal);
+          if (motivationResult.message) {
+            setAiMotivation(motivationResult.message);
+            
+            // Show push notification if enabled and user has granted permission
+            if (userProfile?.pushNotifications && 
+                userProfile?.motivationFrequency !== 'Never' && 
+                Notification.permission === 'granted') {
+              await showMotivationNotification(
+                motivationResult.message, 
+                userProfile?.motivationTone || 'Default'
+              );
+            }
+          }
         }
       } else {
         toast({ 
