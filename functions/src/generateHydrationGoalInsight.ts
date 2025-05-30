@@ -102,7 +102,7 @@ export const generateHydrationGoalInsight = functions.https.onCall(async (data, 
       - Best day: ${bestDay} (${highestDay}ml)
       - Challenging day: ${worstDay} (${lowestDay}ml)
       
-      Write a personalized, encouraging weekly insight (2-3 sentences) that:
+      Write a personalised, encouraging weekly insight (2-3 sentences) that:
       1. Acknowledges their progress positively
       2. Identifies one specific pattern or trend from their data
       3. Gives one actionable tip for the upcoming week
