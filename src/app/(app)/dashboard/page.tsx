@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LogWaterForm } from "@/components/water/LogWaterForm";
 import { WaterGlass } from "@/components/water/WaterGlass";
 import { AIMotivationCard } from "@/components/water/AIMotivationCard";
+import { WaterLogExporter } from "@/components/export/WaterLogExporter";
+import { BodyMetricsTracker } from "@/components/metrics/BodyMetricsTracker";
 import { getHydrationLogs, getAIMotivation, logHydration } from "@/lib/hydration";
 import { showMotivationNotification } from "@/lib/notifications";
 import type { HydrationLog, UserProfile } from "@/lib/types";
@@ -13,8 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Droplets, Target, Lock, Lightbulb } from "lucide-react";
+import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale, Settings } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
@@ -303,113 +306,168 @@ export default function DashboardPage() {
           <p className="text-slate-400 text-base md:text-lg">Track your hydration journey and stay motivated with AI insights</p>
         </div>
 
-        {/* Main Progress & Action Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Progress Glass - Main Event */}
-          <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-hydration-400/20 rounded-lg">
-                  <Target className="h-6 w-6 text-hydration-400" />
-                </div>
-                Today's Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center space-y-4">
-              <WaterGlass 
-                currentIntake={currentIntake} 
-                goalIntake={hydrationGoal} 
-                size={360} 
-                triggerAnimation={glassAnimation}
-              />
-              
-              {/* AI Smart Tip */}
-              <div className="w-full p-4 bg-slate-700/50 rounded-lg border border-[#b68a71]/30">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 bg-hydration-400/20 rounded-lg">
-                    <Lightbulb className="h-4 w-4 text-hydration-400" />
+        {/* Main Tabbed Content */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-800 border border-slate-600">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <Droplets className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="flex items-center gap-2">
+              <Scale className="h-4 w-4" />
+              <span className="hidden sm:inline">Body Metrics</span>
+            </TabsTrigger>
+            <TabsTrigger value="export" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </TabsTrigger>
+            <TabsTrigger value="admin" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Admin</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab - Original Dashboard */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Main Progress & Action Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Progress Glass - Main Event */}
+              <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-slate-200">
+                    <div className="p-2 bg-hydration-400/20 rounded-lg">
+                      <Target className="h-6 w-6 text-hydration-400" />
+                    </div>
+                    Today's Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center space-y-4">
+                  <WaterGlass 
+                    currentIntake={currentIntake} 
+                    goalIntake={hydrationGoal} 
+                    size={360} 
+                    triggerAnimation={glassAnimation}
+                  />
+                  
+                  {/* AI Smart Tip */}
+                  <div className="w-full p-4 bg-slate-700/50 rounded-lg border border-[#b68a71]/30">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 bg-hydration-400/20 rounded-lg">
+                        <Lightbulb className="h-4 w-4 text-hydration-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-200 mb-1">Smart Tip</h4>
+                        <p className="text-sm text-slate-300">{generateSmartTip()}</p>
+                        {dailyStreak > 0 && (
+                          <p className="text-xs text-brown-400 mt-1">
+                            🔥 Current streak: {dailyStreak} day{dailyStreak !== 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-200 mb-1">Smart Tip</h4>
-                    <p className="text-sm text-slate-300">{generateSmartTip()}</p>
-                    {dailyStreak > 0 && (
-                      <p className="text-xs text-brown-400 mt-1">
-                        🔥 Current streak: {dailyStreak} day{dailyStreak !== 1 ? 's' : ''}
-                      </p>
-                    )}
+                </CardContent>
+              </Card>
+
+              {/* Log Water - Action Area */}
+              <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-slate-200">
+                    <div className="p-2 bg-slate-600/20 rounded-lg">
+                      <Droplets className="h-6 w-6 text-slate-400" />
+                    </div>
+                    Log Water
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LogWaterForm onLogWater={handleLogWater} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 7-Day Chart - Full Width Below Main Features */}
+            <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-slate-200">
+                  <div className="p-2 bg-brown-400/20 rounded-lg">
+                    <BarChart className="h-6 w-6 text-brown-400" />
                   </div>
+                  7-Day Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[200px] md:h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart data={weeklyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#9CA3AF" 
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        stroke="#9CA3AF" 
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar 
+                        dataKey="water" 
+                        fill="#5271ff" 
+                        radius={[4, 4, 0, 0]}
+                        name="Water Intake"
+                      />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            {/* AI Motivation */}
+            <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
+              <CardContent className="p-6">
+                <AIMotivationCard 
+                  motivation={aiMotivation} 
+                  loading={loadingMotivation}
+                  onRefresh={fetchMotivation}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Body Metrics Tab */}
+          <TabsContent value="metrics" className="space-y-6">
+            <BodyMetricsTracker />
+          </TabsContent>
+
+          {/* Export Tab */}
+          <TabsContent value="export" className="space-y-6">
+            <WaterLogExporter />
+          </TabsContent>
+
+          {/* Admin Tab */}
+          <TabsContent value="admin" className="space-y-6">
+            <Card className="bg-slate-800 border-amber-500/30">
+              <CardHeader>
+                <CardTitle className="text-amber-400">Admin Tools</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-slate-300">Access admin debugging tools and testing features.</p>
+                  <Button
+                    onClick={() => window.open('/admin/test', '_blank')}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    Open Admin Testing Dashboard
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Log Water - Action Area */}
-          <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-slate-200">
-                <div className="p-2 bg-slate-600/20 rounded-lg">
-                  <Droplets className="h-6 w-6 text-slate-400" />
-                </div>
-                Log Water
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LogWaterForm onLogWater={handleLogWater} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 7-Day Chart - Full Width Below Main Features */}
-        <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-slate-200">
-              <div className="p-2 bg-brown-400/20 rounded-lg">
-                <BarChart className="h-6 w-6 text-brown-400" />
-              </div>
-              7-Day Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[200px] md:h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsBarChart data={weeklyChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="#9CA3AF" 
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    stroke="#9CA3AF" 
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar 
-                    dataKey="water" 
-                    fill="#5271ff" 
-                    radius={[4, 4, 0, 0]}
-                    name="Water Intake"
-                  />
-                </RechartsBarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* AI Motivation */}
-        <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-          <CardContent className="p-6">
-            <AIMotivationCard 
-              motivation={aiMotivation} 
-              loading={loadingMotivation}
-              onRefresh={fetchMotivation}
-            />
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
