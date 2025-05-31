@@ -499,14 +499,14 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-            Water4WeightLoss
+      <div className="container mx-auto px-4 py-4 max-w-6xl">
+        {/* Page Header */}
+        <div className="mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2">
+            Hello, {userName}! 👋
           </h1>
-          <p className="text-slate-300 text-lg">
-            Track your hydration journey, {userName}! 💧
+          <p className="text-slate-300 text-sm sm:text-base">
+            {aiMotivation}
           </p>
         </div>
 
@@ -539,33 +539,33 @@ export default function DashboardPage() {
           <TabsContent value="water" className="space-y-4 md:space-y-6">
             {/* Main Hero Section - Large Glass & Quick Actions Above Fold */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {/* Progress Glass - Larger, More Prominent */}
+              {/* Progress Glass - Compact, Less Dead Space */}
               <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-slate-200 text-lg md:text-xl">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-slate-200 text-lg">
                     <div className="p-1.5 bg-hydration-400/20 rounded-lg">
-                      <Target className="h-4 w-4 md:h-5 md:w-5 text-hydration-400" />
+                      <Target className="h-4 w-4 text-hydration-400" />
                     </div>
                     Today's Progress
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center space-y-2 py-4">
+                <CardContent className="flex flex-col items-center py-3">
                   <WaterGlass 
                     currentIntake={currentIntake} 
-                    goalIntake={hydrationGoal} 
-                    size={300} 
-                    triggerAnimation={glassAnimation}
+                    goalIntake={hydrationGoal}
+                    size="lg"
+                    className="w-full"
                   />
                   
-                  {/* Enhanced Smart Tip with Brown Border */}
-                  <div className="w-full p-3 bg-slate-700/50 border border-[#b68a71]/30 rounded-lg">
+                  {/* Compact Smart Tip */}
+                  <div className="w-full mt-4 p-3 bg-slate-700/50 border border-[#b68a71]/30 rounded-lg">
                     <div className="flex items-start gap-2">
                       <div className="p-1 bg-hydration-400/20 rounded-lg">
-                        <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-hydration-400" />
+                        <Lightbulb className="h-3 w-3 text-hydration-400" />
                       </div>
                       <div>
-                        <h4 className="text-xs md:text-sm font-semibold text-slate-200 mb-1">Smart Tip</h4>
-                        <p className="text-xs md:text-sm text-slate-300">{generateSmartTip()}</p>
+                        <h4 className="text-xs font-semibold text-slate-200 mb-1">Smart Tip</h4>
+                        <p className="text-xs text-slate-300">{generateSmartTip()}</p>
                       </div>
                     </div>
                   </div>
