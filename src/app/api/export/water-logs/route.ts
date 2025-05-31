@@ -209,7 +209,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (format === 'pdf') {
-      return generatePDFExport(summaryStats, exportData, bodyMetricsData, includeWatermark);
+      const pdfBuffer = await generatePDFExport(summaryStats, exportData, bodyMetricsData, includeWatermark);
+      const filename = `water4weightloss-export-${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      return new NextResponse(pdfBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-cache'
+        }
+      });
     }
 
     // Default CSV export

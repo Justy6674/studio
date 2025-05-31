@@ -56,6 +56,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
+    // TEMPORARILY DISABLED - Firebase index required for composite query
+    console.log('📊 Body metrics API temporarily disabled - Firebase index required');
+    console.log('🔧 Returning empty data to prevent 500 errors');
+    
+    // Return empty data structure to prevent frontend errors
+    const stats: BodyMetricsStats = {
+      latest: null,
+      earliest: null,
+      total_entries: 0,
+      weight_change_kg: 0,
+      waist_change_cm: 0,
+      avg_weight_kg: 0,
+      avg_waist_cm: 0,
+      trend_period_days: 0
+    };
+
+    return NextResponse.json({
+      metrics: [],
+      stats,
+      total_count: 0,
+      message: 'Body metrics temporarily disabled - Firebase index required'
+    });
+
+    /*
+    // ORIGINAL CODE - REQUIRES FIREBASE INDEX
     // Get body metrics without orderBy to avoid index requirements
     const q = query(
       collection(db, "body_metrics"),
@@ -111,6 +136,7 @@ export async function GET(request: NextRequest) {
       stats,
       total_count: metrics.length
     });
+    */
 
   } catch (error: any) {
     console.error('Error fetching body metrics:', error);
