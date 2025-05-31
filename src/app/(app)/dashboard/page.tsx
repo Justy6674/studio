@@ -26,6 +26,7 @@ import { StreakCelebration } from "@/components/celebrations/StreakCelebration";
 import { MilestoneCelebration } from "@/components/celebrations/MilestoneCelebration";
 import OtherDrinkModal from '@/components/OtherDrinkModal';
 import DrinkCelebration from '@/components/celebrations/DrinkCelebration';
+import InfoCards from '@/components/info/InfoCards';
 
 interface DailyLogSummary {
   date: string; // YYYY-MM-DD
@@ -505,7 +506,7 @@ export default function DashboardPage() {
 
         {/* Main Tabbed Content with Brown Borders */}
         <Tabs defaultValue="water" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4 md:mb-6 bg-slate-800 border border-[#b68a71] h-12 md:h-10">
+          <TabsList className="grid w-full grid-cols-4 mb-4 md:mb-6 bg-slate-800 border border-[#b68a71] h-12 md:h-10">
             <TabsTrigger value="water" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
               <Droplets className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Water</span>
@@ -520,6 +521,11 @@ export default function DashboardPage() {
               <Download className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Export</span>
               <span className="sm:hidden">📁</span>
+            </TabsTrigger>
+            <TabsTrigger value="info" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
+              <Lightbulb className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Info</span>
+              <span className="sm:hidden">💡</span>
             </TabsTrigger>
           </TabsList>
 
@@ -640,6 +646,11 @@ export default function DashboardPage() {
           {/* Export Tab - Keep as is */}
           <TabsContent value="export" className="space-y-6">
             <WaterLogExporter />
+          </TabsContent>
+
+          {/* Info Tab - New */}
+          <TabsContent value="info" className="space-y-6">
+            <InfoCards />
           </TabsContent>
         </Tabs>
 
