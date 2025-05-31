@@ -77,7 +77,7 @@ export function WaterGlass({ currentIntake, goalIntake, size = 320, triggerAnima
   }));
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center space-y-3">
       <div className="relative" style={{ width: finalSize, height: finalSize }}>
         <svg
           width={finalSize}
@@ -308,7 +308,7 @@ export function WaterGlass({ currentIntake, goalIntake, size = 320, triggerAnima
         {/* Larger percentage display for mobile */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className={`text-3xl sm:text-4xl md:text-5xl font-bold text-white drop-shadow-2xl transition-all duration-500 ${isAnimating ? "scale-110 text-blue-300" : ""}`}>
+            <div className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white drop-shadow-2xl transition-all duration-500 ${isAnimating ? "scale-110 text-blue-300" : ""}`}>
               {Math.round(fillPercentage)}%
             </div>
           </div>
@@ -325,7 +325,7 @@ export function WaterGlass({ currentIntake, goalIntake, size = 320, triggerAnima
       </div>
       
       {/* Progress Display - Mobile Optimized */}
-      <div className="text-center space-y-2 w-full max-w-sm">
+      <div className="text-center space-y-1 w-full max-w-sm">
         {/* Current vs Goal */}
         <div className="flex items-center justify-center gap-2 text-slate-300">
           <span className="text-lg sm:text-xl md:text-2xl font-bold text-hydration-400">

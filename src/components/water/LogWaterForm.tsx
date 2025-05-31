@@ -23,10 +23,14 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
 
   // Quick-add drink options with proper emoji icons and consistent colors
   const drinkOptions = [
-    { name: "Small Glass", amount: 150, emoji: "🥛", color: "from-blue-500 to-blue-600" },
-    { name: "Tall Glass", amount: 250, emoji: "🥛", color: "from-cyan-500 to-cyan-600" },
-    { name: "Water Bottle", amount: 500, emoji: "🧴", color: "from-teal-500 to-teal-600" },
+    { name: "Quick Sip", amount: 50, emoji: "💧", color: "from-purple-500 to-purple-600" },
+    { name: "Small Glass", amount: 150, emoji: "🥛", color: "from-blue-400 to-blue-500" },
+    { name: "Tall Glass", amount: 250, emoji: "🥛", color: "from-cyan-400 to-cyan-500" },
+    { name: "Water Bottle", amount: 450, emoji: "🧴", color: "from-teal-400 to-teal-500" },
+    { name: "Water Bottle", amount: 500, emoji: "🧴", color: "from-blue-500 to-blue-600" },
+    { name: "Water Bottle", amount: 600, emoji: "🧴", color: "from-indigo-500 to-indigo-600" },
     { name: "Large Bottle", amount: 750, emoji: "🧴", color: "from-blue-600 to-blue-700" },
+    { name: "Jumbo Bottle", amount: 1000, emoji: "🧴", color: "from-slate-600 to-slate-700" },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,47 +76,27 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* All quick-add buttons - mobile stacked, desktop grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* All quick-add buttons - responsive grid for 7 buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {drinkOptions.map((drink) => (
               <Button
-                key={drink.amount}
+                key={`${drink.name}-${drink.amount}`}
                 onClick={() => handleQuickAdd(drink.amount)}
                 disabled={isLogging}
-                className={`bg-gradient-to-r ${drink.color} hover:scale-105 text-white py-4 px-4 text-sm font-semibold shadow-lg transition-all duration-200 hover:shadow-lg w-full min-h-[50px] flex items-center justify-center`}
+                className={`bg-gradient-to-r ${drink.color} hover:scale-105 text-white py-3 px-2 text-xs font-semibold shadow-lg transition-all duration-200 hover:shadow-lg w-full min-h-[45px] flex items-center justify-center`}
               >
                 {isLogging ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    <span className="text-sm">Adding...</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    <span className="text-xs">Adding...</span>
                   </div>
                 ) : (
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {drink.emoji} {drink.name} ({drink.amount}ml)
+                  <span className="text-xs font-medium text-center leading-tight">
+                    {drink.emoji} {drink.name}<br/>({drink.amount}ml)
                   </span>
                 )}
               </Button>
             ))}
-          </div>
-
-          {/* Quick Sip - Always full width */}
-          <div className="border-t border-slate-600 pt-3">
-            <Button
-              onClick={() => handleQuickAdd(sipAmount)}
-              disabled={isLogging}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-4 text-sm font-semibold shadow-lg transition-all duration-200 hover:shadow-purple-500/25 min-h-[50px] flex items-center justify-center"
-            >
-              {isLogging ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  <span className="text-sm">Adding...</span>
-                </div>
-              ) : (
-                <span className="text-sm font-medium whitespace-nowrap">
-                  💧 Quick Sip ({sipAmount}ml)
-                </span>
-              )}
-            </Button>
           </div>
 
           {/* Other Drink Button */}

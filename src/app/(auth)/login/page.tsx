@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Logo } from "@/components/ui/logo";
-import { Droplets, Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -81,7 +81,16 @@ export default function LoginPage() {
       <Card className="w-full max-w-md bg-slate-800 border-slate-700 shadow-2xl">
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center">
-            <Logo size="lg" showText={false} href={undefined} />
+            <div className="w-20 h-20 relative rounded-xl overflow-hidden border-2 border-hydration-400 shadow-lg bg-hydration-500/10">
+              <Image
+                src="/Logo (1).png"
+                alt="Water4WeightLoss Logo"
+                fill
+                className="object-cover"
+                priority
+                sizes="80px"
+              />
+            </div>
           </div>
           <div>
             <CardTitle className="text-2xl text-slate-100">Welcome Back</CardTitle>

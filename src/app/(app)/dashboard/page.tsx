@@ -27,7 +27,7 @@ import { MilestoneCelebration } from "@/components/celebrations/MilestoneCelebra
 import { HydrationCelebration } from "@/components/celebrations/HydrationCelebration";
 import OtherDrinkModal from '@/components/OtherDrinkModal';
 import DrinkCelebration from '@/components/celebrations/DrinkCelebration';
-import InfoCards from '@/components/info/InfoCards';
+import { InfoCards } from '@/components/info/InfoCards';
 import ExportCenter from "@/components/export/ExportCenter";
 
 interface DailyLogSummary {
@@ -541,26 +541,26 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {/* Progress Glass - Larger, More Prominent */}
               <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-                <CardHeader className="pb-3 md:pb-4">
-                  <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
-                    <div className="p-1.5 md:p-2 bg-hydration-400/20 rounded-lg">
-                      <Target className="h-4 w-4 md:h-6 md:w-6 text-hydration-400" />
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-slate-200 text-lg md:text-xl">
+                    <div className="p-1.5 bg-hydration-400/20 rounded-lg">
+                      <Target className="h-4 w-4 md:h-5 md:w-5 text-hydration-400" />
                     </div>
                     Today's Progress
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center space-y-3 md:space-y-4">
+                <CardContent className="flex flex-col items-center space-y-2 py-4">
                   <WaterGlass 
                     currentIntake={currentIntake} 
                     goalIntake={hydrationGoal} 
-                    size={320} 
+                    size={300} 
                     triggerAnimation={glassAnimation}
                   />
                   
                   {/* Enhanced Smart Tip with Brown Border */}
-                  <div className="w-full p-3 md:p-4 bg-slate-700/50 border border-[#b68a71]/30 rounded-lg">
-                    <div className="flex items-start gap-2 md:gap-3">
-                      <div className="p-1 md:p-1.5 bg-hydration-400/20 rounded-lg">
+                  <div className="w-full p-3 bg-slate-700/50 border border-[#b68a71]/30 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <div className="p-1 bg-hydration-400/20 rounded-lg">
                         <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-hydration-400" />
                       </div>
                       <div>

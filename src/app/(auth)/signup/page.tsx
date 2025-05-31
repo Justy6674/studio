@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Logo } from "@/components/ui/logo";
-import { Droplets, Eye, EyeOff, UserPlus } from "lucide-react";
+import { Eye, EyeOff, UserPlus } from "lucide-react";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -42,15 +42,13 @@ export default function SignUpPage() {
     e.preventDefault();
     setError("");
 
-    // Validate passwords match
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 
-    // Validate password strength
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
+      setError("Password must be at least 6 characters long.");
       return;
     }
 
@@ -59,8 +57,8 @@ export default function SignUpPage() {
     try {
       await signUp(email, password, name);
       toast({
-        title: "Welcome to Water4WeightLoss! 🎉",
-        description: "Your account has been created successfully.",
+        title: "Account created! 🎉",
+        description: "Welcome to Water4WeightLoss! Please check your email for verification.",
       });
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -82,7 +80,7 @@ export default function SignUpPage() {
       case "auth/invalid-email":
         return "Please enter a valid email address.";
       case "auth/weak-password":
-        return "Password is too weak. Please use a stronger password.";
+        return "Password should be at least 6 characters long.";
       default:
         return "Account creation failed. Please try again.";
     }
@@ -93,7 +91,16 @@ export default function SignUpPage() {
       <Card className="w-full max-w-md bg-slate-800 border-slate-700 shadow-2xl">
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center">
-            <Logo size="lg" showText={false} href={undefined} />
+            <div className="w-20 h-20 relative rounded-xl overflow-hidden border-2 border-hydration-400 shadow-lg bg-hydration-500/10">
+              <Image
+                src="/Logo (1).png"
+                alt="Water4WeightLoss Logo"
+                fill
+                className="object-cover"
+                priority
+                sizes="80px"
+              />
+            </div>
           </div>
           <div>
             <CardTitle className="text-2xl text-slate-100">Join Water4WeightLoss</CardTitle>
