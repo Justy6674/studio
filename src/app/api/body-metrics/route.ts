@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, serverTimestamp, limit } from 'firebase/firestore';
 import type { BodyMetrics, BodyMetricsEntry, BodyMetricsStats } from '@/lib/types';
 
 // POST - Add new body metrics entry
@@ -56,94 +56,108 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    // TEMPORARILY DISABLED - Firebase index required for composite query
-    console.log('📊 Body metrics API temporarily disabled - Firebase index required');
-    console.log('🔧 Returning empty data to prevent 500 errors');
+    console.log('📊 Body metrics API - attempting to fetch data');
     
-    // Return empty data structure to prevent frontend errors
-    const stats: BodyMetricsStats = {
-      latest: null,
-      earliest: null,
-      total_entries: 0,
-      weight_change_kg: 0,
-      waist_change_cm: 0,
-      avg_weight_kg: 0,
-      avg_waist_cm: 0,
-      trend_period_days: 0
-    };
+    try {
+      // Try the simple query first without ordering to avoid index issues
+      const bodyMetricsQuery = query(
+        collection(db, 'body_metrics'),
+        where('userId', '==', userId),
+        limit(limit)
+      );
 
-    return NextResponse.json({
-      metrics: [],
-      stats,
-      total_count: 0,
-      message: 'Body metrics temporarily disabled - Firebase index required'
-    });
+      const snapshot = await getDocs(bodyMetricsQuery);
+      const bodyMetrics: BodyMetrics[] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          weight_kg: data.weight_kg,
+          waist_cm: data.waist_cm,
+          timestamp: data.timestamp?.toDate() || new Date(),
+          notes: data.notes || ""
+        } as BodyMetrics;
+      });
 
-    /*
-    // ORIGINAL CODE - REQUIRES FIREBASE INDEX
-    // Get body metrics without orderBy to avoid index requirements
-    const q = query(
-      collection(db, "body_metrics"),
-      where("userId", "==", userId)
-    );
+      console.log(`📊 Found ${bodyMetrics.length} body metrics entries`);
 
-    const querySnapshot = await getDocs(q);
-    const metrics: BodyMetrics[] = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        userId: data.userId,
-        weight_kg: data.weight_kg,
-        waist_cm: data.waist_cm,
-        notes: data.notes || "",
-        timestamp: (data.timestamp as Timestamp).toDate(),
+      // Calculate basic stats
+      const stats: BodyMetricsStats = {
+        latest: null,
+        earliest: null,
+        total_entries: bodyMetrics.length,
+        weight_change_kg: 0,
+        waist_change_cm: 0,
+        avg_weight_kg: 0,
+        avg_waist_cm: 0,
+        trend_period_days: 0
       };
-    }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort in JavaScript (newest first)
 
-    // Calculate statistics
-    let stats: BodyMetricsStats = {
-      latest: null,
-      earliest: null,
-      total_entries: metrics.length,
-      weight_change_kg: 0,
-      waist_change_cm: 0,
-      avg_weight_kg: 0,
-      avg_waist_cm: 0,
-      trend_period_days: 0
-    };
+      if (bodyMetrics.length > 0) {
+        // Sort by timestamp to get latest/earliest
+        const sorted = bodyMetrics.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        
+        stats.latest = sorted[0];
+        stats.earliest = sorted[sorted.length - 1];
+        
+        // Calculate changes if we have weight data
+        if (stats.latest?.weight_kg && stats.earliest?.weight_kg) {
+          stats.weight_change_kg = parseFloat((stats.latest.weight_kg - stats.earliest.weight_kg).toFixed(1));
+        }
+        
+        if (stats.latest?.waist_cm && stats.earliest?.waist_cm) {
+          stats.waist_change_cm = parseFloat((stats.latest.waist_cm - stats.earliest.waist_cm).toFixed(1));
+        }
+        
+        // Calculate averages
+        stats.avg_weight_kg = parseFloat((bodyMetrics.reduce((sum, m) => sum + m.weight_kg, 0) / bodyMetrics.length).toFixed(1));
+        stats.avg_waist_cm = parseFloat((bodyMetrics.reduce((sum, m) => sum + m.waist_cm, 0) / bodyMetrics.length).toFixed(1));
+        
+        // Calculate trend period in days
+        const daysDiff = Math.ceil((stats.latest.timestamp.getTime() - stats.earliest.timestamp.getTime()) / (1000 * 60 * 60 * 24));
+        stats.trend_period_days = daysDiff;
+      }
 
-    if (metrics.length > 0) {
-      const latest = metrics[0]; // Newest first due to desc order
-      const earliest = metrics[metrics.length - 1];
+      return NextResponse.json({
+        body_metrics: bodyMetrics,
+        stats: stats,
+        success: true
+      });
+
+    } catch (firestoreError: any) {
+      console.error('📊 Firestore query failed:', firestoreError);
       
-      stats.latest = latest;
-      stats.earliest = earliest;
-      stats.weight_change_kg = Number((latest.weight_kg - earliest.weight_kg).toFixed(1));
-      stats.waist_change_cm = Number((latest.waist_cm - earliest.waist_cm).toFixed(1));
-      stats.avg_weight_kg = Number((metrics.reduce((sum, m) => sum + m.weight_kg, 0) / metrics.length).toFixed(1));
-      stats.avg_waist_cm = Number((metrics.reduce((sum, m) => sum + m.waist_cm, 0) / metrics.length).toFixed(1));
+      // If it's an index error, return empty data gracefully
+      if (firestoreError.code === 'failed-precondition') {
+        console.log('📊 Firebase index required - returning empty data gracefully');
+        return NextResponse.json({
+          body_metrics: [],
+          stats: {
+            latest: null,
+            earliest: null,
+            total_entries: 0,
+            weight_change_kg: 0,
+            waist_change_cm: 0,
+            avg_weight_kg: 0,
+            avg_waist_cm: 0,
+            trend_period_days: 0
+          },
+          success: true,
+          message: 'Body metrics temporarily unavailable - Firebase index being created'
+        });
+      }
       
-      // Calculate trend period in days
-      const daysDiff = Math.ceil((latest.timestamp.getTime() - earliest.timestamp.getTime()) / (1000 * 60 * 60 * 24));
-      stats.trend_period_days = daysDiff;
+      throw firestoreError;
     }
 
-    // Return limited results for display
-    const limitedMetrics = metrics.slice(0, limit);
-
-    return NextResponse.json({
-      metrics: limitedMetrics,
-      stats,
-      total_count: metrics.length
-    });
-    */
-
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching body metrics:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch body metrics',
-      details: error.message 
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch body metrics' },
+      { status: 500 }
+    );
   }
 }
 
