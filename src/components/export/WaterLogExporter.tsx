@@ -9,7 +9,33 @@ import { Camera, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-export function WaterLogExporter() {
+// Props interface for receiving dashboard data
+interface WaterLogExporterProps {
+  // Dashboard data to use as primary source
+  currentIntake?: number;
+  hydrationGoal?: number;
+  dailyStreak?: number;
+  longestStreak?: number;
+  userName?: string;
+  hydrationLogs?: any[];
+  // Optional - can be undefined if not available
+  bodyMetrics?: {
+    currentWeight?: number;
+    weightChange?: number;
+    currentWaist?: number;
+    waistChange?: number;
+  };
+}
+
+export function WaterLogExporter({
+  currentIntake = 0,
+  hydrationGoal = 2000,
+  dailyStreak = 0,
+  longestStreak = 0,
+  userName = '',
+  hydrationLogs = [],
+  bodyMetrics
+}: WaterLogExporterProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -27,6 +53,12 @@ export function WaterLogExporter() {
 
   const getUserFirstName = () => {
     try {
+      // Use passed userName first
+      if (userName && userName !== 'Friend') {
+        return userName;
+      }
+      
+      // Fallback to user profile data
       if (user?.displayName) {
         return user.displayName.split(' ')[0];
       }
@@ -38,6 +70,32 @@ export function WaterLogExporter() {
       console.log('Error getting user name:', error);
     }
     return 'User';
+  };
+
+  const getDashboardHydrationData = () => {
+    try {
+      // Calculate goal achievement from current dashboard data
+      const goalAchievement = hydrationGoal > 0 ? Math.round((currentIntake / hydrationGoal) * 100) : 0;
+      
+      // Calculate total water from recent period or use current intake
+      const daysTracked = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Use dashboard data directly
+      return {
+        totalWaterL: Math.round(currentIntake / 100) / 10, // Convert to L with 1 decimal
+        goalAchievement: Math.min(goalAchievement, 100), // Cap at 100%
+        maxStreak: Math.max(dailyStreak, longestStreak), // Use the higher of current or longest
+        hasData: currentIntake > 0 || dailyStreak > 0 || hydrationLogs.length > 0
+      };
+    } catch (error) {
+      console.log('Error processing dashboard data:', error);
+      return {
+        totalWaterL: 0,
+        goalAchievement: 0,
+        maxStreak: 0,
+        hasData: false
+      };
+    }
   };
 
   const fetchHydrationData = async () => {
@@ -122,6 +180,46 @@ export function WaterLogExporter() {
     }
   };
 
+  const fetchBodyMetricsDirectly = async () => {
+    try {
+      if (!user?.uid) return null;
+
+      // Try to import Firebase and fetch directly from Firestore
+      const { db } = await import('@/lib/firebase');
+      const { collection, query, where, orderBy, limit, getDocs } = await import('firebase/firestore');
+
+      console.log('📊 Fetching body metrics directly from Firestore...');
+      
+      const q = query(
+        collection(db, "body_metrics"),
+        where("userId", "==", user.uid),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        const data = doc.data();
+        console.log('✅ Found body metrics directly from Firestore:', data);
+        
+        return {
+          currentWeight: data.weight_kg || null,
+          currentWaist: data.waist_cm || null,
+          hasData: true
+        };
+      }
+
+      console.log('📊 No body metrics found in Firestore');
+      return null;
+
+    } catch (error) {
+      console.log('📊 Direct Firestore fetch failed:', error);
+      return null;
+    }
+  };
+
   const loadLogo = async () => {
     try {
       const response = await fetch('/Logo (1).png');
@@ -147,20 +245,72 @@ export function WaterLogExporter() {
       const firstName = getUserFirstName();
       const daysTracked = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
 
-      // Fetch all data in parallel - NEVER let any failure block the export
-      const [hydrationData, bodyData, logoBase64] = await Promise.allSettled([
-        fetchHydrationData(),
-        fetchBodyMetrics(), 
-        loadLogo()
-      ]);
+      console.log('🎯 Starting export for:', firstName);
 
-      // Extract results safely
-      const hydration = hydrationData.status === 'fulfilled' ? hydrationData.value : null;
-      const body = bodyData.status === 'fulfilled' ? bodyData.value : null;
-      const logo = logoBase64.status === 'fulfilled' ? logoBase64.value : '';
+      // Load logo only (no API calls that can fail the export)
+      let logoBase64 = '';
+      try {
+        logoBase64 = await loadLogo();
+      } catch (error) {
+        console.log('Logo load failed, using text fallback');
+      }
 
-      // Create the image HTML
-      const imageHTML = createProgressImageHTML(firstName, daysTracked, hydration, body, logo);
+      // Use dashboard data directly - this is what the user actually sees
+      const finalHydration = {
+        totalWaterL: Math.round(currentIntake / 100) / 10, // Convert ml to L
+        goalAchievement: hydrationGoal > 0 ? Math.min(Math.round((currentIntake / hydrationGoal) * 100), 100) : 0,
+        maxStreak: Math.max(dailyStreak, longestStreak),
+        daysTracked: daysTracked,
+        hasData: currentIntake > 0 || dailyStreak > 0 || hydrationLogs.length > 0
+      };
+
+      // ALWAYS try to get body metrics - multiple fallback strategies
+      let finalBodyMetrics = bodyMetrics || null;
+      
+      if (!finalBodyMetrics || (!finalBodyMetrics.currentWeight && !finalBodyMetrics.currentWaist)) {
+        console.log('📊 No body metrics from props, trying API...');
+        try {
+          const apiBodyMetrics = await fetchBodyMetrics();
+          if (apiBodyMetrics?.hasData) {
+            finalBodyMetrics = apiBodyMetrics;
+            console.log('✅ Got body metrics from API:', finalBodyMetrics);
+          }
+        } catch (error) {
+          console.log('📊 API fetch failed, trying direct Firestore...');
+        }
+      }
+
+      // If still no body metrics, try direct Firestore access
+      if (!finalBodyMetrics || (!finalBodyMetrics.currentWeight && !finalBodyMetrics.currentWaist)) {
+        try {
+          const directBodyMetrics = await fetchBodyMetricsDirectly();
+          if (directBodyMetrics?.hasData) {
+            finalBodyMetrics = directBodyMetrics;
+            console.log('✅ Got body metrics from direct Firestore:', finalBodyMetrics);
+          }
+        } catch (error) {
+          console.log('📊 Direct Firestore fetch failed:', error);
+        }
+      }
+
+      // ALWAYS provide body metrics structure - never null
+      if (!finalBodyMetrics) {
+        finalBodyMetrics = {
+          currentWeight: undefined,
+          currentWaist: undefined
+        };
+        console.log('📊 Using fallback body metrics structure');
+      }
+
+      console.log('✅ Final export data:', {
+        firstName,
+        hydration: finalHydration,
+        bodyMetrics: finalBodyMetrics,
+        hasLogo: !!logoBase64
+      });
+
+      // Create the image HTML - ALWAYS show all 4 cards
+      const imageHTML = createProgressImageHTML(firstName, daysTracked, finalHydration, finalBodyMetrics, logoBase64);
       
       // Generate and download the image
       await renderAndDownloadImage(imageHTML, firstName);
@@ -168,7 +318,7 @@ export function WaterLogExporter() {
       // ALWAYS show success to user
       toast({
         title: "Export Complete! 🎉",
-        description: "Your progress image has been downloaded successfully!",
+        description: `${firstName}'s progress image downloaded successfully!`,
       });
 
     } catch (error) {
@@ -184,9 +334,8 @@ export function WaterLogExporter() {
   };
 
   const createProgressImageHTML = (firstName: string, daysTracked: number, hydration: any, body: any, logoBase64: string) => {
-    // Determine what data we have
-    const hasHydration = hydration?.hasData;
-    const hasBody = body?.hasData && (body.currentWeight || body.currentWaist);
+    // ALWAYS show all 4 cards - never hide any sections
+    const hasHydrationData = hydration?.hasData;
 
     return `
       <div style="
@@ -233,151 +382,116 @@ export function WaterLogExporter() {
           <div style="
             font-size: 16px;
             color: #94a3b8;
-          ">${startDate} to ${endDate}</div>
+          ">${startDate} to ${endDate} • ${daysTracked} days</div>
         </div>
 
-        <!-- Stats Content -->
-        ${hasHydration || hasBody ? `
+        <!-- ALWAYS SHOW ALL 4 METRIC CARDS -->
+        <div style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 25px;
+          flex-grow: 1;
+          align-content: center;
+        ">
+          <!-- Total Water Card -->
           <div style="
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            flex-grow: 1;
-            align-content: center;
+            background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
           ">
-            ${hasHydration ? `
-              <!-- Total Water -->
-              <div style="
-                background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-                padding: 35px;
-                border-radius: 20px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
-              ">
-                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-                  ${hydration.totalWaterL}L
-                </div>
-                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-                  Total Water
-                </div>
-                <div style="font-size: 15px; opacity: 0.9;">
-                  Over ${daysTracked} days
-                </div>
-              </div>
+            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+              ${hasHydrationData ? hydration.totalWaterL : '0.0'}L
+            </div>
+            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+              Water Intake
+            </div>
+            <div style="font-size: 15px; opacity: 0.9;">
+              ${hasHydrationData ? 'Progress tracked' : 'Start tracking!'}
+            </div>
+          </div>
 
-              <!-- Goal Achievement -->
-              <div style="
-                background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
-                padding: 35px;
-                border-radius: 20px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
-              ">
-                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-                  ${hydration.goalAchievement}%
-                </div>
-                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-                  Goal Achievement
-                </div>
-                <div style="font-size: 15px; opacity: 0.9;">
-                  ${hydration.goalAchievement >= 80 ? 'Excellent!' : 'Keep going!'}
-                </div>
-              </div>
+          <!-- Goal Achievement Card -->
+          <div style="
+            background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
+          ">
+            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+              ${hasHydrationData ? hydration.goalAchievement : 0}%
+            </div>
+            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+              Goal Achievement
+            </div>
+            <div style="font-size: 15px; opacity: 0.9;">
+              ${hasHydrationData && hydration.goalAchievement >= 80 ? 'Excellent!' : 'Keep going!'}
+            </div>
+          </div>
 
-              <!-- Streak -->
-              <div style="
-                background: linear-gradient(135deg, #F1E5A6 0%, #E5D078 100%);
-                padding: 35px;
-                border-radius: 20px;
-                text-align: center;
-                color: #334155;
-                box-shadow: 0 10px 30px rgba(241, 229, 166, 0.3);
-              ">
-                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-                  ${hydration.maxStreak}
-                </div>
-                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-                  Max Streak
-                </div>
-                <div style="font-size: 15px; opacity: 0.8;">
-                  Days in a row! 🏆
-                </div>
-              </div>
-            ` : ''}
+          <!-- Best Streak Card -->
+          <div style="
+            background: linear-gradient(135deg, #F1E5A6 0%, #E5D078 100%);
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            color: #334155;
+            box-shadow: 0 10px 30px rgba(241, 229, 166, 0.3);
+          ">
+            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+              ${hasHydrationData ? hydration.maxStreak : 0}
+            </div>
+            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+              Best Streak
+            </div>
+            <div style="font-size: 15px; opacity: 0.8;">
+              ${hasHydrationData ? 'Days in a row! 🏆' : 'Start your streak!'}
+            </div>
+          </div>
 
-            ${hasBody && body.currentWeight ? `
-              <!-- Weight -->
-              <div style="
-                background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-                padding: 35px;
-                border-radius: 20px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
-              ">
-                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-                  ${body.currentWeight}kg
-                </div>
-                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-                  Current Weight
-                </div>
-                <div style="font-size: 15px; opacity: 0.9; color: ${body.weightChange && body.weightChange < 0 ? '#4ade80' : '#ffffff'};">
-                  ${body.weightChange ? (body.weightChange > 0 ? '+' : '') + body.weightChange + 'kg' : 'Progress tracking'}
-                </div>
+          <!-- ALWAYS SHOW Weight/Waist Card -->
+          <div style="
+            background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
+          ">
+            ${body?.currentWeight ? `
+              <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                ${body.currentWeight}kg
               </div>
-            ` : !hasHydration ? '' : `
-              <!-- Days Tracked -->
-              <div style="
-                background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
-                padding: 35px;
-                border-radius: 20px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
-              ">
-                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-                  ${daysTracked}
-                </div>
-                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-                  Days Tracked
-                </div>
-                <div style="font-size: 15px; opacity: 0.9;">
-                  Your journey continues! 🌟
-                </div>
+              <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                Current Weight
+              </div>
+              <div style="font-size: 15px; opacity: 0.9;">
+                ${body.currentWaist ? `Waist: ${body.currentWaist}cm` : 'Tracking progress'}
+              </div>
+            ` : body?.currentWaist ? `
+              <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                ${body.currentWaist}cm
+              </div>
+              <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                Current Waist
+              </div>
+              <div style="font-size: 15px; opacity: 0.9;">
+                Tracking progress
+              </div>
+            ` : `
+              <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                📊
+              </div>
+              <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                Body Metrics
+              </div>
+              <div style="font-size: 15px; opacity: 0.9;">
+                Ready to track!
               </div>
             `}
           </div>
-        ` : `
-          <!-- No Data Message -->
-          <div style="
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 60px 40px;
-          ">
-            <div style="
-              font-size: 48px;
-              font-weight: bold;
-              color: #b68a71;
-              margin-bottom: 20px;
-            ">Start Your Journey!</div>
-            <div style="
-              font-size: 24px;
-              color: #94a3b8;
-              margin-bottom: 30px;
-              line-height: 1.4;
-            ">No progress data yet.<br/>Begin tracking your hydration and weight today!</div>
-            <div style="
-              background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-              padding: 25px 40px;
-              border-radius: 15px;
-              font-size: 20px;
-              font-weight: 600;
-              color: white;
-            ">Ready to begin? 💪</div>
-          </div>
-        `}
+        </div>
 
         <!-- Footer -->
         <div style="
@@ -560,6 +674,18 @@ export function WaterLogExporter() {
             />
           </div>
         </div>
+
+        {/* Debug Info - shows what data the export will use */}
+        {(currentIntake > 0 || dailyStreak > 0) && (
+          <div className="p-3 bg-slate-700/50 border border-slate-600 rounded-lg">
+            <p className="text-xs text-slate-400 mb-2">Export Preview:</p>
+            <p className="text-xs text-slate-300">
+              <strong>{getUserFirstName()}'s Progress:</strong> {Math.round(currentIntake / 100) / 10}L intake, 
+              {hydrationGoal > 0 ? Math.round((currentIntake / hydrationGoal) * 100) : 0}% goal, 
+              {Math.max(dailyStreak, longestStreak)} best streak
+            </p>
+          </div>
+        )}
 
         {/* SINGLE EXPORT BUTTON ONLY */}
         <div className="pt-4">
