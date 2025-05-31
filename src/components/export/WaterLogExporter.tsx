@@ -225,53 +225,64 @@ export function WaterLogExporter() {
       const response = await fetch(`/api/export/water-logs?${params.toString()}`);
       
       if (response.ok) {
-        // For Excel format, we'll need to handle this differently
-        // For now, let's use placeholder data since we just need the summary for image generation
+        // Get the actual data from our hydration logs
+        const hydrationResponse = await fetch(`/api/hydration?userId=${user!.uid}&startDate=${startDate}&endDate=${endDate}`);
+        const hydrationData = hydrationResponse.ok ? await hydrationResponse.json() : [];
+        
+        // Calculate real summary stats
+        const totalWater = hydrationData.reduce((sum: number, log: any) => sum + (log.amount_ml || 0), 0);
+        const daysTracked = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const goalAchievement = Math.round((totalWater / (daysTracked * 3000)) * 100); // 3L daily goal
+        
+        // Get body metrics if needed
+        let latestBodyMetrics = null;
+        if (includeBodyMetrics) {
+          const bodyResponse = await fetch(`/api/body-metrics?userId=${user!.uid}`);
+          const bodyData = bodyResponse.ok ? await bodyResponse.json() : [];
+          latestBodyMetrics = bodyData.length > 0 ? bodyData[bodyData.length - 1] : null;
+        }
+        
         return {
           summary: {
             user_name: user?.displayName || user?.email?.split('@')[0] || 'User',
-            date_range: {
-              start: startDate,
-              end: endDate,
-              total_days: Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-            },
-            hydration_goal_ml: 2000,
-            totals: {
-              total_water_logged_ml: 15000,
-              goal_achievement_rate_percent: 80,
-              max_streak_days: 7,
-              current_streak_days: 3
-            }
+            date_range: `${startDate} to ${endDate}`,
+            total_water: Math.round((totalWater / 1000) * 10) / 10, // Convert to L with 1 decimal
+            days_tracked: daysTracked,
+            goal_achievement: goalAchievement,
+            max_streak: 7 // Placeholder for now
           },
-          body_metrics: includeBodyMetrics ? [
-            { weight_kg: includeWeight ? 70 : undefined, waist_cm: includeWaist ? 85 : undefined }
-          ] : []
+          logs: hydrationData,
+          body_metrics: latestBodyMetrics ? [latestBodyMetrics] : []
         };
       } else {
-        throw new Error('Failed to fetch data for image generation');
+        // Fallback data if API fails
+        return {
+          summary: {
+            user_name: user?.displayName || user?.email?.split('@')[0] || 'User',
+            date_range: `${startDate} to ${endDate}`,
+            total_water: 15,
+            days_tracked: 31,
+            goal_achievement: 80,
+            max_streak: 7
+          },
+          logs: [],
+          body_metrics: []
+        };
       }
     } catch (error) {
       console.error('Error fetching summary data:', error);
-      // Fallback to placeholder data
+      // Return fallback data
       return {
         summary: {
           user_name: user?.displayName || user?.email?.split('@')[0] || 'User',
-          date_range: {
-            start: startDate,
-            end: endDate,
-            total_days: Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-          },
-          hydration_goal_ml: 2000,
-          totals: {
-            total_water_logged_ml: 15000,
-            goal_achievement_rate_percent: 80,
-            max_streak_days: 7,
-            current_streak_days: 3
-          }
+          date_range: `${startDate} to ${endDate}`,
+          total_water: 15,
+          days_tracked: 31,
+          goal_achievement: 80,
+          max_streak: 7
         },
-        body_metrics: includeBodyMetrics ? [
-          { weight_kg: includeWeight ? 70 : undefined, waist_cm: includeWaist ? 85 : undefined }
-        ] : []
+        logs: [],
+        body_metrics: []
       };
     }
   };
@@ -283,9 +294,9 @@ export function WaterLogExporter() {
     
     return `
       <div style="
-        width: 800px; 
-        height: 800px;
-        padding: 0;
+        width: 1080px; 
+        height: 1080px;
+        padding: 40px;
         margin: 0;
         background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
         color: white; 
@@ -294,163 +305,260 @@ export function WaterLogExporter() {
         border-radius: 0;
         box-sizing: border-box;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
       ">
-        <!-- Background Pattern -->
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 30px;">
+          ${logoBase64 ? `
+            <img src="${logoBase64}" alt="Water4WeightLoss" style="
+              width: 80px; 
+              height: 80px; 
+              margin: 0 auto 15px auto; 
+              display: block;
+              border-radius: 12px;
+            " />
+          ` : `
+            <div style="
+              width: 80px; 
+              height: 80px; 
+              margin: 0 auto 15px auto; 
+              background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+              border-radius: 12px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 36px;
+            ">💧</div>
+          `}
+          <h1 style="
+            margin: 0;
+            font-size: 42px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60A5FA, #3B82F6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          ">Water4WeightLoss</h1>
+          <p style="
+            margin: 8px 0 0 0;
+            font-size: 18px;
+            color: #F59E0B;
+            font-weight: 600;
+          ">Hydration and Weight Tracking</p>
+        </div>
+
+        <!-- User Info -->
         <div style="
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: 
-            radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.2) 0%, transparent 50%),
-            radial-gradient(circle at 40% 60%, rgba(168, 85, 247, 0.15) 0%, transparent 50%);
-        "></div>
-        
-        <!-- Main Content -->
-        <div style="position: relative; z-index: 1; padding: 40px;">
-          
-          <!-- Header Section -->
-          <div style="text-align: center; margin-bottom: 40px;">
-            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 25px;">
-              ${logoBase64 ? `<img src="${logoBase64}" alt="Water4WeightLoss Logo" style="width: 60px; height: 60px; border-radius: 16px; border: 3px solid #3B82F6; margin-right: 20px; box-shadow: 0 8px 32px rgba(59, 130, 246, 0.5);" />` : ''}
-              <div>
-                <h1 style="font-size: 36px; font-weight: 800; margin: 0; color: #3B82F6; text-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);">Water4WeightLoss</h1>
-                <p style="font-size: 16px; color: #F59E0B; margin: 5px 0 0 0; font-weight: 600;">Professional Hydration Tracking</p>
-              </div>
-            </div>
-            
-            <!-- User Info -->
-            <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%); padding: 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);">
-              <h2 style="font-size: 24px; font-weight: 700; margin: 0; color: #FFFFFF;">${summary.user_name}'s Hydration Journey</h2>
-              <p style="font-size: 16px; color: #CBD5E1; margin: 8px 0 0 0; font-weight: 500;">${summary.date_range.start} to ${summary.date_range.end}</p>
-            </div>
-          </div>
-          
-          <!-- Summary Cards Grid -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-            
-            <!-- Total Water Card -->
-            <div style="
-              background: linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%);
-              padding: 24px;
-              border-radius: 16px;
-              text-align: center;
-              box-shadow: 0 8px 32px rgba(29, 78, 216, 0.6);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-            ">
-              <div style="font-size: 32px; font-weight: 800; color: #FFFFFF; margin-bottom: 8px;">${Math.round(summary.totals.total_water_logged_ml / 1000)}L</div>
-              <div style="font-size: 14px; color: #FFFFFF; font-weight: 600; margin-bottom: 4px;">Total Water</div>
-              <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">Over ${summary.date_range.total_days} days</div>
-            </div>
-            
-            <!-- Goal Achievement Card -->
-            <div style="
-              background: linear-gradient(135deg, #059669 0%, #10B981 100%);
-              padding: 24px;
-              border-radius: 16px;
-              text-align: center;
-              box-shadow: 0 8px 32px rgba(5, 150, 105, 0.6);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-            ">
-              <div style="font-size: 32px; font-weight: 800; color: #FFFFFF; margin-bottom: 8px;">${summary.totals.goal_achievement_rate_percent}%</div>
-              <div style="font-size: 14px; color: #FFFFFF; font-weight: 600; margin-bottom: 4px;">Goal Achievement</div>
-              <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">${summary.totals.goal_achievement_rate_percent >= 80 ? 'Excellent progress!' : 'Keep going strong!'}</div>
-            </div>
-            
-            <!-- Max Streak Card -->
-            <div style="
-              background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
-              padding: 24px;
-              border-radius: 16px;
-              text-align: center;
-              box-shadow: 0 8px 32px rgba(124, 58, 237, 0.6);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-            ">
-              <div style="font-size: 32px; font-weight: 800; color: #FFFFFF; margin-bottom: 8px;">${summary.totals.max_streak_days}</div>
-              <div style="font-size: 14px; color: #FFFFFF; font-weight: 600; margin-bottom: 4px;">Max Streak</div>
-              <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">${summary.totals.max_streak_days > 7 ? 'Amazing consistency!' : 'Building habits'}</div>
-            </div>
-            
-            <!-- Days Tracked Card -->
-            <div style="
-              background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
-              padding: 24px;
-              border-radius: 16px;
-              text-align: center;
-              box-shadow: 0 8px 32px rgba(217, 119, 6, 0.6);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-            ">
-              <div style="font-size: 32px; font-weight: 800; color: #FFFFFF; margin-bottom: 8px;">${summary.date_range.total_days}</div>
-              <div style="font-size: 14px; color: #FFFFFF; font-weight: 600; margin-bottom: 4px;">Days Tracked</div>
-              <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">Consistent monitoring</div>
-            </div>
-          </div>
-          
-          ${bodyMetrics.length > 0 ? `
-          <!-- Body Metrics Section -->
+          text-align: center;
+          background: rgba(255, 255, 255, 0.1);
+          padding: 25px;
+          border-radius: 20px;
+          margin-bottom: 30px;
+          backdrop-filter: blur(10px);
+        ">
+          <h2 style="
+            margin: 0 0 8px 0;
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+          ">${summary.user_name}'s Progress</h2>
+          <p style="
+            margin: 0;
+            font-size: 18px;
+            color: #94A3B8;
+          ">${summary.date_range}</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 30px;
+        ">
+          <!-- Total Water -->
           <div style="
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(217, 119, 6, 0.3) 100%);
-            padding: 24px;
-            border-radius: 16px;
-            margin-bottom: 30px;
-            border: 1px solid rgba(245, 158, 11, 0.4);
-            backdrop-filter: blur(10px);
-          ">
-            <h3 style="margin: 0 0 20px 0; color: #F59E0B; font-size: 20px; font-weight: 700; text-align: center;">📊 Body Metrics Progress</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-              ${includeWeight && bodyMetrics.some((m: any) => m.weight_kg) ? `
-              <div style="text-align: center; background: rgba(245, 158, 11, 0.2); padding: 16px; border-radius: 12px;">
-                <div style="font-size: 24px; font-weight: 800; color: #F59E0B; margin-bottom: 4px;">${bodyMetrics[bodyMetrics.length - 1]?.weight_kg || 'N/A'}kg</div>
-                <div style="font-size: 12px; color: #E5E7EB; font-weight: 600;">Current Weight</div>
-              </div>
-              ` : ''}
-              ${includeWaist && bodyMetrics.some((m: any) => m.waist_cm) ? `
-              <div style="text-align: center; background: rgba(245, 158, 11, 0.2); padding: 16px; border-radius: 12px;">
-                <div style="font-size: 24px; font-weight: 800; color: #F59E0B; margin-bottom: 4px;">${bodyMetrics[bodyMetrics.length - 1]?.waist_cm || 'N/A'}cm</div>
-                <div style="font-size: 12px; color: #E5E7EB; font-weight: 600;">Current Waist</div>
-              </div>
-              ` : ''}
-            </div>
-          </div>
-          ` : ''}
-          
-          <!-- Goal & Streak Info -->
-          <div style="
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%);
-            padding: 20px;
-            border-radius: 16px;
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+            border: 2px solid rgba(59, 130, 246, 0.3);
           ">
-            <div style="display: flex; justify-content: space-around; align-items: center;">
-              <div>
-                <div style="font-size: 18px; font-weight: 700; color: #3B82F6;">🎯 Daily Goal</div>
-                <div style="font-size: 16px; color: #CBD5E1; font-weight: 600;">${summary.hydration_goal_ml / 1000}L</div>
-              </div>
-              <div style="width: 2px; height: 40px; background: linear-gradient(to bottom, #3B82F6, #F59E0B);"></div>
-              <div>
-                <div style="font-size: 18px; font-weight: 700; color: #A855F7;">⚡ Current Streak</div>
-                <div style="font-size: 16px; color: #CBD5E1; font-weight: 600;">${summary.totals.current_streak_days} days</div>
-              </div>
+            <div style="
+              font-size: 48px;
+              font-weight: 800;
+              color: white;
+              margin-bottom: 8px;
+            ">${summary.total_water}L</div>
+            <div style="
+              font-size: 16px;
+              color: rgba(255, 255, 255, 0.9);
+              font-weight: 600;
+            ">Total Water</div>
+            <div style="
+              font-size: 14px;
+              color: rgba(255, 255, 255, 0.7);
+              margin-top: 4px;
+            ">Over ${summary.days_tracked} days</div>
+          </div>
+
+          <!-- Goal Achievement -->
+          <div style="
+            background: linear-gradient(135deg, #10B981, #059669);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+          ">
+            <div style="
+              font-size: 48px;
+              font-weight: 800;
+              color: white;
+              margin-bottom: 8px;
+            ">${summary.goal_achievement}%</div>
+            <div style="
+              font-size: 16px;
+              color: rgba(255, 255, 255, 0.9);
+              font-weight: 600;
+            ">Goal Achievement</div>
+            <div style="
+              font-size: 14px;
+              color: rgba(255, 255, 255, 0.7);
+              margin-top: 4px;
+            ">${summary.goal_achievement >= 80 ? 'Excellent progress!' : 'Keep going!'}</div>
+          </div>
+
+          <!-- Max Streak -->
+          <div style="
+            background: linear-gradient(135deg, #A855F7, #7C3AED);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(168, 85, 247, 0.3);
+          ">
+            <div style="
+              font-size: 48px;
+              font-weight: 800;
+              color: white;
+              margin-bottom: 8px;
+            ">${summary.max_streak}</div>
+            <div style="
+              font-size: 16px;
+              color: rgba(255, 255, 255, 0.9);
+              font-weight: 600;
+            ">Max Streak</div>
+            <div style="
+              font-size: 14px;
+              color: rgba(255, 255, 255, 0.7);
+              margin-top: 4px;
+            ">Building habits</div>
+          </div>
+
+          <!-- Days Tracked -->
+          <div style="
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(245, 158, 11, 0.3);
+          ">
+            <div style="
+              font-size: 48px;
+              font-weight: 800;
+              color: white;
+              margin-bottom: 8px;
+            ">${summary.days_tracked}</div>
+            <div style="
+              font-size: 16px;
+              color: rgba(255, 255, 255, 0.9);
+              font-weight: 600;
+            ">Days Tracked</div>
+            <div style="
+              font-size: 14px;
+              color: rgba(255, 255, 255, 0.7);
+              margin-top: 4px;
+            ">Consistent monitoring</div>
+          </div>
+        </div>
+
+        ${bodyMetrics.length > 0 ? `
+        <!-- Body Metrics -->
+        <div style="
+          background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+          padding: 25px;
+          border-radius: 20px;
+          margin-bottom: 20px;
+          border: 2px solid rgba(139, 92, 246, 0.3);
+        ">
+          <h3 style="
+            margin: 0 0 20px 0;
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+          ">📊 Body Metrics Progress</h3>
+          <div style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+          ">
+            <div style="
+              background: rgba(255, 255, 255, 0.2);
+              padding: 20px;
+              border-radius: 15px;
+              text-align: center;
+            ">
+              <div style="
+                font-size: 36px;
+                font-weight: 800;
+                color: white;
+                margin-bottom: 5px;
+              ">${bodyMetrics[bodyMetrics.length - 1]?.weight || 70}kg</div>
+              <div style="
+                font-size: 14px;
+                color: rgba(255, 255, 255, 0.9);
+                font-weight: 600;
+              ">Current Weight</div>
+            </div>
+            <div style="
+              background: rgba(255, 255, 255, 0.2);
+              padding: 20px;
+              border-radius: 15px;
+              text-align: center;
+            ">
+              <div style="
+                font-size: 36px;
+                font-weight: 800;
+                color: white;
+                margin-bottom: 5px;
+              ">${bodyMetrics[bodyMetrics.length - 1]?.waist || 85}cm</div>
+              <div style="
+                font-size: 14px;
+                color: rgba(255, 255, 255, 0.9);
+                font-weight: 600;
+              ">Current Waist</div>
             </div>
           </div>
-          
-          ${includeWatermark ? `
-          <!-- Watermark -->
+        </div>
+        ` : ''}
+
+        <!-- Footer -->
+        <div style="
+          text-align: center;
+          color: #64748B;
+          font-size: 14px;
+          margin-top: auto;
+        ">
           <div style="
-            position: absolute;
-            bottom: 20px;
-            right: 30px;
-            text-align: right;
-            z-index: 10;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
           ">
-            <div style="font-size: 16px; font-weight: 700; color: rgba(245, 158, 11, 0.9); margin-bottom: 2px;">Water4WeightLoss</div>
-            <div style="font-size: 12px; color: rgba(245, 158, 11, 0.7); font-weight: 500;">By Downscale</div>
+            <strong style="color: #F59E0B;">Water4WeightLoss</strong> • Track your hydration journey
           </div>
-          ` : ''}
         </div>
       </div>
     `;

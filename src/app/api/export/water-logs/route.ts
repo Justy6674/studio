@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, orderBy, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
 import type { UserProfile, BodyMetrics } from '@/lib/types';
+import path from 'path';
+import fs from 'fs';
 
 interface HydrationLogExport {
   date: string;
@@ -406,281 +408,231 @@ async function generatePDFExport(
   pdf.rect(0, 0, pageWidth, 60, 'F');
   
   // Add logo if available
-  if (logoDataUrl) {
-    try {
-      pdf.addImage(logoDataUrl, 'PNG', margin, 15, 20, 20);
-    } catch (error) {
-      console.warn('Could not add logo to PDF:', error);
+  try {
+    // Try to load the logo and add it to PDF
+    const logoPath = path.join(process.cwd(), 'public', 'Logo (1).png');
+    if (fs.existsSync(logoPath)) {
+      const logoData = fs.readFileSync(logoPath);
+      const logoBase64 = logoData.toString('base64');
+      pdf.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', margin + 10, 15, 30, 30);
     }
+  } catch (error) {
+    console.log('Logo not found, continuing without logo');
   }
   
-  // Main title with modern typography
+  // App title
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(26);
-  pdf.setTextColor(255, 255, 255); // White text
-  pdf.text('Water4WeightLoss', logoDataUrl ? margin + 25 : margin, 28);
+  pdf.setFontSize(28);
+  pdf.setTextColor(60, 130, 246); // Blue color
+  pdf.text('Water4WeightLoss', margin + 50, 32);
   
   // Subtitle
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(12);
-  pdf.setTextColor(colors.secondary);
-  pdf.text('Professional Hydration Report', logoDataUrl ? margin + 25 : margin, 36);
+  pdf.setFontSize(14);
+  pdf.setTextColor(245, 158, 11); // Orange color
+  pdf.text('Hydration and Weight Tracking', margin + 50, 45);
   
-  // User name prominently displayed
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(16);
-  pdf.setTextColor(255, 255, 255);
-  pdf.text(`${summaryStats.user_name}'s Journey`, logoDataUrl ? margin + 25 : margin, 48);
+  yPosition = 80;
   
-  yPosition = 75;
+  // USER INFO SECTION
+  pdf.setFillColor('#1E293B'); // Dark background
+  pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 30, 'F');
   
-  // SUMMARY CARDS SECTION - Beautiful cards like social media export
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
-  pdf.setTextColor(colors.dark);
-  pdf.text('📊 Your Hydration Journey', margin, yPosition);
-  yPosition += 15;
+  pdf.setTextColor(255, 255, 255); // White text
+  const userName = summaryStats.user_name || 'User';
+  pdf.text(`${userName}'s Progress`, margin + 10, yPosition + 10);
   
-  // Create beautiful summary cards in a 2x2 grid
-  const cardWidth = (pageWidth - margin * 2 - 10) / 2;
-  const cardHeight = 35;
-  const cardSpacing = 5;
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(12);
+  pdf.setTextColor(148, 163, 184); // Gray text
+  pdf.text(`${summaryStats.date_range.start} to ${summaryStats.date_range.end}`, margin + 10, yPosition + 22);
   
-  const summaryCards = [
-    {
-      title: 'Total Water',
-      value: `${(summaryStats.totals.total_water_logged_ml / 1000).toFixed(1)}L`,
-      subtitle: `Over ${summaryStats.date_range.total_days} days`,
-      color: '#FFFFFF',
-      bgColor: '#3B82F6',  // Bright blue background
-      borderColor: '#1D4ED8'
-    },
-    {
-      title: 'Goal Achievement',
-      value: `${summaryStats.totals.goal_achievement_rate_percent}%`,
-      subtitle: summaryStats.totals.goal_achievement_rate_percent >= 80 ? 'Excellent!' : 'Good progress',
-      color: '#FFFFFF',
-      bgColor: '#10B981',  // Bright green background  
-      borderColor: '#059669'
-    },
-    {
-      title: 'Max Streak',
-      value: `${summaryStats.totals.max_streak_days} days`,
-      subtitle: summaryStats.totals.max_streak_days > 7 ? 'Amazing consistency!' : 'Building habits',
-      color: '#FFFFFF',
-      bgColor: '#A855F7',  // Bright purple background
-      borderColor: '#7C3AED'
-    },
-    {
-      title: 'Daily Average',
-      value: `${(summaryStats.totals.average_daily_intake_ml / 1000).toFixed(1)}L`,
-      subtitle: `Target: ${(summaryStats.hydration_goal_ml / 1000).toFixed(1)}L`,
-      color: '#FFFFFF',
-      bgColor: '#F59E0B',  // Bright orange background
-      borderColor: '#D97706'
-    }
-  ];
+  yPosition += 50;
   
-  summaryCards.forEach((card, index) => {
-    const row = Math.floor(index / 2);
-    const col = index % 2;
-    const cardX = margin + col * (cardWidth + cardSpacing);
-    const cardY = yPosition + row * (cardHeight + cardSpacing);
-    
-    // Card shadow effect (darker)
-    pdf.setFillColor('#00000020');
-    pdf.rect(cardX + 2, cardY + 2, cardWidth, cardHeight, 'F');
-    
-    // Card background with vibrant color
-    pdf.setFillColor(card.bgColor);
-    pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
-    
-    // Card border with darker shade
-    pdf.setDrawColor(card.borderColor);
-    pdf.setLineWidth(1);
-    pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
-    
-    // Card content with white text
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(20);
-    pdf.setTextColor(255, 255, 255); // White text
-    pdf.text(card.value, cardX + 8, cardY + 15);
-    
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
-    pdf.setTextColor(255, 255, 255); // White text
-    pdf.text(card.title, cardX + 8, cardY + 23);
-    
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8);
-    pdf.setTextColor(240, 240, 240); // Light gray text
-    pdf.text(card.subtitle, cardX + 8, cardY + 30);
-  });
+  // SUMMARY STATISTICS - 2x2 Grid like social media
+  const cardWidth = (pageWidth - margin * 2 - 10) / 2; // 2 columns
+  const cardHeight = 40;
+  let cardX = margin;
+  let cardY = yPosition;
   
-  yPosition += Math.ceil(summaryCards.length / 2) * (cardHeight + cardSpacing) + 20;
+  // Calculate summary stats
+  const totalWaterL = Math.round((exportData.reduce((sum: number, log: any) => sum + (log.amount_ml || 0), 0) / 1000) * 10) / 10;
+  const daysTracked = summaryStats.date_range.total_days || 0;
+  const goalAchievement = summaryStats.totals.goal_achievement_rate_percent || 0;
+  const maxStreak = summaryStats.totals.max_streak_days || 0;
   
-  // BODY METRICS SECTION (if available)
-  if (bodyMetricsData.length > 0) {
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(16);
-    pdf.setTextColor(255, 255, 255); // White text
-    pdf.text('📏 Body Metrics Progress', margin, yPosition);
-    yPosition += 15;
-    
-    // Beautiful metrics cards
-    const latestMetrics = bodyMetricsData[bodyMetricsData.length - 1];
-    const earliestMetrics = bodyMetricsData[0];
-    
-    // Metrics background - vibrant orange gradient
-    pdf.setFillColor('#F59E0B'); // Bright orange background
-    pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 40, 'F');
-    pdf.setDrawColor('#D97706'); // Darker orange border
-    pdf.setLineWidth(1);
-    pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 40, 'S');
-    
-    let metricsX = margin + 10;
-    
-    if (latestMetrics.weight_kg) {
-      const weightChange = earliestMetrics.weight_kg ? 
-        (latestMetrics.weight_kg - earliestMetrics.weight_kg).toFixed(1) : '0';
-      
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(16);
-      pdf.setTextColor(255, 255, 255); // White text
-      pdf.text(`${latestMetrics.weight_kg}kg`, metricsX, yPosition + 10);
-      
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      pdf.setTextColor(255, 255, 255); // White text
-      pdf.text('Current Weight', metricsX, yPosition + 18);
-      
-      if (bodyMetricsData.length > 1 && parseFloat(weightChange) !== 0) {
-        const changeColor = parseFloat(weightChange) < 0 ? '#10B981' : '#64748B';
-        pdf.setTextColor(240, 240, 240); // Light gray for changes
-        pdf.text(`${parseFloat(weightChange) > 0 ? '+' : ''}${weightChange}kg`, metricsX, yPosition + 25);
-      }
-      
-      metricsX += 60;
-    }
-    
-    if (latestMetrics.waist_cm) {
-      const waistChange = earliestMetrics.waist_cm ? 
-        (latestMetrics.waist_cm - earliestMetrics.waist_cm).toFixed(1) : '0';
-      
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(16);
-      pdf.setTextColor(255, 255, 255); // White text
-      pdf.text(`${latestMetrics.waist_cm}cm`, metricsX, yPosition + 10);
-      
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      pdf.setTextColor(255, 255, 255); // White text
-      pdf.text('Current Waist', metricsX, yPosition + 18);
-      
-      if (bodyMetricsData.length > 1 && parseFloat(waistChange) !== 0) {
-        const changeColor = parseFloat(waistChange) < 0 ? '#10B981' : '#64748B';
-        pdf.setTextColor(240, 240, 240); // Light gray for changes
-        pdf.text(`${parseFloat(waistChange) > 0 ? '+' : ''}${waistChange}cm`, metricsX, yPosition + 25);
-      }
-    }
-    
-    yPosition += 50;
-  }
-  
-  // RECENT ACTIVITY SECTION
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(16);
-  pdf.setTextColor(colors.purple);
-  pdf.text('⚡ Recent Activity', margin, yPosition);
-  yPosition += 15;
-  
-  // Modern table with alternating rows
-  const recentLogs = exportData.slice(-12); // Show last 12 entries
-  
-  // Table header with gradient background
-  pdf.setFillColor(colors.dark);
-  pdf.rect(margin, yPosition - 2, pageWidth - margin * 2, 8, 'F');
+  // Card 1: Total Water (Blue)
+  pdf.setFillColor('#3B82F6'); // Blue background
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
+  pdf.setDrawColor('#1D4ED8'); // Darker blue border
+  pdf.setLineWidth(1);
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
   
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9);
-  pdf.setTextColor('white');
+  pdf.setFontSize(24);
+  pdf.setTextColor(255, 255, 255); // White text
+  pdf.text(`${totalWaterL}L`, cardX + 10, cardY + 20);
   
-  const colPositions = [margin + 5, margin + 35, margin + 65, margin + 105, margin + 145];
-  const headers = ['Date', 'Time', 'Amount', 'Daily Total', 'Goal %'];
-  
-  headers.forEach((header, index) => {
-    pdf.text(header, colPositions[index], yPosition + 4);
-  });
-  
-  yPosition += 10;
-  
-  // Table rows with modern styling
-  recentLogs.forEach((log, index) => {
-    // Alternating row colors
-    if (index % 2 === 0) {
-      pdf.setFillColor('#F8FAFC');
-      pdf.rect(margin, yPosition - 1, pageWidth - margin * 2, 6, 'F');
-    }
-    
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8);
-    pdf.setTextColor(colors.dark);
-    
-    const rowData = [
-      new Date(log.date).toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit' }),
-      log.time.substring(0, 5), // HH:MM format
-      `${log.amount_ml}ml`,
-      `${(log.daily_total_ml / 1000).toFixed(1)}L`,
-      `${log.percentage_of_goal.toFixed(0)}%`
-    ];
-    
-    rowData.forEach((data, colIndex) => {
-      pdf.text(data, colPositions[colIndex], yPosition + 3);
-    });
-    
-    yPosition += 6;
-  });
-  
-  // PROFESSIONAL FOOTER
-  yPosition = pageHeight - 25;
-  
-  // Footer background
-  pdf.setFillColor(colors.dark);
-  pdf.rect(0, yPosition - 5, pageWidth, 30, 'F');
-  
-  // Footer content
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(10);
-  pdf.setTextColor(colors.primary);
-  const footerText1 = includeWatermark ? 'Water4WeightLoss - Professional Hydration Tracking' : 'Professional Hydration Report';
-  pdf.text(footerText1, margin, yPosition + 5);
+  pdf.text('Total Water', cardX + 10, cardY + 30);
   
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8);
-  pdf.setTextColor(colors.secondary);
-  pdf.text(`Generated: ${new Date(summaryStats.export_date).toLocaleDateString('en-AU')}`, margin, yPosition + 12);
+  pdf.setTextColor(240, 240, 240); // Light gray
+  pdf.text(`Over ${daysTracked} days`, cardX + 10, cardY + 37);
   
+  // Card 2: Goal Achievement (Green)
+  cardX = margin + cardWidth + 10;
+  pdf.setFillColor('#10B981'); // Green background
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
+  pdf.setDrawColor('#059669'); // Darker green border
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(24);
+  pdf.setTextColor(255, 255, 255); // White text
+  pdf.text(`${goalAchievement}%`, cardX + 10, cardY + 20);
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(10);
+  pdf.text('Goal Achievement', cardX + 10, cardY + 30);
+  
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(240, 240, 240); // Light gray
+  pdf.text(goalAchievement >= 80 ? 'Excellent progress!' : 'Keep going!', cardX + 10, cardY + 37);
+  
+  // Card 3: Max Streak (Purple)
+  cardX = margin;
+  cardY += cardHeight + 10;
+  pdf.setFillColor('#A855F7'); // Purple background
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
+  pdf.setDrawColor('#7C3AED'); // Darker purple border
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(24);
+  pdf.setTextColor(255, 255, 255); // White text
+  pdf.text(`${maxStreak}`, cardX + 10, cardY + 20);
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(10);
+  pdf.text('Max Streak', cardX + 10, cardY + 30);
+  
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(240, 240, 240); // Light gray
+  pdf.text('Building habits', cardX + 10, cardY + 37);
+  
+  // Card 4: Days Tracked (Orange)
+  cardX = margin + cardWidth + 10;
+  pdf.setFillColor('#F59E0B'); // Orange background
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
+  pdf.setDrawColor('#D97706'); // Darker orange border
+  pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(24);
+  pdf.setTextColor(255, 255, 255); // White text
+  pdf.text(`${daysTracked}`, cardX + 10, cardY + 20);
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(10);
+  pdf.text('Days Tracked', cardX + 10, cardY + 30);
+  
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(240, 240, 240); // Light gray
+  pdf.text('Consistent monitoring', cardX + 10, cardY + 37);
+  
+  yPosition = cardY + cardHeight + 20;
+  
+  // BODY METRICS SECTION (if available)
+  if (bodyMetricsData.length > 0) {
+    const latestMetrics = bodyMetricsData[bodyMetricsData.length - 1];
+    
+    // Body Metrics background - purple gradient
+    pdf.setFillColor('#8B5CF6'); // Purple background
+    pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 50, 'F');
+    pdf.setDrawColor('#7C3AED'); // Darker purple border
+    pdf.setLineWidth(1);
+    pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 50, 'S');
+    
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(255, 255, 255); // White text
+    pdf.text('📊 Body Metrics Progress', margin + 10, yPosition + 10);
+    
+    // Metrics cards
+    const metricsCardWidth = (pageWidth - margin * 2 - 30) / 2;
+    let metricsX = margin + 10;
+    
+    if (latestMetrics.weight_kg) {
+      // Weight card
+      pdf.setFillColor(255, 255, 255, 0.2); // Semi-transparent white
+      pdf.rect(metricsX, yPosition + 15, metricsCardWidth, 25, 'F');
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(20);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(`${latestMetrics.weight_kg}kg`, metricsX + 5, yPosition + 27);
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.text('Current Weight', metricsX + 5, yPosition + 35);
+      
+      metricsX += metricsCardWidth + 10;
+    }
+    
+    if (latestMetrics.waist_cm) {
+      // Waist card
+      pdf.setFillColor(255, 255, 255, 0.2); // Semi-transparent white
+      pdf.rect(metricsX, yPosition + 15, metricsCardWidth, 25, 'F');
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(20);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(`${latestMetrics.waist_cm}cm`, metricsX + 5, yPosition + 27);
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.text('Current Waist', metricsX + 5, yPosition + 35);
+    }
+    
+    yPosition += 60;
+  }
+  
+  // FOOTER SECTION
+  yPosition = pageHeight - 30; // Position near bottom
+  
+  pdf.setFillColor(255, 255, 255, 0.05); // Very subtle background
+  pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 20, 'F');
+  pdf.setDrawColor(255, 255, 255, 0.1); // Subtle border
+  pdf.setLineWidth(0.5);
+  pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 20, 'S');
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(12);
+  pdf.setTextColor(245, 158, 11); // Orange color for brand
+  pdf.text('Water4WeightLoss', margin + 10, yPosition + 5);
+  
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+  pdf.setTextColor(100, 116, 139); // Muted gray
+  pdf.text('Track your hydration journey', margin + 10, yPosition + 12);
+  
+  // Add watermark if requested
   if (includeWatermark) {
-    pdf.setTextColor(colors.muted);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
     pdf.text('By Downscale', pageWidth - margin - 25, yPosition + 12);
   }
   
-  // Add page border for professional look
-  pdf.setDrawColor(colors.primary);
-  pdf.setLineWidth(1);
-  pdf.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S');
-  
-  const pdfBuffer = pdf.output('arraybuffer');
-  const filename = `water4weightloss-report-${new Date().toISOString().split('T')[0]}.pdf`;
-  
-  return new NextResponse(pdfBuffer, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Cache-Control': 'no-cache'
-    }
-  });
+  return pdf.output('arraybuffer');
 }
 
 function generateCSVExport(
