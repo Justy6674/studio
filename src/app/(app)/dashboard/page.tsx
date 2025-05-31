@@ -24,6 +24,7 @@ import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } f
 import { OnboardingTip } from "@/components/onboarding/OnboardingTip";
 import { StreakCelebration } from "@/components/celebrations/StreakCelebration";
 import { MilestoneCelebration } from "@/components/celebrations/MilestoneCelebration";
+import { HydrationCelebration } from "@/components/celebrations/HydrationCelebration";
 import OtherDrinkModal from '@/components/OtherDrinkModal';
 import DrinkCelebration from '@/components/celebrations/DrinkCelebration';
 import InfoCards from '@/components/info/InfoCards';
@@ -54,6 +55,10 @@ export default function DashboardPage() {
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
   const [milestoneCelebrated, setMilestoneCelebrated] = useState(0);
   const [lastMilestoneReached, setLastMilestoneReached] = useState(0);
+
+  // Enhanced Hydration Celebration State
+  const [showHydrationCelebration, setShowHydrationCelebration] = useState(false);
+  const [hydrationCelebrationType, setHydrationCelebrationType] = useState<'50%' | '100%'>('50%');
 
   // Other Drink Modal and Celebration State
   const [showOtherDrinkModal, setShowOtherDrinkModal] = useState(false);
@@ -186,8 +191,26 @@ export default function DashboardPage() {
           className: "bg-hydration-500 text-white border-hydration-400",
         });
         
+        // Store old intake for celebration logic
+        const oldIntake = currentIntake;
+        
         // Refresh data using existing pattern
         await fetchDashboardData();
+        
+        // Enhanced Hydration Celebration Logic for regular water
+        const newIntake = oldIntake + amount;
+        const oldPercentage = (oldIntake / hydrationGoal) * 100;
+        const newPercentage = (newIntake / hydrationGoal) * 100;
+        
+        if (newPercentage >= 50 && oldPercentage < 50) {
+          // Trigger 50% burst celebration
+          setHydrationCelebrationType('50%');
+          setShowHydrationCelebration(true);
+        } else if (newPercentage >= 100 && oldPercentage < 100) {
+          // Trigger 100% full celebration
+          setHydrationCelebrationType('100%');
+          setShowHydrationCelebration(true);
+        }
       } else {
         toast({
           title: "Hydration Logging Failed",
@@ -247,6 +270,17 @@ export default function DashboardPage() {
         if (milestoneAnimations && customMilestones.length > 0) {
           const oldPercentage = (oldIntake / hydrationGoal) * 100;
           const newPercentage = (newIntake / hydrationGoal) * 100;
+          
+          // Enhanced Hydration Celebration Logic
+          if (newPercentage >= 50 && oldPercentage < 50) {
+            // Trigger 50% burst celebration
+            setHydrationCelebrationType('50%');
+            setShowHydrationCelebration(true);
+          } else if (newPercentage >= 100 && oldPercentage < 100) {
+            // Trigger 100% full celebration
+            setHydrationCelebrationType('100%');
+            setShowHydrationCelebration(true);
+          }
           
           const milestonesReached = customMilestones.filter(milestone => 
             newPercentage >= milestone && oldPercentage < milestone
@@ -451,6 +485,17 @@ export default function DashboardPage() {
           currentAmount={currentIntake}
           goalAmount={hydrationGoal}
           onDismiss={() => setShowMilestoneCelebration(false)}
+        />
+      )}
+
+      {/* Enhanced Hydration Celebration */}
+      {showHydrationCelebration && (
+        <HydrationCelebration
+          type={hydrationCelebrationType}
+          currentAmount={currentIntake}
+          goalAmount={hydrationGoal}
+          userName={userName}
+          onComplete={() => setShowHydrationCelebration(false)}
         />
       )}
 
