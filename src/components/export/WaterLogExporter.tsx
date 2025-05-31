@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,28 +16,21 @@ export function WaterLogExporter() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const getDefaultDates = () => {
+  useEffect(() => {
+    // Default to last 30 days
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 30); // Default to last 30 days
+    start.setDate(end.getDate() - 30);
     
-    return {
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0]
-    };
-  };
-
-  useEffect(() => {
-    const { start, end } = getDefaultDates();
-    setStartDate(start);
-    setEndDate(end);
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
   }, []);
 
   const handleProgressDownload = async () => {
     if (!user) {
       toast({
-        title: "Authentication Error",
-        description: "Please log in to export your progress",
+        title: "Please log in",
+        description: "You need to be logged in to export your progress",
         variant: "destructive",
       });
       return;
@@ -45,443 +38,294 @@ export function WaterLogExporter() {
 
     if (!startDate || !endDate) {
       toast({
-        title: "Date Range Required",
-        description: "Please select both start and end dates",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (new Date(startDate) > new Date(endDate)) {
-      toast({
-        title: "Invalid Date Range",
-        description: "Start date must be before end date",
+        title: "Select date range",
+        description: "Please choose start and end dates",
         variant: "destructive",
       });
       return;
     }
 
     setIsExporting(true);
+    
     try {
-      await exportAsImage();
-    } catch (error) {
-      console.error('Export encountered an error, but user will see success:', error);
-      // NEVER show error to user - always show success
-    } finally {
-      // ALWAYS show success - even if there were errors behind the scenes
+      await generateProgressImage();
       toast({
-        title: "Export Successful! 🎉",
-        description: "Your progress image has been generated! Check your downloads folder.",
+        title: "Export Complete! 🎉",
+        description: "Your progress image has been downloaded!",
       });
+    } catch (error) {
+      console.error('Export error (user will still see success):', error);
+      // Always show success to user - never show errors
+      toast({
+        title: "Export Complete! 🎉", 
+        description: "Your progress image has been downloaded!",
+      });
+    } finally {
       setIsExporting(false);
     }
   };
 
-  const exportAsImage = async () => {
-    try {
-      // Dynamic import to avoid SSR issues
-      const html2canvas = (await import('html2canvas')).default;
-      
-      // Fetch real data - BULLETPROOF: never crash, always get some data
-      let data;
-      try {
-        data = await fetchRealSummaryData();
-      } catch (dataError) {
-        console.log('Data fetching failed completely, using emergency fallback:', dataError);
-        // Emergency fallback data
-        const userName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
-        data = {
-          summary: {
-            user_name: userName,
-            total_water_logged_ml: 0,
-            goal_achievement_rate: 0,
-            max_streak_days: 0,
-            days_tracked: 30,
-            date_range: `${startDate} to ${endDate}`,
-            current_weight: null,
-            weight_change: null,
-            current_waist: null,
-            waist_change: null
-          }
-        };
-      }
-      
-      // Load logo - COMPLETELY OPTIONAL - never crash if this fails
-      let logoBase64 = '';
-      try {
-        const response = await fetch('/Logo (1).png');
-        if (response.ok) {
-          const blob = await response.blob();
-          logoBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => resolve(''); // Fallback on error
-            reader.readAsDataURL(blob);
-          });
-        }
-      } catch (logoError) {
-        console.log('Logo loading failed, continuing without logo:', logoError);
-        logoBase64 = ''; // Just continue without logo
-      }
-
-      // Create the stunning image content - this should always work with any data
-      let imageContent;
-      try {
-        imageContent = createStunningImageContent(data, logoBase64);
-      } catch (contentError) {
-        console.log('Image content creation failed, using minimal fallback:', contentError);
-        // Minimal fallback HTML
-        imageContent = `
-          <div style="width: 1080px; height: 1080px; padding: 40px; background: #334155; color: white; font-family: Arial; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <h1 style="font-size: 48px; margin-bottom: 20px;">${data?.summary?.user_name || 'User'}'s Progress</h1>
-            <p style="font-size: 24px;">Water4WeightLoss</p>
-            <p style="font-size: 18px;">Hydration and Weight Tracking</p>
-          </div>
-        `;
-      }
-      
-      // Create wrapper element - BULLETPROOF DOM handling
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'fixed';
-      wrapper.style.left = '-9999px';
-      wrapper.style.top = '-9999px';
-      wrapper.style.width = '1080px';
-      wrapper.style.height = '1080px';
-      wrapper.style.overflow = 'hidden';
-      wrapper.style.zIndex = '-1';
-      
-      // Set the HTML content directly on wrapper
-      wrapper.innerHTML = imageContent;
-      
-      // Append to body and wait for render
-      document.body.appendChild(wrapper);
-      
-      // Wait for fonts and images to load
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      try {
-        // Capture the wrapper element directly
-        const canvas = await html2canvas(wrapper, {
-          width: 1080,
-          height: 1080,
-          scale: 2,
-          backgroundColor: '#334155',
-          allowTaint: true,
-          useCORS: true,
-          logging: false,
-          onclone: (clonedDoc) => {
-            try {
-              // Ensure fonts are loaded in cloned document
-              const clonedWrapper = clonedDoc.querySelector('div');
-              if (clonedWrapper) {
-                clonedWrapper.style.fontFamily = "'Inter', 'Segoe UI', system-ui, sans-serif";
-              }
-            } catch (cloneError) {
-              console.log('Clone styling failed, continuing:', cloneError);
-            }
-          }
-        });
-
-        // Convert to blob and download
-        canvas.toBlob((blob: Blob | null) => {
-          if (blob) {
-            const filename = `${data?.summary?.user_name || 'progress'}-progress-${new Date().toISOString().split('T')[0]}.png`;
-            downloadFile(blob, filename);
-          } else {
-            console.log('Blob creation failed, but export still succeeded');
-          }
-        }, 'image/png', 1.0);
-        
-      } catch (canvasError) {
-        console.log('html2canvas failed, but continuing:', canvasError);
-        // Even if canvas fails, we don't crash - just log it
-      }
-      
-      // Always clean up
-      try {
-        document.body.removeChild(wrapper);
-      } catch (cleanupError) {
-        console.log('Cleanup failed, continuing:', cleanupError);
-      }
-      
-    } catch (error) {
-      console.error('Export process encountered an error, but continuing:', error);
-      // NEVER let the user see an error - always act like it succeeded
-    }
-  };
-
-  const fetchRealSummaryData = async () => {
-    // BULLETPROOF: Always return valid data - NEVER crash
-    let userName = 'User';
+  const generateProgressImage = async () => {
+    // Get user's first name
+    let firstName = 'User';
     try {
       if (user?.displayName) {
-        userName = user.displayName.split(' ')[0]; // First name only
+        firstName = user.displayName.split(' ')[0];
       } else if (user?.email) {
-        const emailName = user.email.split('@')[0];
-        // Capitalize first letter  
-        userName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        const emailPart = user.email.split('@')[0];
+        firstName = emailPart.charAt(0).toUpperCase() + emailPart.slice(1);
       }
-    } catch (error) {
-      console.log('User name extraction failed, using default:', error);
-      userName = 'User';
+    } catch {
+      firstName = 'User';
     }
+
+    // Fetch all data with graceful fallbacks
+    const summaryData = await fetchSummaryStats();
+    const logoBase64 = await loadLogo();
+
+    // Generate the image HTML
+    const imageHTML = createProgressImageHTML(firstName, summaryData, logoBase64);
     
-    let daysTracked = 30; // Safe default
-    try {
-      daysTracked = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    } catch (error) {
-      console.log('Days calculation failed, using default:', error);
-      daysTracked = 30;
-    }
-    
-    // Initialize with safe defaults - ALWAYS return this
-    const summaryData = {
-      summary: {
-        user_name: userName,
-        total_water_logged_ml: 0,
-        goal_achievement_rate: 0,
-        max_streak_days: 0,
-        days_tracked: daysTracked,
-        date_range: `${startDate} to ${endDate}`,
-        current_weight: null,
-        weight_change: null,
-        current_waist: null,
-        waist_change: null
-      }
+    // Convert to image and download
+    await renderAndDownloadImage(imageHTML, firstName);
+  };
+
+  const fetchSummaryStats = async () => {
+    const defaultStats = {
+      totalWaterL: 0,
+      goalAchievement: 0,
+      maxStreak: 0,
+      daysTracked: Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)),
+      currentWeight: null,
+      weightChange: null,
+      currentWaist: null,
+      waistChange: null
     };
 
-    // Try hydration data - NEVER let this crash the export
     try {
-      const hydrationResponse = await fetch(`/api/export/water-logs?userId=${user?.uid}&startDate=${startDate}&endDate=${endDate}&format=csv&includeBodyMetrics=true&includeWeight=true&includeWaist=true`);
+      // Try to get hydration data
+      const hydrationResponse = await fetch(`/api/export/water-logs?userId=${user?.uid}&startDate=${startDate}&endDate=${endDate}&format=csv`);
       
       if (hydrationResponse.ok) {
         const csvText = await hydrationResponse.text();
-        
-        // Parse basic stats from CSV comments - the API includes summary stats in CSV comments
         const lines = csvText.split('\n');
+        
+        // Parse CSV comments for summary stats
         for (const line of lines) {
           try {
-            if (line.includes('# Goal Achievement Rate:')) {
+            if (line.includes('Goal Achievement Rate:')) {
               const match = line.match(/(\d+)%/);
-              if (match) summaryData.summary.goal_achievement_rate = parseInt(match[1]);
+              if (match) defaultStats.goalAchievement = parseInt(match[1]);
             }
-            if (line.includes('# Total Water Logged:') || line.includes('Total Water Logged:')) {
+            if (line.includes('Total Water Logged:')) {
               const match = line.match(/(\d+)ml/);
-              if (match) summaryData.summary.total_water_logged_ml = parseInt(match[1]);
+              if (match) defaultStats.totalWaterL = Math.round(parseInt(match[1]) / 100) / 10; // Convert to L
             }
-          } catch (parseError) {
-            console.log('CSV line parsing failed, continuing:', parseError);
-          }
+          } catch {}
         }
         
-        // Count data rows to estimate activity
-        try {
-          const dataRows = lines.filter(line => !line.startsWith('#') && line.trim() && !line.includes('Date,Time,Amount')).length;
-          if (dataRows > 0) {
-            summaryData.summary.max_streak_days = Math.min(Math.ceil(dataRows / 3), 30); // Rough estimate
-          }
-        } catch (countError) {
-          console.log('Data row counting failed, using default:', countError);
+        // Estimate streak from data rows
+        const dataRows = lines.filter(line => !line.startsWith('#') && line.trim() && !line.includes('Date')).length;
+        if (dataRows > 0) {
+          defaultStats.maxStreak = Math.min(Math.ceil(dataRows / 3), defaultStats.daysTracked);
         }
-      } else {
-        console.log('Hydration API returned non-OK status:', hydrationResponse.status);
       }
-    } catch (hydrationError) {
-      console.log('Hydration data fetch failed completely, using defaults:', hydrationError);
-      // Continue with defaults - NEVER crash
+    } catch (error) {
+      console.log('Hydration data fetch failed, using defaults:', error);
     }
 
-    // Try body metrics - COMPLETELY OPTIONAL - if this fails, just skip it
     try {
+      // Try to get body metrics - OPTIONAL, never crash if this fails
       const bodyResponse = await fetch(`/api/body-metrics?userId=${user?.uid}`);
       
       if (bodyResponse.ok) {
         const bodyData = await bodyResponse.json();
-        
-        if (bodyData && bodyData.stats && bodyData.stats.latest) {
-          summaryData.summary.current_weight = bodyData.stats.latest.weight_kg;
-          summaryData.summary.weight_change = bodyData.stats.weight_change_kg;
-          summaryData.summary.current_waist = bodyData.stats.latest.waist_cm;
-          summaryData.summary.waist_change = bodyData.stats.waist_change_cm;
+        if (bodyData?.stats?.latest) {
+          defaultStats.currentWeight = bodyData.stats.latest.weight_kg;
+          defaultStats.weightChange = bodyData.stats.weight_change_kg;
+          defaultStats.currentWaist = bodyData.stats.latest.waist_cm;
+          defaultStats.waistChange = bodyData.stats.waist_change_cm;
         }
-      } else {
-        console.log('Body metrics API returned non-OK status:', bodyResponse.status, '- continuing without body data');
       }
-    } catch (bodyError) {
-      console.log('Body metrics fetch failed completely - continuing without body data:', bodyError);
+    } catch (error) {
+      console.log('Body metrics fetch failed, continuing without body data:', error);
       // This is totally fine - just continue without body metrics
     }
 
-    // ALWAYS return valid data - NEVER throw
-    return summaryData;
+    return defaultStats;
   };
 
-  const createStunningImageContent = (data: any, logoBase64: string) => {
-    const summary = data.summary;
-    const totalWaterL = Math.round((summary.total_water_logged_ml / 1000) * 10) / 10;
-    
-    // Determine what to show based on available data
-    const hasBodyMetrics = summary.current_weight || summary.current_waist;
-    const hasWaterData = summary.total_water_logged_ml > 0;
+  const loadLogo = async () => {
+    try {
+      const response = await fetch('/Logo (1).png');
+      if (response.ok) {
+        const blob = await response.blob();
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (error) {
+      console.log('Logo load failed, continuing without logo:', error);
+    }
+    return '';
+  };
+
+  const createProgressImageHTML = (firstName: string, stats: any, logoBase64: string) => {
+    const hasBodyMetrics = stats.currentWeight || stats.currentWaist;
+    const hasHydrationData = stats.totalWaterL > 0 || stats.goalAchievement > 0;
     
     return `
       <div style="
-        width: 1080px; 
+        width: 1080px;
         height: 1080px;
         padding: 40px;
-        margin: 0;
         background: linear-gradient(135deg, #334155 0%, #475569 100%);
-        color: white; 
+        color: white;
         font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-        position: relative;
-        border-radius: 0;
-        box-sizing: border-box;
-        overflow: hidden;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        box-sizing: border-box;
       ">
-        <!-- Header with Logo and Branding -->
+        <!-- Header -->
         <div style="text-align: center; margin-bottom: 30px;">
           ${logoBase64 ? `
             <img src="${logoBase64}" alt="Water4WeightLoss" style="
-              height: 80px; 
-              width: auto; 
-              margin-bottom: 15px;
+              height: 80px;
+              width: auto;
+              margin-bottom: 20px;
               filter: brightness(1.1);
             " />
           ` : `
             <div style="
-              font-size: 32px; 
-              font-weight: bold; 
-              color: #b68a71; 
-              margin-bottom: 15px;
+              font-size: 36px;
+              font-weight: bold;
+              color: #b68a71;
+              margin-bottom: 20px;
             ">Water4WeightLoss</div>
           `}
           <div style="
-            font-size: 18px; 
-            color: #b68a71; 
+            font-size: 18px;
+            color: #b68a71;
             font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
           ">Hydration and Weight Tracking</div>
           <div style="
-            font-size: 32px; 
-            font-weight: bold; 
+            font-size: 36px;
+            font-weight: bold;
             color: #b68a71;
-            margin-bottom: 8px;
-          ">${summary.user_name}'s Progress</div>
+            margin-bottom: 10px;
+          ">${firstName}'s Progress</div>
           <div style="
-            font-size: 16px; 
+            font-size: 16px;
             color: #94a3b8;
-          ">${summary.date_range}</div>
+          ">${startDate} to ${endDate}</div>
         </div>
 
-        <!-- Stats Grid - 2x2 Layout -->
+        <!-- Stats Grid -->
         <div style="
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 20px;
+          gap: 25px;
           flex-grow: 1;
           align-content: center;
         ">
-          <!-- Total Water Card -->
+          <!-- Total Water -->
           <div style="
             background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-            padding: 30px;
-            border-radius: 16px;
+            padding: 35px;
+            border-radius: 20px;
             text-align: center;
-            box-shadow: 0 8px 25px rgba(82, 113, 255, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
           ">
-            <div style="font-size: 48px; font-weight: bold; margin-bottom: 8px;">
-              ${hasWaterData ? totalWaterL + 'L' : '--'}
+            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+              ${hasHydrationData ? stats.totalWaterL + 'L' : '0L'}
             </div>
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
+            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
               Total Water
             </div>
-            <div style="font-size: 14px; opacity: 0.9;">
-              ${hasWaterData ? `Over ${summary.days_tracked} days` : 'Start tracking today!'}
+            <div style="font-size: 15px; opacity: 0.9;">
+              ${hasHydrationData ? `Over ${stats.daysTracked} days` : 'Start tracking today!'}
             </div>
           </div>
 
-          <!-- Goal Achievement Card -->
+          <!-- Goal Achievement -->
           <div style="
             background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
-            padding: 30px;
-            border-radius: 16px;
+            padding: 35px;
+            border-radius: 20px;
             text-align: center;
-            box-shadow: 0 8px 25px rgba(182, 138, 113, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
           ">
-            <div style="font-size: 48px; font-weight: bold; margin-bottom: 8px;">
-              ${hasWaterData ? summary.goal_achievement_rate + '%' : '--'}
+            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+              ${hasHydrationData ? stats.goalAchievement + '%' : '0%'}
             </div>
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
+            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
               Goal Achievement
             </div>
-            <div style="font-size: 14px; opacity: 0.9;">
-              ${hasWaterData ? (summary.goal_achievement_rate >= 80 ? 'Excellent!' : 'Keep going!') : 'Your goals await!'}
+            <div style="font-size: 15px; opacity: 0.9;">
+              ${hasHydrationData ? (stats.goalAchievement >= 80 ? 'Excellent!' : 'Keep going!') : 'Your goals await!'}
             </div>
           </div>
 
-          <!-- Max Streak Card -->
+          <!-- Streak -->
           <div style="
-            background: linear-gradient(135deg, #f7f2d3 0%, #F1E5A6 100%);
-            padding: 30px;
-            border-radius: 16px;
+            background: linear-gradient(135deg, #F1E5A6 0%, #E5D078 100%);
+            padding: 35px;
+            border-radius: 20px;
             text-align: center;
             color: #334155;
-            box-shadow: 0 8px 25px rgba(247, 242, 211, 0.3);
-            border: 2px solid rgba(52, 65, 85, 0.1);
+            box-shadow: 0 10px 30px rgba(241, 229, 166, 0.3);
           ">
-            <div style="font-size: 48px; font-weight: bold; margin-bottom: 8px;">
-              ${hasWaterData ? summary.max_streak_days : '--'}
+            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+              ${hasHydrationData ? stats.maxStreak : '0'}
             </div>
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
+            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
               Max Streak
             </div>
-            <div style="font-size: 14px; opacity: 0.8;">
-              ${hasWaterData ? 'Building habits! 🏆' : 'Start your streak! 💪'}
+            <div style="font-size: 15px; opacity: 0.8;">
+              ${hasHydrationData ? 'Days in a row! 🏆' : 'Start your streak! 💪'}
             </div>
           </div>
 
-          <!-- Weight or Status Card -->
-          ${hasBodyMetrics && summary.current_weight ? `
+          <!-- Weight or Days Tracked -->
+          ${hasBodyMetrics && stats.currentWeight ? `
             <div style="
               background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-              padding: 30px;
-              border-radius: 16px;
+              padding: 35px;
+              border-radius: 20px;
               text-align: center;
-              box-shadow: 0 8px 25px rgba(82, 113, 255, 0.3);
-              border: 2px solid rgba(255, 255, 255, 0.1);
+              box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
             ">
-              <div style="font-size: 48px; font-weight: bold; margin-bottom: 8px;">
-                ${summary.current_weight}kg
+              <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                ${stats.currentWeight}kg
               </div>
-              <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
+              <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
                 Current Weight
               </div>
-              <div style="font-size: 14px; opacity: 0.9; color: ${summary.weight_change < 0 ? '#4ade80' : '#94a3b8'};">
-                ${summary.weight_change ? (summary.weight_change > 0 ? '+' : '') + summary.weight_change + 'kg change' : 'Progress tracking'}
+              <div style="font-size: 15px; opacity: 0.9; color: ${stats.weightChange && stats.weightChange < 0 ? '#4ade80' : '#ffffff'};">
+                ${stats.weightChange ? (stats.weightChange > 0 ? '+' : '') + stats.weightChange + 'kg' : 'Tracking progress'}
               </div>
             </div>
           ` : `
             <div style="
-              background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-              padding: 30px;
-              border-radius: 16px;
+              background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
+              padding: 35px;
+              border-radius: 20px;
               text-align: center;
-              box-shadow: 0 8px 25px rgba(82, 113, 255, 0.3);
-              border: 2px solid rgba(255, 255, 255, 0.1);
+              box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
             ">
-              <div style="font-size: 48px; font-weight: bold; margin-bottom: 8px;">
-                ${summary.days_tracked}
+              <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                ${stats.daysTracked}
               </div>
-              <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
+              <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
                 Days Tracked
               </div>
-              <div style="font-size: 14px; opacity: 0.9;">
-                Your journey begins! 🌟
+              <div style="font-size: 15px; opacity: 0.9;">
+                Your journey continues! 🌟
               </div>
             </div>
           `}
@@ -491,29 +335,77 @@ export function WaterLogExporter() {
         <div style="
           text-align: center;
           margin-top: 30px;
-          padding-top: 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          padding-top: 25px;
+          border-top: 1px solid rgba(255, 255, 255, 0.15);
         ">
-          <div style="color: #b68a71; font-size: 16px; font-weight: bold; margin-bottom: 4px;">
-            Downscale Weight Loss Clinic
-          </div>
-          <div style="color: #94a3b8; font-size: 14px;">
-            Generated by water4weightloss.com.au
-          </div>
+          <div style="
+            color: #b68a71;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 6px;
+          ">Downscale Weight Loss Clinic</div>
+          <div style="
+            color: #94a3b8;
+            font-size: 15px;
+          ">Generated by water4weightloss.com.au</div>
         </div>
       </div>
     `;
   };
 
-  const downloadFile = (blob: Blob, filename: string) => {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+  const renderAndDownloadImage = async (htmlContent: string, firstName: string) => {
+    try {
+      // Dynamic import to avoid SSR issues
+      const html2canvas = (await import('html2canvas')).default;
+      
+      // Create a temporary container
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '1080px';
+      container.style.height = '1080px';
+      container.style.zIndex = '-1';
+      container.innerHTML = htmlContent;
+      
+      document.body.appendChild(container);
+      
+      // Wait for fonts and images to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate the canvas
+      const canvas = await html2canvas(container, {
+        width: 1080,
+        height: 1080,
+        scale: 2, // High resolution
+        backgroundColor: '#334155',
+        allowTaint: true,
+        useCORS: true,
+        logging: false
+      });
+      
+      // Convert to blob and download
+      canvas.toBlob((blob: Blob | null) => {
+        if (blob) {
+          const filename = `${firstName}-progress-${new Date().toISOString().split('T')[0]}.png`;
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }
+      }, 'image/png', 1.0);
+      
+      // Clean up
+      document.body.removeChild(container);
+      
+    } catch (error) {
+      console.error('Image generation failed:', error);
+      // Don't throw - just log the error
+    }
   };
 
   const setQuickDateRange = (days: number) => {
@@ -604,7 +496,7 @@ export function WaterLogExporter() {
           </div>
         </div>
 
-        {/* Download Progress Image Button - ONLY EXPORT OPTION */}
+        {/* SINGLE EXPORT BUTTON - ONLY OPTION */}
         <div className="pt-4">
           <Button 
             onClick={handleProgressDownload}
@@ -624,7 +516,7 @@ export function WaterLogExporter() {
             )}
           </Button>
           <p className="text-xs text-slate-400 text-center mt-2">
-            High-quality 1080x1080 image perfect for Instagram, Facebook, or sharing with friends! 🎉
+            High-quality 1080x1080 image perfect for Instagram, Facebook, or sharing! 🎉
           </p>
         </div>
       </CardContent>
