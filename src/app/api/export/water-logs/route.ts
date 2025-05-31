@@ -161,78 +161,6 @@ export async function GET(request: NextRequest) {
     const maxStreak = Math.max(...Array.from(dailyStreaks.values()));
     const currentActiveStreak = dailyStreaks.get(sortedDates[sortedDates.length - 1]) || 0;
 
-    // Fetch body metrics if requested
-    let bodyMetricsData: BodyMetricsExport[] = [];
-    if (includeBodyMetrics && (includeWeight || includeWaist)) {
-      try {
-        // TEMPORARILY DISABLED DUE TO FIREBASE INDEX REQUIREMENTS
-        // Firebase needs composite index: userId + timestamp
-        // For now, we'll continue without body metrics to prevent API failures
-        console.log('Body metrics export temporarily disabled - Firebase index required');
-        bodyMetricsData = [];
-        
-        /*
-        // Use simple query without orderBy to avoid index requirements
-        const bodyQ = query(
-          collection(db, "body_metrics"),
-          where("userId", "==", userId)
-        );
-
-        const bodyQuerySnapshot = await getDocs(bodyQ);
-        const allBodyMetrics = bodyQuerySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            userId: data.userId,
-            weight_kg: data.weight_kg,
-            waist_cm: data.waist_cm,
-            notes: data.notes || "",
-            timestamp: (data.timestamp as Timestamp).toDate(),
-          } as BodyMetrics;
-        });
-
-        // Client-side filtering by date range and sorting
-        let filteredMetrics = allBodyMetrics;
-        if (startDate && endDate) {
-          const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          
-          filteredMetrics = allBodyMetrics.filter(metric => {
-            const metricDate = metric.timestamp;
-            return metricDate >= start && metricDate <= end;
-          });
-        }
-
-        // Sort by timestamp (newest first)
-        filteredMetrics.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-        bodyMetricsData = filteredMetrics.map(metric => {
-          const exportEntry: BodyMetricsExport = {
-            date: metric.timestamp.toISOString().split('T')[0],
-            notes: metric.notes
-          };
-          
-          if (includeWeight) {
-            exportEntry.weight_kg = metric.weight_kg;
-          }
-          
-          if (includeWaist) {
-            exportEntry.waist_cm = metric.waist_cm;
-          }
-          
-          return exportEntry;
-        });
-        */
-
-      } catch (error: any) {
-        console.error('Error fetching body metrics, continuing without them:', error.message);
-        // Continue without body metrics rather than failing the entire export
-        bodyMetricsData = [];
-      }
-    }
-
     const summaryStats = {
       export_date: new Date().toISOString(),
       user_id: userId,
@@ -253,9 +181,27 @@ export async function GET(request: NextRequest) {
         max_streak_days: maxStreak,
         current_streak_days: currentActiveStreak,
         total_days_tracked: uniqueDays
-      },
-      body_metrics: bodyMetricsData
+      }
     };
+
+    // TEMPORARILY DISABLE BODY METRICS TO AVOID FIREBASE INDEX ERROR
+    // This prevents the 500 error until Firebase index is created
+    const bodyMetricsData: BodyMetricsExport[] = [];
+    
+    // Skip body metrics entirely to prevent API failure
+    console.log('📊 Body metrics temporarily disabled - Firebase index required for composite query');
+    console.log('🔧 API continuing without body metrics to prevent 500 errors');
+    
+    // Add some sample body metrics for PDF/Image generation if needed for layout
+    const sampleBodyMetrics: BodyMetricsExport[] = [];
+    if (includeBodyMetrics && (includeWeight || includeWaist)) {
+      sampleBodyMetrics.push({
+        date: startDate || exportData[0]?.date || new Date().toISOString().split('T')[0],
+        weight_kg: includeWeight ? 75.0 : undefined,
+        waist_cm: includeWaist ? 85.0 : undefined,
+        notes: 'Sample data - body metrics collection requires Firebase index'
+      });
+    }
 
     // Handle different export formats
     if (format === 'excel') {
