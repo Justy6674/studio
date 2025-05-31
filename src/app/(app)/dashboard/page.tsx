@@ -603,7 +603,14 @@ export default function DashboardPage() {
 
           {/* Export Tab - Keep as is */}
           <TabsContent value="exports" className="space-y-6">
-            <WaterLogExporter />
+            <WaterLogExporter 
+              currentIntake={currentIntake}
+              hydrationGoal={hydrationGoal}
+              dailyStreak={dailyStreak}
+              longestStreak={longestStreak}
+              userName={userName}
+              hydrationLogs={hydrationLogs}
+            />
           </TabsContent>
 
           {/* Info Tab - New */}
