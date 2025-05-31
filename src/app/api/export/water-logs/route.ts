@@ -236,7 +236,7 @@ export async function GET(request: NextRequest) {
     const summaryStats = {
       export_date: new Date().toISOString(),
       user_id: userId,
-      user_name: userProfile?.name || 'Unknown',
+      user_name: userProfile?.name?.split(' ')[0] || userProfile?.email?.split('@')[0] || 'User',
       user_email: userProfile?.email || 'Unknown',
       total_logs: exportData.length,
       date_range: {
@@ -251,8 +251,10 @@ export async function GET(request: NextRequest) {
         days_goal_achieved: goalAchievedDays,
         goal_achievement_rate_percent: Math.round(goalAchievementRate),
         max_streak_days: maxStreak,
-        current_streak_days: currentActiveStreak
-      }
+        current_streak_days: currentActiveStreak,
+        total_days_tracked: uniqueDays
+      },
+      body_metrics: bodyMetricsData
     };
 
     // Handle different export formats
@@ -394,13 +396,13 @@ async function generatePDFExport(
     console.warn('Could not load logo for PDF export:', error);
   }
   
-  // Define branded colors to match the app - VIBRANT VERSION
+  // Define branded colors to match the app - BRAND COLORS
   const colors = {
-    primary: '#3B82F6',      // Bright blue
-    secondary: '#F59E0B',    // Bright orange/amber
-    success: '#10B981',      // Bright green
-    purple: '#A855F7',       // Bright purple
-    dark: '#0F172A',         // Very dark slate
+    slate: '#334155',        // App background
+    brown: '#b68a71',        // App highlight/header color
+    blue: '#5271FF',         // Hydration blue
+    wheat: '#F1E5A6',        // Soft wheat color
+    dark: '#334155',         // Dark slate
     muted: '#64748B',        // Muted text
     light: '#F8FAFC'         // Light background
   };
@@ -411,8 +413,8 @@ async function generatePDFExport(
   const margin = 15;
   let yPosition = margin;
   
-  // HEADER SECTION - Professional gradient header
-  pdf.setFillColor('#0F172A'); // Much darker background
+  // HEADER SECTION - Professional header with brand colors
+  pdf.setFillColor('#334155'); // App slate background
   pdf.rect(0, 0, pageWidth, 60, 'F');
   
   // Add logo if available
@@ -431,30 +433,30 @@ async function generatePDFExport(
   // App title
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(28);
-  pdf.setTextColor(60, 130, 246); // Blue color
+  pdf.setTextColor('#b68a71'); // Brown brand color
   pdf.text('Water4WeightLoss', margin + 50, 32);
   
   // Subtitle
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(14);
-  pdf.setTextColor(245, 158, 11); // Orange color
+  pdf.setTextColor('#b68a71'); // Brown brand color
   pdf.text('Hydration and Weight Tracking', margin + 50, 45);
   
   yPosition = 80;
   
   // USER INFO SECTION
-  pdf.setFillColor('#1E293B'); // Dark background
+  pdf.setFillColor('#334155'); // App slate background
   pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 30, 'F');
   
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
-  pdf.setTextColor(255, 255, 255); // White text
+  pdf.setTextColor('#b68a71'); // Brown brand color for user name
   const userName = summaryStats.user_name || 'User';
   pdf.text(`${userName}'s Progress`, margin + 10, yPosition + 10);
   
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(12);
-  pdf.setTextColor(148, 163, 184); // Gray text
+  pdf.setTextColor(148, 163, 184); // Gray text for date range
   pdf.text(`${summaryStats.date_range.start} to ${summaryStats.date_range.end}`, margin + 10, yPosition + 22);
   
   yPosition += 50;
@@ -472,9 +474,9 @@ async function generatePDFExport(
   const maxStreak = summaryStats.totals.max_streak_days || 0;
   
   // Card 1: Total Water (Blue)
-  pdf.setFillColor('#3B82F6'); // Blue background
+  pdf.setFillColor('#5271FF'); // Hydration blue
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
-  pdf.setDrawColor('#1D4ED8'); // Darker blue border
+  pdf.setDrawColor('#4361EE'); // Darker blue border
   pdf.setLineWidth(1);
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
   
@@ -492,11 +494,11 @@ async function generatePDFExport(
   pdf.setTextColor(240, 240, 240); // Light gray
   pdf.text(`Over ${daysTracked} days`, cardX + 10, cardY + 37);
   
-  // Card 2: Goal Achievement (Green)
+  // Card 2: Goal Achievement (Brown)
   cardX = margin + cardWidth + 10;
-  pdf.setFillColor('#10B981'); // Green background
+  pdf.setFillColor('#b68a71'); // Brown brand color
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
-  pdf.setDrawColor('#059669'); // Darker green border
+  pdf.setDrawColor('#8b6f47'); // Darker brown border
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
   
   pdf.setFont('helvetica', 'bold');
@@ -513,33 +515,34 @@ async function generatePDFExport(
   pdf.setTextColor(240, 240, 240); // Light gray
   pdf.text(goalAchievement >= 80 ? 'Excellent progress!' : 'Keep going!', cardX + 10, cardY + 37);
   
-  // Card 3: Max Streak (Purple)
+  // Card 3: Max Streak (Wheat)
   cardX = margin;
   cardY += cardHeight + 10;
-  pdf.setFillColor('#A855F7'); // Purple background
+  pdf.setFillColor('#F1E5A6'); // Wheat color
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
-  pdf.setDrawColor('#7C3AED'); // Darker purple border
+  pdf.setDrawColor('#D4C374'); // Darker wheat border
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
   
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(24);
-  pdf.setTextColor(255, 255, 255); // White text
+  pdf.setTextColor('#334155'); // Dark slate text for contrast
   pdf.text(`${maxStreak}`, cardX + 10, cardY + 20);
   
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(10);
+  pdf.setTextColor('#334155'); // Dark slate text
   pdf.text('Max Streak', cardX + 10, cardY + 30);
   
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8);
-  pdf.setTextColor(240, 240, 240); // Light gray
+  pdf.setTextColor('#334155'); // Dark slate text
   pdf.text('Building habits', cardX + 10, cardY + 37);
   
-  // Card 4: Days Tracked (Orange)
+  // Card 4: Days Tracked (Blue)
   cardX = margin + cardWidth + 10;
-  pdf.setFillColor('#F59E0B'); // Orange background
+  pdf.setFillColor('#5271FF'); // Hydration blue
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
-  pdf.setDrawColor('#D97706'); // Darker orange border
+  pdf.setDrawColor('#4361EE'); // Darker blue border
   pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
   
   pdf.setFont('helvetica', 'bold');
@@ -562,17 +565,17 @@ async function generatePDFExport(
   if (bodyMetricsData.length > 0) {
     const latestMetrics = bodyMetricsData[bodyMetricsData.length - 1];
     
-    // Body Metrics background - purple gradient
-    pdf.setFillColor('#8B5CF6'); // Purple background
+    // Body Metrics background - brown brand color
+    pdf.setFillColor('#b68a71'); // Brown brand color
     pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 50, 'F');
-    pdf.setDrawColor('#7C3AED'); // Darker purple border
+    pdf.setDrawColor('#8b6f47'); // Darker brown border
     pdf.setLineWidth(1);
     pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 50, 'S');
     
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(255, 255, 255); // White text
-    pdf.text('📊 Body Metrics Progress', margin + 10, yPosition + 10);
+    pdf.text('📊 Body Metrics', margin + 10, yPosition + 10);
     
     // Metrics cards
     const metricsCardWidth = (pageWidth - margin * 2 - 30) / 2;
@@ -616,28 +619,28 @@ async function generatePDFExport(
   // FOOTER SECTION
   yPosition = pageHeight - 30; // Position near bottom
   
-  pdf.setFillColor(255, 255, 255, 0.05); // Very subtle background
+  pdf.setFillColor('#b68a71'); // Brown brand background
   pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 20, 'F');
-  pdf.setDrawColor(255, 255, 255, 0.1); // Subtle border
+  pdf.setDrawColor('#8b6f47'); // Darker brown border
   pdf.setLineWidth(0.5);
   pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 20, 'S');
   
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(12);
-  pdf.setTextColor(245, 158, 11); // Orange color for brand
-  pdf.text('Water4WeightLoss', margin + 10, yPosition + 5);
+  pdf.setTextColor(255, 255, 255); // White text for brand name
+  pdf.text('Generated by water4weightloss.com.au', margin + 10, yPosition + 5);
   
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
-  pdf.setTextColor(100, 116, 139); // Muted gray
-  pdf.text('Track your hydration journey', margin + 10, yPosition + 12);
+  pdf.setTextColor(255, 255, 255); // White text
+  pdf.text('Track your hydration journey with us', margin + 10, yPosition + 12);
   
   // Add watermark if requested
   if (includeWatermark) {
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text('By Downscale', pageWidth - margin - 25, yPosition + 12);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Downscale Weight Loss Clinic', pageWidth - margin - 50, yPosition + 12);
   }
   
   return pdf.output('arraybuffer');
