@@ -27,6 +27,7 @@ import { MilestoneCelebration } from "@/components/celebrations/MilestoneCelebra
 import OtherDrinkModal from '@/components/OtherDrinkModal';
 import DrinkCelebration from '@/components/celebrations/DrinkCelebration';
 import InfoCards from '@/components/info/InfoCards';
+import ExportCenter from "@/components/export/ExportCenter";
 
 interface DailyLogSummary {
   date: string; // YYYY-MM-DD
@@ -62,6 +63,8 @@ export default function DashboardPage() {
     drinkName: string;
     isFirstTime: boolean;
   } | null>(null);
+
+  const [bodyMetrics, setBodyMetrics] = useState<any>(null);
 
   const userName = userProfile?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Friend';
   const hydrationGoal = userProfile?.hydrationGoal || 2000;
@@ -601,15 +604,16 @@ export default function DashboardPage() {
             <BodyMetricsTracker />
           </TabsContent>
 
-          {/* Export Tab - Keep as is */}
+          {/* Export Tab - REPLACED WITH PROPER EXPORT CENTER */}
           <TabsContent value="exports" className="space-y-6">
-            <WaterLogExporter 
+            <ExportCenter 
               currentIntake={currentIntake}
               hydrationGoal={hydrationGoal}
               dailyStreak={dailyStreak}
               longestStreak={longestStreak}
               userName={userName}
               hydrationLogs={hydrationLogs}
+              bodyMetrics={bodyMetrics}
             />
           </TabsContent>
 
