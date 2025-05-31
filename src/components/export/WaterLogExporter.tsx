@@ -21,7 +21,6 @@ export function WaterLogExporter() {
   const [includeBodyMetrics, setIncludeBodyMetrics] = useState(true);
   const [includeWeight, setIncludeWeight] = useState(true);
   const [includeWaist, setIncludeWaist] = useState(true);
-  const [includeWatermark, setIncludeWatermark] = useState(true);
   const exportPreviewRef = useRef<HTMLDivElement>(null);
 
   // Set default date range (last 30 days)
@@ -82,7 +81,6 @@ export function WaterLogExporter() {
         includeBodyMetrics: includeBodyMetrics.toString(),
         includeWeight: includeWeight.toString(),
         includeWaist: includeWaist.toString(),
-        includeWatermark: includeWatermark.toString(),
       });
 
       const response = await fetch(`/api/export/water-logs?${params.toString()}`);
@@ -183,8 +181,8 @@ export function WaterLogExporter() {
     tempDiv.innerHTML = imageContent;
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
-    tempDiv.style.width = '800px';
-    tempDiv.style.height = '800px';
+    tempDiv.style.width = '1080px';
+    tempDiv.style.height = '1080px';
     document.body.appendChild(tempDiv);
 
     try {
@@ -193,8 +191,8 @@ export function WaterLogExporter() {
         scale: 2,
         useCORS: true,
         allowTaint: false,
-        width: 800,
-        height: 800,
+        width: 1080,
+        height: 1080,
         logging: false,
       });
 
@@ -260,9 +258,9 @@ export function WaterLogExporter() {
     
     return `
       <div style="
-        width: 800px; 
-        height: 800px;
-        padding: 30px;
+        width: 1080px; 
+        height: 1080px;
+        padding: 40px;
         margin: 0;
         background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
         color: white; 
@@ -275,65 +273,76 @@ export function WaterLogExporter() {
         flex-direction: column;
         justify-content: space-between;
       ">
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 20px;">
+        <!-- Header with Logo -->
+        <div style="text-align: center; margin-bottom: 30px;">
           ${logoBase64 ? `
             <img src="${logoBase64}" alt="Water4WeightLoss" style="
-              width: 60px; 
-              height: 60px; 
-              margin: 0 auto 10px auto; 
+              width: 80px; 
+              height: 80px; 
+              margin: 0 auto 15px auto; 
               display: block;
-              border-radius: 10px;
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             " />
           ` : `
             <div style="
-              width: 60px; 
-              height: 60px; 
-              margin: 0 auto 10px auto; 
+              width: 80px; 
+              height: 80px; 
+              margin: 0 auto 15px auto; 
               background: linear-gradient(135deg, #3B82F6, #1D4ED8);
-              border-radius: 10px;
+              border-radius: 12px;
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 28px;
+              font-size: 36px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             ">💧</div>
           `}
           <h1 style="
-            margin: 0;
-            font-size: 32px;
+            margin: 0 0 8px 0;
+            font-size: 42px;
             font-weight: 800;
             background: linear-gradient(135deg, #60A5FA, #3B82F6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            line-height: 1.1;
           ">Water4WeightLoss</h1>
           <p style="
-            margin: 5px 0 0 0;
-            font-size: 14px;
+            margin: 0 0 5px 0;
+            font-size: 16px;
             color: #F59E0B;
             font-weight: 600;
           ">Hydration and Weight Tracking</p>
+          <p style="
+            margin: 0;
+            font-size: 14px;
+            color: #94A3B8;
+            font-weight: 500;
+          ">Downscale Weight Loss Clinic</p>
         </div>
 
-        <!-- User Info -->
+        <!-- User Info Card -->
         <div style="
           text-align: center;
           background: rgba(255, 255, 255, 0.1);
-          padding: 20px;
-          border-radius: 15px;
-          margin-bottom: 20px;
+          padding: 25px;
+          border-radius: 20px;
+          margin-bottom: 25px;
           backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
         ">
           <h2 style="
-            margin: 0 0 5px 0;
-            font-size: 24px;
+            margin: 0 0 8px 0;
+            font-size: 28px;
             font-weight: 700;
             color: #ffffff;
           ">${summary.user_name}'s Progress</h2>
           <p style="
             margin: 0;
-            font-size: 14px;
+            font-size: 16px;
             color: #94A3B8;
+            font-weight: 500;
           ">${summary.date_range}</p>
         </div>
 
@@ -341,110 +350,118 @@ export function WaterLogExporter() {
         <div style="
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 15px;
-          margin-bottom: 20px;
+          gap: 20px;
+          margin-bottom: 25px;
         ">
           <!-- Total Water -->
           <div style="
             background: linear-gradient(135deg, #3B82F6, #1D4ED8);
-            padding: 20px;
-            border-radius: 15px;
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
             border: 2px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
           ">
             <div style="
-              font-size: 36px;
+              font-size: 48px;
               font-weight: 800;
               color: white;
-              margin-bottom: 5px;
+              margin-bottom: 8px;
+              line-height: 1;
             ">${summary.total_water}L</div>
             <div style="
-              font-size: 12px;
+              font-size: 14px;
               color: rgba(255, 255, 255, 0.9);
               font-weight: 600;
+              margin-bottom: 4px;
             ">Total Water</div>
             <div style="
-              font-size: 10px;
+              font-size: 12px;
               color: rgba(255, 255, 255, 0.7);
-              margin-top: 2px;
             ">Over ${summary.days_tracked} days</div>
           </div>
 
           <!-- Goal Achievement -->
           <div style="
             background: linear-gradient(135deg, #10B981, #059669);
-            padding: 20px;
-            border-radius: 15px;
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
             border: 2px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
           ">
             <div style="
-              font-size: 36px;
+              font-size: 48px;
               font-weight: 800;
               color: white;
-              margin-bottom: 5px;
+              margin-bottom: 8px;
+              line-height: 1;
             ">${summary.goal_achievement}%</div>
             <div style="
-              font-size: 12px;
+              font-size: 14px;
               color: rgba(255, 255, 255, 0.9);
               font-weight: 600;
+              margin-bottom: 4px;
             ">Goal Achievement</div>
             <div style="
-              font-size: 10px;
+              font-size: 12px;
               color: rgba(255, 255, 255, 0.7);
-              margin-top: 2px;
             ">${summary.goal_achievement >= 80 ? 'Excellent!' : 'Keep going!'}</div>
           </div>
 
           <!-- Max Streak -->
           <div style="
             background: linear-gradient(135deg, #A855F7, #7C3AED);
-            padding: 20px;
-            border-radius: 15px;
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
             border: 2px solid rgba(168, 85, 247, 0.3);
+            box-shadow: 0 4px 16px rgba(168, 85, 247, 0.2);
           ">
             <div style="
-              font-size: 36px;
+              font-size: 48px;
               font-weight: 800;
               color: white;
-              margin-bottom: 5px;
+              margin-bottom: 8px;
+              line-height: 1;
             ">${summary.max_streak}</div>
             <div style="
-              font-size: 12px;
+              font-size: 14px;
               color: rgba(255, 255, 255, 0.9);
               font-weight: 600;
+              margin-bottom: 4px;
             ">Max Streak</div>
             <div style="
-              font-size: 10px;
+              font-size: 12px;
               color: rgba(255, 255, 255, 0.7);
-              margin-top: 2px;
             ">Building habits</div>
           </div>
 
           <!-- Days Tracked -->
           <div style="
             background: linear-gradient(135deg, #F59E0B, #D97706);
-            padding: 20px;
-            border-radius: 15px;
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
             border: 2px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
           ">
             <div style="
-              font-size: 36px;
+              font-size: 48px;
               font-weight: 800;
               color: white;
-              margin-bottom: 5px;
+              margin-bottom: 8px;
+              line-height: 1;
             ">${summary.days_tracked}</div>
             <div style="
-              font-size: 12px;
+              font-size: 14px;
               color: rgba(255, 255, 255, 0.9);
               font-weight: 600;
+              margin-bottom: 4px;
             ">Days Tracked</div>
             <div style="
-              font-size: 10px;
+              font-size: 12px;
               color: rgba(255, 255, 255, 0.7);
-              margin-top: 2px;
             ">Consistent monitoring</div>
           </div>
         </div>
@@ -453,38 +470,40 @@ export function WaterLogExporter() {
         <!-- Body Metrics -->
         <div style="
           background: linear-gradient(135deg, #8B5CF6, #7C3AED);
-          padding: 15px;
-          border-radius: 15px;
-          margin-bottom: 15px;
+          padding: 20px;
+          border-radius: 20px;
+          margin-bottom: 20px;
           border: 2px solid rgba(139, 92, 246, 0.3);
+          box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
         ">
           <h3 style="
-            margin: 0 0 10px 0;
-            font-size: 16px;
+            margin: 0 0 15px 0;
+            font-size: 18px;
             font-weight: 700;
             color: white;
             text-align: center;
-          ">📊 Body Metrics</h3>
+          ">📊 Body Metrics Progress</h3>
           <div style="
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 15px;
           ">
             ${bodyMetrics[0]?.weight ? `
             <div style="
               background: rgba(255, 255, 255, 0.2);
-              padding: 15px;
-              border-radius: 10px;
+              padding: 20px;
+              border-radius: 15px;
               text-align: center;
             ">
               <div style="
-                font-size: 24px;
+                font-size: 32px;
                 font-weight: 800;
                 color: white;
-                margin-bottom: 3px;
+                margin-bottom: 5px;
+                line-height: 1;
               ">${bodyMetrics[0].weight}kg</div>
               <div style="
-                font-size: 11px;
+                font-size: 13px;
                 color: rgba(255, 255, 255, 0.9);
                 font-weight: 600;
               ">Weight</div>
@@ -493,18 +512,19 @@ export function WaterLogExporter() {
             ${bodyMetrics[0]?.waist ? `
             <div style="
               background: rgba(255, 255, 255, 0.2);
-              padding: 15px;
-              border-radius: 10px;
+              padding: 20px;
+              border-radius: 15px;
               text-align: center;
             ">
               <div style="
-                font-size: 24px;
+                font-size: 32px;
                 font-weight: 800;
                 color: white;
-                margin-bottom: 3px;
+                margin-bottom: 5px;
+                line-height: 1;
               ">${bodyMetrics[0].waist}cm</div>
               <div style="
-                font-size: 11px;
+                font-size: 13px;
                 color: rgba(255, 255, 255, 0.9);
                 font-weight: 600;
               ">Waist</div>
@@ -518,16 +538,24 @@ export function WaterLogExporter() {
         <div style="
           text-align: center;
           color: #64748B;
-          font-size: 12px;
+          font-size: 14px;
           margin-top: auto;
         ">
           <div style="
             background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 10px;
+            padding: 15px;
+            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
           ">
-            <strong style="color: #F59E0B;">Water4WeightLoss</strong> • Track your hydration journey
+            <div style="
+              color: #F59E0B;
+              font-weight: 600;
+              margin-bottom: 4px;
+            ">Generated by water4weightloss.com.au</div>
+            <div style="
+              color: #94A3B8;
+              font-size: 12px;
+            ">Track your hydration journey with us</div>
           </div>
         </div>
       </div>
@@ -565,7 +593,7 @@ export function WaterLogExporter() {
 
   const getFormatDescription = (formatType: string) => {
     switch (formatType) {
-      case 'image': return 'Perfect for social media sharing';
+      case 'image': return 'Perfect single-page shareable image';
       case 'pdf': return 'Professional report format';
       case 'excel': return 'Advanced analysis & charts';
       default: return 'Export your data';
@@ -661,7 +689,7 @@ export function WaterLogExporter() {
                   <Camera className="h-4 w-4" />
                   <div>
                     <div>📱 Social Media Image</div>
-                    <div className="text-xs text-slate-500">Perfect for sharing progress</div>
+                    <div className="text-xs text-slate-500">Perfect single-page shareable image</div>
                   </div>
                 </div>
               </SelectItem>
@@ -686,21 +714,6 @@ export function WaterLogExporter() {
             </SelectContent>
           </Select>
         </div>
-
-        {/* Watermark Option */}
-        {(format === 'image' || format === 'pdf') && (
-          <div className="flex items-center space-x-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600">
-            <Checkbox 
-              checked={includeWatermark} 
-              onCheckedChange={(checked) => setIncludeWatermark(checked as boolean)}
-              className="data-[state=checked]:bg-brown-500 data-[state=checked]:border-brown-500"
-            />
-            <div>
-              <Label className="text-slate-200">Include Water4WeightLoss Watermark</Label>
-              <p className="text-xs text-slate-400">Great for social media sharing and brand recognition</p>
-            </div>
-          </div>
-        )}
 
         {/* Data Selection Options */}
         <div className="space-y-4">
@@ -777,10 +790,11 @@ export function WaterLogExporter() {
           </h4>
           <p className="text-sm text-slate-400 mb-3">{getFormatDescription(format)}</p>
           <ul className="text-sm text-slate-300 space-y-1">
-            <li>• All water intake logs with timestamps</li>
-            <li>• Daily totals and goal progress</li>
-            <li>• Streak calculations and statistics</li>
-            {format === 'image' && <li className="text-blue-300">• Visual progress summary card</li>}
+            <li>• Daily totals and goal progress summary</li>
+            <li>• Streak calculations and key statistics</li>
+            <li>• Professional Water4WeightLoss branding</li>
+            {format === 'image' && <li className="text-blue-300">• Perfect 1080x1080 Instagram format</li>}
+            {format === 'image' && <li className="text-blue-300">• Single-page shareable image</li>}
             {format === 'pdf' && <li className="text-red-300">• Professional formatted report</li>}
             {format === 'excel' && <li className="text-green-300">• Charts and pivot tables</li>}
             {includeBodyMetrics && (includeWeight || includeWaist) && (
@@ -789,9 +803,6 @@ export function WaterLogExporter() {
                 {includeWeight && <li className="ml-4 text-brown-300">- Weight measurements with trends</li>}
                 {includeWaist && <li className="ml-4 text-brown-300">- Waist measurements with progress</li>}
               </>
-            )}
-            {includeWatermark && (format === 'image' || format === 'pdf') && (
-              <li className="text-brown-300">• Water4WeightLoss branding watermark</li>
             )}
           </ul>
         </div>
@@ -822,12 +833,13 @@ export function WaterLogExporter() {
         {/* Social Media Tips for Image Export */}
         {format === 'image' && (
           <div className="p-3 bg-blue-950/30 rounded-lg border border-blue-700/30">
-            <h5 className="text-sm font-medium text-blue-300 mb-1">📱 Social Media Tips:</h5>
+            <h5 className="text-sm font-medium text-blue-300 mb-1">📱 Social Media Ready:</h5>
             <ul className="text-xs text-blue-200 space-y-1">
-              <li>• Perfect size for Instagram posts and stories</li>
-              <li>• Share your hydration journey with friends</li>
+              <li>• Perfect 1080x1080 Instagram format</li>
+              <li>• Single-page summary with all key stats</li>
+              <li>• Always includes Water4WeightLoss branding</li>
+              <li>• High-resolution for crisp mobile viewing</li>
               <li>• Use hashtags: #HydrationJourney #Water4WeightLoss</li>
-              <li>• Motivate others with your progress!</li>
             </ul>
           </div>
         )}
