@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale, Flame, Award } from "lucide-react";
+import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale, Flame, Award, FileText, BookOpen } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
@@ -506,26 +506,26 @@ export default function DashboardPage() {
 
         {/* Main Tabbed Content with Brown Borders */}
         <Tabs defaultValue="water" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4 md:mb-6 bg-slate-800 border border-[#b68a71] h-12 md:h-10">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 md:mb-6 bg-slate-800 border border-[#b68a71] h-16 sm:h-12 md:h-10">
             <TabsTrigger value="water" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
               <Droplets className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Water</span>
-              <span className="sm:hidden">H₂O</span>
+              <span className="sm:hidden">💧</span>
             </TabsTrigger>
             <TabsTrigger value="metrics" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
               <Scale className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Body Metrics</span>
-              <span className="sm:hidden">Body</span>
+              <span className="hidden sm:inline">Metrics</span>
+              <span className="sm:hidden">📊</span>
             </TabsTrigger>
-            <TabsTrigger value="export" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
-              <Download className="h-3 w-3 md:h-4 md:w-4" />
+            <TabsTrigger value="exports" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
+              <FileText className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Export</span>
-              <span className="sm:hidden">📁</span>
+              <span className="sm:hidden">📄</span>
             </TabsTrigger>
             <TabsTrigger value="info" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
-              <Lightbulb className="h-3 w-3 md:h-4 md:w-4" />
+              <BookOpen className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Info</span>
-              <span className="sm:hidden">💡</span>
+              <span className="sm:hidden">ℹ️</span>
             </TabsTrigger>
           </TabsList>
 
@@ -644,7 +644,7 @@ export default function DashboardPage() {
           </TabsContent>
 
           {/* Export Tab - Keep as is */}
-          <TabsContent value="export" className="space-y-6">
+          <TabsContent value="exports" className="space-y-6">
             <WaterLogExporter />
           </TabsContent>
 

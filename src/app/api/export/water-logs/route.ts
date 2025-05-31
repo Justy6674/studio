@@ -378,7 +378,7 @@ async function generatePDFExport(
     // Convert logo to base64 for embedding
     const fs = await import('fs');
     const path = await import('path');
-    const logoPath = path.join(process.cwd(), 'public', 'logo.png');
+    const logoPath = path.join(process.cwd(), 'public', 'Logo (1).png');
     const logoBuffer = fs.readFileSync(logoPath);
     logoDataUrl = `data:image/png;base64,${logoBuffer.toString('base64')}`;
   } catch (error) {

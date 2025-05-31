@@ -243,7 +243,13 @@ export function WaterLogExporter() {
     return `
       <div style="width: 720px; padding: 40px; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 16px; color: white; font-family: Inter, sans-serif;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-size: 32px; font-weight: bold; margin: 0; color: #94a3b8;">💧 Hydration Progress</h1>
+          <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">
+            <img src="/Logo (1).png" alt="Water4WeightLoss Logo" style="width: 48px; height: 48px; border-radius: 12px; border: 2px solid #5271ff; margin-right: 15px;" />
+            <div>
+              <h1 style="font-size: 32px; font-weight: bold; margin: 0; color: #5271ff;">Water4WeightLoss</h1>
+              <p style="font-size: 14px; color: #b68a71; margin: 0;">By Downscale</p>
+            </div>
+          </div>
           <p style="font-size: 18px; color: #64748b; margin: 10px 0;">${summary.user_name}'s Journey</p>
           <p style="font-size: 14px; color: #475569;">${summary.date_range.start} to ${summary.date_range.end}</p>
         </div>
@@ -258,7 +264,7 @@ export function WaterLogExporter() {
             <div style="font-size: 14px; color: #94a3b8;">Goal Achievement</div>
           </div>
           <div style="background: rgba(168, 85, 247, 0.1); padding: 20px; border-radius: 12px; text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #a855f7;">${summary.totals.max_streak_days}</div>
+            <div style="font-size: 24px; font-weight: bold; color: #a855f7;">${summary.totals.max_streak_days} days</div>
             <div style="font-size: 14px; color: #94a3b8;">Max Streak</div>
           </div>
           <div style="background: rgba(182, 138, 113, 0.1); padding: 20px; border-radius: 12px; text-align: center;">
