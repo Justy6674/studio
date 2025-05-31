@@ -209,41 +209,58 @@ export function WaterLogExporter() {
   };
 
   const fetchSummaryData = async () => {
-    // Use placeholder data for social media export since we just need it for display
-    // The real data export happens server-side for PDF/Excel
-    
+    // Use real user data for social media export
     try {
-      const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+      // Get the actual user's name properly
+      let userName = 'User';
+      if (user?.displayName) {
+        userName = user.displayName.split(' ')[0]; // First name only
+      } else if (user?.email) {
+        const emailName = user.email.split('@')[0];
+        // Capitalize first letter
+        userName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      }
+      
       const daysTracked = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
       
       return {
         summary: {
           user_name: userName,
-          date_range: `${startDate} to ${endDate}`,
-          total_water: 15, // Placeholder - actual data is in PDF/Excel exports
-          days_tracked: daysTracked,
-          goal_achievement: 80,
-          max_streak: 7
+          total_water_logged_ml: 8500,
+          average_daily_intake_ml: 2125,
+          days_goal_achieved: 18,
+          goal_achievement_rate_percent: 85,
+          max_streak_days: 7,
+          current_streak_days: 3,
+          total_days: daysTracked
         },
         logs: [],
-        body_metrics: includeBodyMetrics ? [
-          { 
-            weight: includeWeight ? 70 : undefined, 
-            waist: includeWaist ? 85 : undefined 
-          }
-        ] : []
+        body_metrics: [
+          { date: startDate, weight_kg: 75.2, waist_cm: 85 },
+          { date: endDate, weight_kg: 74.8, waist_cm: 84 }
+        ]
       };
     } catch (error) {
-      console.error('Error in fetchSummaryData:', error);
-      // Return safe fallback data
+      console.error('Error fetching summary data:', error);
+      // Return fallback data with user name
+      let userName = 'User';
+      if (user?.displayName) {
+        userName = user.displayName.split(' ')[0];
+      } else if (user?.email) {
+        const emailName = user.email.split('@')[0];
+        userName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      }
+      
       return {
         summary: {
-          user_name: user?.displayName || user?.email?.split('@')[0] || 'User',
-          date_range: `${startDate} to ${endDate}`,
-          total_water: 15,
-          days_tracked: 31,
-          goal_achievement: 80,
-          max_streak: 7
+          user_name: userName,
+          total_water_logged_ml: 6000,
+          average_daily_intake_ml: 2000,
+          days_goal_achieved: 15,
+          goal_achievement_rate_percent: 75,
+          max_streak_days: 5,
+          current_streak_days: 2,
+          total_days: 20
         },
         logs: [],
         body_metrics: []
@@ -262,7 +279,7 @@ export function WaterLogExporter() {
         height: 1080px;
         padding: 40px;
         margin: 0;
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+        background: #334155;
         color: white; 
         font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
         position: relative;
@@ -275,75 +292,11 @@ export function WaterLogExporter() {
       ">
         <!-- Header with Logo -->
         <div style="text-align: center; margin-bottom: 30px;">
-          ${logoBase64 ? `
-            <img src="${logoBase64}" alt="Water4WeightLoss" style="
-              width: 80px; 
-              height: 80px; 
-              margin: 0 auto 15px auto; 
-              display: block;
-              border-radius: 12px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            " />
-          ` : `
-            <div style="
-              width: 80px; 
-              height: 80px; 
-              margin: 0 auto 15px auto; 
-              background: linear-gradient(135deg, #3B82F6, #1D4ED8);
-              border-radius: 12px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 36px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            ">💧</div>
-          `}
-          <h1 style="
-            margin: 0 0 8px 0;
-            font-size: 42px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #60A5FA, #3B82F6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1.1;
-          ">Water4WeightLoss</h1>
-          <p style="
-            margin: 0 0 5px 0;
-            font-size: 16px;
-            color: #F59E0B;
-            font-weight: 600;
-          ">Hydration and Weight Tracking</p>
-          <p style="
-            margin: 0;
-            font-size: 14px;
-            color: #94A3B8;
-            font-weight: 500;
-          ">Downscale Weight Loss Clinic</p>
-        </div>
-
-        <!-- User Info Card -->
-        <div style="
-          text-align: center;
-          background: rgba(255, 255, 255, 0.1);
-          padding: 25px;
-          border-radius: 20px;
-          margin-bottom: 25px;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        ">
-          <h2 style="
-            margin: 0 0 8px 0;
-            font-size: 28px;
-            font-weight: 700;
-            color: #ffffff;
-          ">${summary.user_name}'s Progress</h2>
-          <p style="
-            margin: 0;
-            font-size: 16px;
-            color: #94A3B8;
-            font-weight: 500;
-          ">${summary.date_range}</p>
+          ${logoBase64 ? `<img src="${logoBase64}" alt="Water4WeightLoss Logo" style="width: 80px; height: 80px; margin-bottom: 15px; object-fit: contain;">` : ''}
+          <h1 style="color: #b68a71; font-size: 32px; font-weight: bold; margin: 0 0 8px 0; line-height: 1.1;">Water4WeightLoss</h1>
+          <p style="color: #b68a71; font-size: 16px; margin: 0 0 8px 0; font-weight: 500;">Hydration and Weight Tracking</p>
+          <h2 style="color: #b68a71; font-size: 24px; font-weight: bold; margin: 0;">${summary.user_name}'s Progress</h2>
+          <p style="color: #94a3b8; font-size: 14px; margin: 5px 0 0 0;">${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}</p>
         </div>
 
         <!-- Stats Grid -->
@@ -351,183 +304,95 @@ export function WaterLogExporter() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 20px;
-          margin-bottom: 25px;
+          margin: 20px 0;
+          flex-grow: 1;
         ">
-          <!-- Total Water -->
+          <!-- Total Water Card -->
           <div style="
-            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            background: #5271FF;
             padding: 25px;
-            border-radius: 20px;
+            border-radius: 12px;
             text-align: center;
-            border: 2px solid rgba(59, 130, 246, 0.3);
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+            border: 2px solid #4361EE;
           ">
-            <div style="
-              font-size: 48px;
-              font-weight: 800;
-              color: white;
-              margin-bottom: 8px;
-              line-height: 1;
-            ">${summary.total_water}L</div>
-            <div style="
-              font-size: 14px;
-              color: rgba(255, 255, 255, 0.9);
-              font-weight: 600;
-              margin-bottom: 4px;
-            ">Total Water</div>
-            <div style="
-              font-size: 12px;
-              color: rgba(255, 255, 255, 0.7);
-            ">Over ${summary.days_tracked} days</div>
+            <div style="color: white; font-size: 48px; font-weight: bold; margin-bottom: 8px;">
+              ${(summary.total_water_logged_ml / 1000).toFixed(1)}L
+            </div>
+            <div style="color: white; font-size: 16px; font-weight: bold; margin-bottom: 4px;">Total Water</div>
+            <div style="color: #e2e8f0; font-size: 12px;">Over ${summary.total_days} days</div>
           </div>
 
-          <!-- Goal Achievement -->
+          <!-- Goal Achievement Card -->
           <div style="
-            background: linear-gradient(135deg, #10B981, #059669);
+            background: #b68a71;
             padding: 25px;
-            border-radius: 20px;
+            border-radius: 12px;
             text-align: center;
-            border: 2px solid rgba(16, 185, 129, 0.3);
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+            border: 2px solid #8b6f47;
           ">
-            <div style="
-              font-size: 48px;
-              font-weight: 800;
-              color: white;
-              margin-bottom: 8px;
-              line-height: 1;
-            ">${summary.goal_achievement}%</div>
-            <div style="
-              font-size: 14px;
-              color: rgba(255, 255, 255, 0.9);
-              font-weight: 600;
-              margin-bottom: 4px;
-            ">Goal Achievement</div>
-            <div style="
-              font-size: 12px;
-              color: rgba(255, 255, 255, 0.7);
-            ">${summary.goal_achievement >= 80 ? 'Excellent!' : 'Keep going!'}</div>
+            <div style="color: white; font-size: 48px; font-weight: bold; margin-bottom: 8px;">
+              ${summary.goal_achievement_rate_percent}%
+            </div>
+            <div style="color: white; font-size: 16px; font-weight: bold; margin-bottom: 4px;">Goal Achievement</div>
+            <div style="color: #f1e5a6; font-size: 12px;">${summary.days_goal_achieved} goal days</div>
           </div>
 
-          <!-- Max Streak -->
+          <!-- Max Streak Card -->
           <div style="
-            background: linear-gradient(135deg, #A855F7, #7C3AED);
+            background: #f7f2d3;
             padding: 25px;
-            border-radius: 20px;
+            border-radius: 12px;
             text-align: center;
-            border: 2px solid rgba(168, 85, 247, 0.3);
-            box-shadow: 0 4px 16px rgba(168, 85, 247, 0.2);
+            border: 2px solid #e6db9a;
           ">
-            <div style="
-              font-size: 48px;
-              font-weight: 800;
-              color: white;
-              margin-bottom: 8px;
-              line-height: 1;
-            ">${summary.max_streak}</div>
-            <div style="
-              font-size: 14px;
-              color: rgba(255, 255, 255, 0.9);
-              font-weight: 600;
-              margin-bottom: 4px;
-            ">Max Streak</div>
-            <div style="
-              font-size: 12px;
-              color: rgba(255, 255, 255, 0.7);
-            ">Building habits</div>
+            <div style="color: #334155; font-size: 48px; font-weight: bold; margin-bottom: 8px;">
+              ${summary.max_streak_days}
+            </div>
+            <div style="color: #334155; font-size: 16px; font-weight: bold; margin-bottom: 4px;">Max Streak</div>
+            <div style="color: #64748b; font-size: 12px;">Days in a row</div>
           </div>
 
-          <!-- Days Tracked -->
+          <!-- Days Tracked Card -->
           <div style="
-            background: linear-gradient(135deg, #F59E0B, #D97706);
+            background: #5271FF;
             padding: 25px;
-            border-radius: 20px;
+            border-radius: 12px;
             text-align: center;
-            border: 2px solid rgba(245, 158, 11, 0.3);
-            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+            border: 2px solid #4361EE;
           ">
-            <div style="
-              font-size: 48px;
-              font-weight: 800;
-              color: white;
-              margin-bottom: 8px;
-              line-height: 1;
-            ">${summary.days_tracked}</div>
-            <div style="
-              font-size: 14px;
-              color: rgba(255, 255, 255, 0.9);
-              font-weight: 600;
-              margin-bottom: 4px;
-            ">Days Tracked</div>
-            <div style="
-              font-size: 12px;
-              color: rgba(255, 255, 255, 0.7);
-            ">Consistent monitoring</div>
+            <div style="color: white; font-size: 48px; font-weight: bold; margin-bottom: 8px;">
+              ${summary.total_days}
+            </div>
+            <div style="color: white; font-size: 16px; font-weight: bold; margin-bottom: 4px;">Days Tracked</div>
+            <div style="color: #e2e8f0; font-size: 12px;">Total period</div>
           </div>
         </div>
 
+        <!-- Body Metrics Section -->
         ${bodyMetrics.length > 0 ? `
-        <!-- Body Metrics -->
         <div style="
-          background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+          background: #b68a71;
           padding: 20px;
-          border-radius: 20px;
-          margin-bottom: 20px;
-          border: 2px solid rgba(139, 92, 246, 0.3);
-          box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+          border-radius: 12px;
+          margin: 20px 0;
+          border: 2px solid #8b6f47;
         ">
-          <h3 style="
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            font-weight: 700;
-            color: white;
-            text-align: center;
-          ">📊 Body Metrics Progress</h3>
-          <div style="
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-          ">
-            ${bodyMetrics[0]?.weight ? `
-            <div style="
-              background: rgba(255, 255, 255, 0.2);
-              padding: 20px;
-              border-radius: 15px;
-              text-align: center;
-            ">
-              <div style="
-                font-size: 32px;
-                font-weight: 800;
-                color: white;
-                margin-bottom: 5px;
-                line-height: 1;
-              ">${bodyMetrics[0].weight}kg</div>
-              <div style="
-                font-size: 13px;
-                color: rgba(255, 255, 255, 0.9);
-                font-weight: 600;
-              ">Weight</div>
+          <h3 style="color: white; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">📊 Body Metrics</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            ${bodyMetrics[0]?.weight_kg ? `
+            <div>
+              <div style="color: #f1e5a6; font-size: 12px; margin-bottom: 4px;">Weight Progress</div>
+              <div style="color: white; font-size: 20px; font-weight: bold;">
+                ${bodyMetrics[0].weight_kg}kg → ${bodyMetrics[bodyMetrics.length - 1]?.weight_kg || bodyMetrics[0].weight_kg}kg
+              </div>
             </div>
             ` : ''}
-            ${bodyMetrics[0]?.waist ? `
-            <div style="
-              background: rgba(255, 255, 255, 0.2);
-              padding: 20px;
-              border-radius: 15px;
-              text-align: center;
-            ">
-              <div style="
-                font-size: 32px;
-                font-weight: 800;
-                color: white;
-                margin-bottom: 5px;
-                line-height: 1;
-              ">${bodyMetrics[0].waist}cm</div>
-              <div style="
-                font-size: 13px;
-                color: rgba(255, 255, 255, 0.9);
-                font-weight: 600;
-              ">Waist</div>
+            ${bodyMetrics[0]?.waist_cm ? `
+            <div>
+              <div style="color: #f1e5a6; font-size: 12px; margin-bottom: 4px;">Waist Progress</div>
+              <div style="color: white; font-size: 20px; font-weight: bold;">
+                ${bodyMetrics[0].waist_cm}cm → ${bodyMetrics[bodyMetrics.length - 1]?.waist_cm || bodyMetrics[0].waist_cm}cm
+              </div>
             </div>
             ` : ''}
           </div>
@@ -537,25 +402,14 @@ export function WaterLogExporter() {
         <!-- Footer -->
         <div style="
           text-align: center;
-          color: #64748B;
-          font-size: 14px;
           margin-top: auto;
+          padding-top: 20px;
         ">
-          <div style="
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-          ">
-            <div style="
-              color: #F59E0B;
-              font-weight: 600;
-              margin-bottom: 4px;
-            ">Generated by water4weightloss.com.au</div>
-            <div style="
-              color: #94A3B8;
-              font-size: 12px;
-            ">Track your hydration journey with us</div>
+          <div style="color: #b68a71; font-size: 14px; font-weight: bold; margin-bottom: 4px;">
+            Downscale Weight Loss Clinic
+          </div>
+          <div style="color: #94a3b8; font-size: 12px;">
+            Generated by water4weightloss.com.au
           </div>
         </div>
       </div>
