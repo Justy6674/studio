@@ -165,6 +165,13 @@ export async function GET(request: NextRequest) {
     let bodyMetricsData: BodyMetricsExport[] = [];
     if (includeBodyMetrics && (includeWeight || includeWaist)) {
       try {
+        // TEMPORARILY DISABLED DUE TO FIREBASE INDEX REQUIREMENTS
+        // Firebase needs composite index: userId + timestamp
+        // For now, we'll continue without body metrics to prevent API failures
+        console.log('Body metrics export temporarily disabled - Firebase index required');
+        bodyMetricsData = [];
+        
+        /*
         // Use simple query without orderBy to avoid index requirements
         const bodyQ = query(
           collection(db, "body_metrics"),
@@ -217,6 +224,7 @@ export async function GET(request: NextRequest) {
           
           return exportEntry;
         });
+        */
 
       } catch (error: any) {
         console.error('Error fetching body metrics, continuing without them:', error.message);
