@@ -11,9 +11,10 @@ import { Plus, Droplets } from "lucide-react";
 
 interface LogWaterFormProps {
   onLogWater: (amount: number) => Promise<void>;
+  onOtherDrink?: () => void;
 }
 
-export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
+export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
   const { userProfile } = useAuth();
   const [amount, setAmount] = useState("");
   const [isLogging, setIsLogging] = useState(false);
@@ -113,6 +114,20 @@ export function LogWaterForm({ onLogWater }: LogWaterFormProps) {
               )}
             </Button>
           </div>
+
+          {/* Other Drink Button */}
+          {onOtherDrink && (
+            <div className="border-t border-slate-600 pt-3">
+              <Button
+                onClick={onOtherDrink}
+                disabled={isLogging}
+                className="w-full bg-transparent border border-[#b68a71] text-[#b68a71] hover:bg-[#b68a71]/10 hover:border-[#b68a71] py-4 px-4 text-sm font-semibold transition-all duration-200 min-h-[50px] flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">🍹</span>
+                <span className="text-sm font-medium">Other Drink</span>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

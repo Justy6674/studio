@@ -8,7 +8,7 @@ import { WaterGlass } from "@/components/water/WaterGlass";
 import { AIMotivationCard } from "@/components/water/AIMotivationCard";
 import { WaterLogExporter } from "@/components/export/WaterLogExporter";
 import { BodyMetricsTracker } from "@/components/metrics/BodyMetricsTracker";
-import { getHydrationLogs, getAIMotivation, logHydration } from "@/lib/hydration";
+import { getHydrationLogs, getAIMotivation, logHydration, logOtherDrink } from "@/lib/hydration";
 import { showMotivationNotification } from "@/lib/notifications";
 import type { HydrationLog, UserProfile } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +24,8 @@ import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } f
 import { OnboardingTip } from "@/components/onboarding/OnboardingTip";
 import { StreakCelebration } from "@/components/celebrations/StreakCelebration";
 import { MilestoneCelebration } from "@/components/celebrations/MilestoneCelebration";
+import OtherDrinkModal from '@/components/OtherDrinkModal';
+import DrinkCelebration from '@/components/celebrations/DrinkCelebration';
 
 interface DailyLogSummary {
   date: string; // YYYY-MM-DD
@@ -50,6 +52,15 @@ export default function DashboardPage() {
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
   const [milestoneCelebrated, setMilestoneCelebrated] = useState(0);
   const [lastMilestoneReached, setLastMilestoneReached] = useState(0);
+
+  // Other Drink Modal and Celebration State
+  const [showOtherDrinkModal, setShowOtherDrinkModal] = useState(false);
+  const [showDrinkCelebration, setShowDrinkCelebration] = useState(false);
+  const [drinkCelebrationData, setDrinkCelebrationData] = useState<{
+    drinkType: string;
+    drinkName: string;
+    isFirstTime: boolean;
+  } | null>(null);
 
   const userName = userProfile?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Friend';
   const hydrationGoal = userProfile?.hydrationGoal || 2000;
@@ -100,7 +111,7 @@ export default function DashboardPage() {
         return isSameDay(logDate, today);
       });
       
-      const todayIntake = todayLogs.reduce((sum, log) => sum + log.amount, 0);
+      const todayIntake = todayLogs.reduce((sum, log) => sum + (log.hydrationValue || log.amount), 0);
       setCurrentIntake(todayIntake);
       
       // Calculate streaks
@@ -237,12 +248,99 @@ export default function DashboardPage() {
     }
   };
 
+  const handleOtherDrink = async (drinkType: string, drinkName: string, amount: number, hydrationPercentage: number) => {
+    if (!user) return;
+
+    try {
+      setGlassAnimation(true);
+      
+      const result = await logOtherDrink(amount, drinkType, drinkName, hydrationPercentage);
+      
+      if (result.success) {
+        const oldIntake = currentIntake;
+        const hydrationValue = Math.round(amount * (hydrationPercentage / 100));
+        const newIntake = currentIntake + hydrationValue;
+        
+        // Update current intake with hydration value
+        setCurrentIntake(newIntake);
+        
+        // Refresh hydration logs
+        const updatedLogs = await getHydrationLogs(30);
+        setHydrationLogs(updatedLogs);
+        
+        // Show drink celebration if it's a first-time drink
+        if (result.isFirstTime || drinkType !== 'water') {
+          setDrinkCelebrationData({
+            drinkType,
+            drinkName,
+            isFirstTime: result.isFirstTime || false
+          });
+          setShowDrinkCelebration(true);
+        }
+        
+        // Check for milestone celebrations (same logic as water)
+        const customMilestones = userProfile?.customMilestones || [50, 100];
+        const milestoneAnimations = userProfile?.milestoneAnimations !== false;
+        
+        if (milestoneAnimations && customMilestones.length > 0) {
+          const oldPercentage = (oldIntake / hydrationGoal) * 100;
+          const newPercentage = (newIntake / hydrationGoal) * 100;
+          
+          const milestonesReached = customMilestones.filter(milestone => 
+            newPercentage >= milestone && oldPercentage < milestone
+          );
+          
+          if (milestonesReached.length > 0) {
+            const highestMilestone = Math.max(...milestonesReached);
+            setMilestoneCelebrated(highestMilestone);
+            setShowMilestoneCelebration(true);
+            setLastMilestoneReached(highestMilestone);
+          }
+        }
+        
+        // Show success toast
+        toast({
+          title: `${drinkName} logged! ${drinkType === 'water' ? '💧' : '🍹'}`,
+          description: hydrationPercentage < 100 
+            ? `Added ${amount}ml (${hydrationValue}ml hydration value)`
+            : `Added ${amount}ml to your daily intake`,
+          duration: 3000,
+        });
+        
+        // Check for goal achievement notification
+        const newPercentage = (newIntake / hydrationGoal) * 100;
+        if (newPercentage >= 100 && oldIntake < hydrationGoal) {
+          showMotivationNotification("🎉 Daily goal achieved! Great hydration work!");
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to log drink. Please try again.",
+          variant: "destructive",
+        });
+      }
+      
+      // Close modal and reset glass animation
+      setShowOtherDrinkModal(false);
+      setTimeout(() => setGlassAnimation(false), 1000);
+      
+    } catch (error) {
+      console.error('Error logging other drink:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log drink. Please try again.",
+        variant: "destructive",
+      });
+      setShowOtherDrinkModal(false);
+    }
+  };
+
   const calculateDailyTotals = (logs: HydrationLog[]): DailyLogSummary[] => {
     const dailyMap = new Map<string, number>();
     
     logs.forEach(log => {
       const date = format(new Date(log.timestamp), 'yyyy-MM-dd');
-      dailyMap.set(date, (dailyMap.get(date) || 0) + log.amount);
+      dailyMap.set(date, (dailyMap.get(date) || 0) + (log.hydrationValue || log.amount));
     });
     
     return Array.from(dailyMap.entries()).map(([date, amount]) => ({
@@ -298,7 +396,7 @@ export default function DashboardPage() {
       const logDate = format(new Date(log.timestamp), 'yyyy-MM-dd');
       return logDate === dateStr;
     });
-    const totalWater = dayLogs.reduce((sum, log) => sum + log.amount, 0);
+    const totalWater = dayLogs.reduce((sum, log) => sum + (log.hydrationValue || log.amount), 0);
     
     return {
       date: format(date, 'EEE'),
@@ -473,7 +571,10 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <LogWaterForm onLogWater={handleLogWater} />
+                  <LogWaterForm 
+                    onLogWater={handleLogWater} 
+                    onOtherDrink={() => setShowOtherDrinkModal(true)}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -549,6 +650,26 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Other Drink Modal */}
+      <OtherDrinkModal
+        isOpen={showOtherDrinkModal}
+        onClose={() => setShowOtherDrinkModal(false)}
+        onConfirm={handleOtherDrink}
+      />
+
+      {/* Drink Celebration */}
+      {showDrinkCelebration && drinkCelebrationData && (
+        <DrinkCelebration
+          drinkType={drinkCelebrationData.drinkType}
+          drinkName={drinkCelebrationData.drinkName}
+          isFirstTime={drinkCelebrationData.isFirstTime}
+          onComplete={() => {
+            setShowDrinkCelebration(false);
+            setDrinkCelebrationData(null);
+          }}
+        />
+      )}
     </div>
   );
 }

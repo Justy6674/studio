@@ -39,7 +39,11 @@ export interface UserProfile {
 export interface HydrationLog {
   id: string;
   userId: string;
-  amount: number; // in ml
+  amount: number;
+  drinkType?: 'water' | 'soda_water' | 'protein_water' | 'herbal_tea' | 'soup_broth' | 'fruit' | 'other';
+  drinkName?: string; // For custom drinks or specific names
+  hydrationPercentage?: number; // Defaults to 100% for water, can be different for other drinks
+  hydrationValue?: number; // Calculated amount that counts toward hydration goal
   timestamp: Date;
 }
 
@@ -78,4 +82,18 @@ export interface BodyMetricsStats {
   avg_weight_kg: number;
   avg_waist_cm: number;
   trend_period_days: number;
+}
+
+export interface DrinkType {
+  id: string;
+  name: string;
+  icon: string;
+  hydrationPercentage: number;
+  description?: string;
+}
+
+export interface DrinkCelebration {
+  drinkType: string;
+  isFirstTime: boolean;
+  timestamp: Date;
 }
