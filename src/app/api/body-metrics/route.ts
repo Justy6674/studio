@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const limit = parseInt(searchParams.get('limit') || '30');
+    const limitNum = parseInt(searchParams.get('limit') || '30');
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       const bodyMetricsQuery = query(
         collection(db, 'body_metrics'),
         where('userId', '==', userId),
-        limit(limit)
+        limit(limitNum)
       );
 
       const snapshot = await getDocs(bodyMetricsQuery);
