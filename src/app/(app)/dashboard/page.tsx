@@ -161,77 +161,34 @@ export default function DashboardPage() {
   }, [fetchMotivation, currentIntake]);
 
   const handleLogWater = async (amount: number) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to track your hydration.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setGlassAnimation(true);
       
+      // Use the existing logHydration function which still works with the old signature
       const result = await logHydration(amount);
       
       if (result.success) {
-        const oldIntake = currentIntake;
-        const newIntake = currentIntake + amount;
-        
-        // Update current intake
-        setCurrentIntake(newIntake);
-        
-        // Refresh hydration logs
-        const updatedLogs = await getHydrationLogs(30);
-        setHydrationLogs(updatedLogs);
-        
-        // Calculate streaks from daily totals
-        const dailyTotals = calculateDailyTotals(updatedLogs);
-        const { currentStreak: newStreak } = calculateStreaks(dailyTotals, hydrationGoal);
-        const { currentStreak: oldStreak } = calculateStreaks(calculateDailyTotals(hydrationLogs), hydrationGoal);
-        
-        // Check for milestone celebrations (only if user has them enabled)
-        const customMilestones = userProfile?.customMilestones || [50, 100];
-        const milestoneAnimations = userProfile?.milestoneAnimations !== false; // Default to true
-        
-        if (milestoneAnimations && customMilestones.length > 0) {
-          const oldPercentage = (oldIntake / hydrationGoal) * 100;
-          const newPercentage = (newIntake / hydrationGoal) * 100;
-          
-          // Find the highest milestone reached with this log
-          const milestonesReached = customMilestones.filter(milestone => 
-            newPercentage >= milestone && oldPercentage < milestone
-          );
-          
-          if (milestonesReached.length > 0) {
-            const highestMilestone = Math.max(...milestonesReached);
-            setMilestoneCelebrated(highestMilestone);
-            setShowMilestoneCelebration(true);
-            setLastMilestoneReached(highestMilestone);
-          }
-        }
-        
-        // Show celebration for streak milestones (3, 7, 14, 21, 30+ days)
-        const milestones = [3, 7, 14, 21, 30];
-        const shouldCelebrate = milestones.includes(newStreak) || 
-                               (newStreak > oldStreak && newStreak > 0 && (newStreak % 7 === 0 || newStreak >= 30));
-        
-        if (shouldCelebrate) {
-          setCelebrationStreak(newStreak);
-          setIsNewRecord(newStreak > oldStreak);
-          setShowStreakCelebration(true);
-        }
-        
-        // Show success toast
         toast({
           title: "Water logged! 💧",
-          description: `Added ${amount}ml to your daily intake`,
-          duration: 2000,
+          description: `Added ${amount}ml to your daily intake.`,
+          className: "bg-hydration-500 text-white border-hydration-400",
         });
         
-        // Check for goal achievement notification (separate from celebration)
-        const newPercentage = (newIntake / hydrationGoal) * 100;
-        if (newPercentage >= 100 && oldIntake < hydrationGoal) {
-          showMotivationNotification("🎉 Daily goal achieved! Great hydration work!");
-        }
+        // Refresh data using existing pattern
+        await fetchDashboardData();
       } else {
         toast({
-          title: "Error",
-          description: result.error || "Failed to log water. Please try again.",
+          title: "Hydration Logging Failed",
+          description: result.error || "Failed to log hydration. Please try again.",
           variant: "destructive",
         });
       }
@@ -239,13 +196,14 @@ export default function DashboardPage() {
       // Reset glass animation after a delay
       setTimeout(() => setGlassAnimation(false), 1000);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error logging water:', error);
       toast({
-        title: "Error",
-        description: "Failed to log water. Please try again.",
+        title: "Hydration Logging Failed",
+        description: error.message || "Failed to log hydration. Please try again.",
         variant: "destructive",
       });
+      setTimeout(() => setGlassAnimation(false), 1000);
     }
   };
 

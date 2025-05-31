@@ -1,7 +1,7 @@
 'use client';
 
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, getDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, getDoc, limit } from "firebase/firestore";
 import type { HydrationLog, UserProfile } from "@/lib/types";
 
 export async function logHydration(amount: number): Promise<{ success?: string; error?: string }> {
@@ -25,26 +25,33 @@ async function logDrink(
 ): Promise<{ success?: string; error?: string; isFirstTime?: boolean }> {
   const user = auth.currentUser;
   if (!user) {
-    return { error: "User not authenticated." };
-  }
-  if (amount <= 0) {
-    return { error: "Amount must be positive." };
+    return { error: "Please log in to track your hydration." };
   }
 
   try {
+    // Validate input
+    if (amount <= 0) {
+      return { error: "Please enter a valid amount greater than 0ml." };
+    }
+
+    if (hydrationPercentage < 0 || hydrationPercentage > 100) {
+      return { error: "Hydration percentage must be between 0 and 100." };
+    }
+
     // Calculate hydration value
     const hydrationValue = Math.round(amount * (hydrationPercentage / 100));
-    
+
     // Check if this is the first time logging this drink type
     let isFirstTime = false;
     if (drinkType !== 'water') {
-      const existingDrinksQuery = query(
+      const existingQuery = query(
         collection(db, "hydration_logs"),
         where("userId", "==", user.uid),
-        where("drinkType", "==", drinkType)
+        where("drinkType", "==", drinkType),
+        limit(1)
       );
-      const existingDrinksSnapshot = await getDocs(existingDrinksQuery);
-      isFirstTime = existingDrinksSnapshot.docs.length === 0;
+      const existingSnapshot = await getDocs(existingQuery);
+      isFirstTime = existingSnapshot.empty;
     }
 
     // Add the hydration log
@@ -111,7 +118,7 @@ export async function getHydrationLogs(limit = 7): Promise<HydrationLog[]> {
     console.warn("No authenticated user for getHydrationLogs");
     return [];
   }
-  
+
   try {
     const q = query(
       collection(db, "hydration_logs"),
@@ -132,8 +139,8 @@ export async function getHydrationLogs(limit = 7): Promise<HydrationLog[]> {
         timestamp: (data.timestamp as Timestamp).toDate(),
       };
     });
-  } catch (error) {
-    console.error("Error fetching hydration logs:", error);
+  } catch (error: any) {
+    console.error('Error fetching hydration logs:', error);
     return [];
   }
 }
