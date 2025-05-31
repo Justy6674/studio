@@ -51,11 +51,11 @@ const PRESET_DRINKS: DrinkType[] = [
     description: 'Counts 80% towards your hydration goal'
   },
   {
-    id: 'other',
-    name: 'Other (Custom)',
-    icon: '➕',
+    id: 'custom',
+    name: 'Custom Drink',
+    icon: '🍹',
     hydrationPercentage: 100,
-    description: 'Enter your own drink type'
+    description: 'Set your own drink name and hydration percentage'
   }
 ];
 
@@ -63,25 +63,33 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
   const [selectedDrink, setSelectedDrink] = useState<DrinkType | null>(null);
   const [amount, setAmount] = useState<string>('');
   const [customName, setCustomName] = useState<string>('');
+  const [customPercentage, setCustomPercentage] = useState<string>('100');
   const [showInfo, setShowInfo] = useState<string | null>(null);
 
   const handleConfirm = () => {
     if (!selectedDrink || !amount) return;
     
-    const drinkName = selectedDrink.id === 'other' ? customName : selectedDrink.name;
-    if (selectedDrink.id === 'other' && !customName.trim()) return;
+    let drinkName = selectedDrink.name;
+    let hydrationPercentage = selectedDrink.hydrationPercentage;
+    
+    if (selectedDrink.id === 'custom') {
+      if (!customName.trim()) return;
+      drinkName = customName.trim();
+      hydrationPercentage = parseInt(customPercentage) || 100;
+    }
     
     onConfirm(
       selectedDrink.id,
       drinkName,
       parseInt(amount),
-      selectedDrink.hydrationPercentage
+      hydrationPercentage
     );
     
     // Reset form
     setSelectedDrink(null);
     setAmount('');
     setCustomName('');
+    setCustomPercentage('100');
     setShowInfo(null);
   };
 
@@ -89,8 +97,21 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
     setSelectedDrink(null);
     setAmount('');
     setCustomName('');
+    setCustomPercentage('100');
     setShowInfo(null);
     onClose();
+  };
+
+  const getHydrationPercentage = () => {
+    if (selectedDrink?.id === 'custom') {
+      return parseInt(customPercentage) || 100;
+    }
+    return selectedDrink?.hydrationPercentage || 100;
+  };
+
+  const getHydrationValue = () => {
+    if (!amount) return 0;
+    return Math.round(parseInt(amount) * (getHydrationPercentage() / 100));
   };
 
   if (!isOpen) return null;
@@ -130,7 +151,7 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
                     <div className="flex-1">
                       <div className="font-medium">{drink.name}</div>
                       <div className="text-xs opacity-75">
-                        {drink.hydrationPercentage}% hydration value
+                        {drink.id === 'custom' ? 'You choose the %' : `${drink.hydrationPercentage}% hydration value`}
                       </div>
                     </div>
                   </Button>
@@ -154,20 +175,40 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
             </div>
           </div>
 
-          {/* Custom Name Input (for "Other" option) */}
-          {selectedDrink?.id === 'other' && (
-            <div className="space-y-2">
-              <Label htmlFor="customName" className="text-slate-200">
-                Drink Name
-              </Label>
-              <Input
-                id="customName"
-                type="text"
-                placeholder="e.g., Green Tea, Coffee, etc."
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
-              />
+          {/* Custom Drink Inputs */}
+          {selectedDrink?.id === 'custom' && (
+            <div className="space-y-4 p-4 bg-slate-700/30 rounded-lg border border-slate-600">
+              <div className="space-y-2">
+                <Label htmlFor="customName" className="text-slate-200">
+                  Drink Name
+                </Label>
+                <Input
+                  id="customName"
+                  type="text"
+                  placeholder="e.g., Green Tea, Coffee, Sports Drink"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customPercentage" className="text-slate-200">
+                  Hydration Percentage
+                </Label>
+                <Input
+                  id="customPercentage"
+                  type="number"
+                  placeholder="100"
+                  value={customPercentage}
+                  onChange={(e) => setCustomPercentage(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
+                  min="1"
+                  max="100"
+                />
+                <p className="text-xs text-slate-400">
+                  How much this drink counts toward hydration (1-100%)
+                </p>
+              </div>
             </div>
           )}
 
@@ -187,12 +228,14 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
                 min="1"
                 max="2000"
               />
-              {selectedDrink && amount && (
-                <div className="text-xs text-slate-400">
-                  Hydration value: {Math.round(parseInt(amount) * (selectedDrink.hydrationPercentage / 100))}ml
-                  {selectedDrink.hydrationPercentage < 100 && 
-                    ` (${selectedDrink.hydrationPercentage}% of ${amount}ml)`
-                  }
+              {amount && (
+                <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                  <div className="text-sm text-blue-400 font-medium">
+                    Hydration Contribution: {getHydrationValue()}ml
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    Only {getHydrationPercentage()}% of this drink ({getHydrationValue()}ml out of {amount}ml) counts toward your hydration goal.
+                  </div>
                 </div>
               )}
             </div>
@@ -209,7 +252,11 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
             </Button>
             <Button
               onClick={handleConfirm}
-              disabled={!selectedDrink || !amount || (selectedDrink.id === 'other' && !customName.trim())}
+              disabled={
+                !selectedDrink || 
+                !amount || 
+                (selectedDrink.id === 'custom' && (!customName.trim() || !customPercentage))
+              }
               className="flex-1 bg-hydration-500 hover:bg-hydration-600 text-white"
             >
               Log Drink
