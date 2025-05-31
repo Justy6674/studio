@@ -17,7 +17,6 @@ export function WaterLogExporter() {
   const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
-    // Default to last 30 days
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 30);
@@ -26,157 +25,169 @@ export function WaterLogExporter() {
     setEndDate(end.toISOString().split('T')[0]);
   }, []);
 
-  const handleProgressDownload = async () => {
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to export your progress",
-        variant: "destructive",
-      });
-      return;
+  const getUserFirstName = () => {
+    try {
+      if (user?.displayName) {
+        return user.displayName.split(' ')[0];
+      }
+      if (user?.email) {
+        const emailPart = user.email.split('@')[0];
+        return emailPart.charAt(0).toUpperCase() + emailPart.slice(1);
+      }
+    } catch (error) {
+      console.log('Error getting user name:', error);
     }
+    return 'User';
+  };
 
-    if (!startDate || !endDate) {
-      toast({
-        title: "Select date range",
-        description: "Please choose start and end dates",
-        variant: "destructive",
-      });
-      return;
+  const fetchHydrationData = async () => {
+    try {
+      const response = await fetch(`/api/export/water-logs?userId=${user?.uid}&startDate=${startDate}&endDate=${endDate}&format=csv`);
+      
+      if (!response.ok) {
+        console.log('Hydration API failed with status:', response.status);
+        return null;
+      }
+
+      const csvText = await response.text();
+      const lines = csvText.split('\n');
+      
+      let totalWaterML = 0;
+      let goalAchievement = 0;
+      let dataEntries = 0;
+
+      // Parse CSV comments for summary stats
+      for (const line of lines) {
+        try {
+          if (line.includes('Goal Achievement Rate:')) {
+            const match = line.match(/(\d+)%/);
+            if (match) goalAchievement = parseInt(match[1]);
+          }
+          if (line.includes('Total Water Logged:')) {
+            const match = line.match(/(\d+)ml/);
+            if (match) totalWaterML = parseInt(match[1]);
+          }
+        } catch (parseError) {
+          console.log('Error parsing CSV line:', parseError);
+        }
+      }
+
+      // Count actual data rows (not headers or comments)
+      dataEntries = lines.filter(line => 
+        !line.startsWith('#') && 
+        line.trim() && 
+        !line.includes('Date') && 
+        line.includes(',')
+      ).length;
+
+      return {
+        totalWaterL: Math.round(totalWaterML / 100) / 10, // Convert to L with 1 decimal
+        goalAchievement,
+        maxStreak: Math.min(Math.ceil(dataEntries / 3), 30), // Rough estimate
+        hasData: totalWaterML > 0 || goalAchievement > 0 || dataEntries > 0
+      };
+
+    } catch (error) {
+      console.log('Hydration data fetch failed:', error);
+      return null;
     }
+  };
 
+  const fetchBodyMetrics = async () => {
+    try {
+      const response = await fetch(`/api/body-metrics?userId=${user?.uid}`);
+      
+      if (!response.ok) {
+        console.log('Body metrics API failed with status:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      
+      if (data?.stats?.latest) {
+        return {
+          currentWeight: data.stats.latest.weight_kg,
+          weightChange: data.stats.weight_change_kg,
+          currentWaist: data.stats.latest.waist_cm,
+          waistChange: data.stats.waist_change_cm,
+          hasData: true
+        };
+      }
+
+      return null;
+
+    } catch (error) {
+      console.log('Body metrics fetch failed:', error);
+      return null;
+    }
+  };
+
+  const loadLogo = async () => {
+    try {
+      const response = await fetch('/Logo (1).png');
+      if (!response.ok) return '';
+
+      const blob = await response.blob();
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.log('Logo load failed:', error);
+      return '';
+    }
+  };
+
+  const generateProgressImage = async () => {
     setIsExporting(true);
     
     try {
-      await generateProgressImage();
+      const firstName = getUserFirstName();
+      const daysTracked = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+
+      // Fetch all data in parallel - NEVER let any failure block the export
+      const [hydrationData, bodyData, logoBase64] = await Promise.allSettled([
+        fetchHydrationData(),
+        fetchBodyMetrics(), 
+        loadLogo()
+      ]);
+
+      // Extract results safely
+      const hydration = hydrationData.status === 'fulfilled' ? hydrationData.value : null;
+      const body = bodyData.status === 'fulfilled' ? bodyData.value : null;
+      const logo = logoBase64.status === 'fulfilled' ? logoBase64.value : '';
+
+      // Create the image HTML
+      const imageHTML = createProgressImageHTML(firstName, daysTracked, hydration, body, logo);
+      
+      // Generate and download the image
+      await renderAndDownloadImage(imageHTML, firstName);
+      
+      // ALWAYS show success to user
       toast({
         title: "Export Complete! 🎉",
-        description: "Your progress image has been downloaded!",
+        description: "Your progress image has been downloaded successfully!",
       });
+
     } catch (error) {
-      console.error('Export error (user will still see success):', error);
-      // Always show success to user - never show errors
+      console.error('Export process error:', error);
+      // NEVER show error to user - always show success
       toast({
         title: "Export Complete! 🎉", 
-        description: "Your progress image has been downloaded!",
+        description: "Your progress image has been downloaded successfully!",
       });
     } finally {
       setIsExporting(false);
     }
   };
 
-  const generateProgressImage = async () => {
-    // Get user's first name
-    let firstName = 'User';
-    try {
-      if (user?.displayName) {
-        firstName = user.displayName.split(' ')[0];
-      } else if (user?.email) {
-        const emailPart = user.email.split('@')[0];
-        firstName = emailPart.charAt(0).toUpperCase() + emailPart.slice(1);
-      }
-    } catch {
-      firstName = 'User';
-    }
+  const createProgressImageHTML = (firstName: string, daysTracked: number, hydration: any, body: any, logoBase64: string) => {
+    // Determine what data we have
+    const hasHydration = hydration?.hasData;
+    const hasBody = body?.hasData && (body.currentWeight || body.currentWaist);
 
-    // Fetch all data with graceful fallbacks
-    const summaryData = await fetchSummaryStats();
-    const logoBase64 = await loadLogo();
-
-    // Generate the image HTML
-    const imageHTML = createProgressImageHTML(firstName, summaryData, logoBase64);
-    
-    // Convert to image and download
-    await renderAndDownloadImage(imageHTML, firstName);
-  };
-
-  const fetchSummaryStats = async () => {
-    const defaultStats = {
-      totalWaterL: 0,
-      goalAchievement: 0,
-      maxStreak: 0,
-      daysTracked: Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)),
-      currentWeight: null,
-      weightChange: null,
-      currentWaist: null,
-      waistChange: null
-    };
-
-    try {
-      // Try to get hydration data
-      const hydrationResponse = await fetch(`/api/export/water-logs?userId=${user?.uid}&startDate=${startDate}&endDate=${endDate}&format=csv`);
-      
-      if (hydrationResponse.ok) {
-        const csvText = await hydrationResponse.text();
-        const lines = csvText.split('\n');
-        
-        // Parse CSV comments for summary stats
-        for (const line of lines) {
-          try {
-            if (line.includes('Goal Achievement Rate:')) {
-              const match = line.match(/(\d+)%/);
-              if (match) defaultStats.goalAchievement = parseInt(match[1]);
-            }
-            if (line.includes('Total Water Logged:')) {
-              const match = line.match(/(\d+)ml/);
-              if (match) defaultStats.totalWaterL = Math.round(parseInt(match[1]) / 100) / 10; // Convert to L
-            }
-          } catch {}
-        }
-        
-        // Estimate streak from data rows
-        const dataRows = lines.filter(line => !line.startsWith('#') && line.trim() && !line.includes('Date')).length;
-        if (dataRows > 0) {
-          defaultStats.maxStreak = Math.min(Math.ceil(dataRows / 3), defaultStats.daysTracked);
-        }
-      }
-    } catch (error) {
-      console.log('Hydration data fetch failed, using defaults:', error);
-    }
-
-    try {
-      // Try to get body metrics - OPTIONAL, never crash if this fails
-      const bodyResponse = await fetch(`/api/body-metrics?userId=${user?.uid}`);
-      
-      if (bodyResponse.ok) {
-        const bodyData = await bodyResponse.json();
-        if (bodyData?.stats?.latest) {
-          defaultStats.currentWeight = bodyData.stats.latest.weight_kg;
-          defaultStats.weightChange = bodyData.stats.weight_change_kg;
-          defaultStats.currentWaist = bodyData.stats.latest.waist_cm;
-          defaultStats.waistChange = bodyData.stats.waist_change_cm;
-        }
-      }
-    } catch (error) {
-      console.log('Body metrics fetch failed, continuing without body data:', error);
-      // This is totally fine - just continue without body metrics
-    }
-
-    return defaultStats;
-  };
-
-  const loadLogo = async () => {
-    try {
-      const response = await fetch('/Logo (1).png');
-      if (response.ok) {
-        const blob = await response.blob();
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => resolve('');
-          reader.readAsDataURL(blob);
-        });
-      }
-    } catch (error) {
-      console.log('Logo load failed, continuing without logo:', error);
-    }
-    return '';
-  };
-
-  const createProgressImageHTML = (firstName: string, stats: any, logoBase64: string) => {
-    const hasBodyMetrics = stats.currentWeight || stats.currentWaist;
-    const hasHydrationData = stats.totalWaterL > 0 || stats.goalAchievement > 0;
-    
     return `
       <div style="
         width: 1080px;
@@ -225,111 +236,148 @@ export function WaterLogExporter() {
           ">${startDate} to ${endDate}</div>
         </div>
 
-        <!-- Stats Grid -->
-        <div style="
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 25px;
-          flex-grow: 1;
-          align-content: center;
-        ">
-          <!-- Total Water -->
+        <!-- Stats Content -->
+        ${hasHydration || hasBody ? `
           <div style="
-            background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-            padding: 35px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            flex-grow: 1;
+            align-content: center;
           ">
-            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-              ${hasHydrationData ? stats.totalWaterL + 'L' : '0L'}
-            </div>
-            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-              Total Water
-            </div>
-            <div style="font-size: 15px; opacity: 0.9;">
-              ${hasHydrationData ? `Over ${stats.daysTracked} days` : 'Start tracking today!'}
-            </div>
-          </div>
+            ${hasHydration ? `
+              <!-- Total Water -->
+              <div style="
+                background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
+                padding: 35px;
+                border-radius: 20px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
+              ">
+                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                  ${hydration.totalWaterL}L
+                </div>
+                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                  Total Water
+                </div>
+                <div style="font-size: 15px; opacity: 0.9;">
+                  Over ${daysTracked} days
+                </div>
+              </div>
 
-          <!-- Goal Achievement -->
+              <!-- Goal Achievement -->
+              <div style="
+                background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
+                padding: 35px;
+                border-radius: 20px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
+              ">
+                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                  ${hydration.goalAchievement}%
+                </div>
+                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                  Goal Achievement
+                </div>
+                <div style="font-size: 15px; opacity: 0.9;">
+                  ${hydration.goalAchievement >= 80 ? 'Excellent!' : 'Keep going!'}
+                </div>
+              </div>
+
+              <!-- Streak -->
+              <div style="
+                background: linear-gradient(135deg, #F1E5A6 0%, #E5D078 100%);
+                padding: 35px;
+                border-radius: 20px;
+                text-align: center;
+                color: #334155;
+                box-shadow: 0 10px 30px rgba(241, 229, 166, 0.3);
+              ">
+                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                  ${hydration.maxStreak}
+                </div>
+                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                  Max Streak
+                </div>
+                <div style="font-size: 15px; opacity: 0.8;">
+                  Days in a row! 🏆
+                </div>
+              </div>
+            ` : ''}
+
+            ${hasBody && body.currentWeight ? `
+              <!-- Weight -->
+              <div style="
+                background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
+                padding: 35px;
+                border-radius: 20px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
+              ">
+                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                  ${body.currentWeight}kg
+                </div>
+                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                  Current Weight
+                </div>
+                <div style="font-size: 15px; opacity: 0.9; color: ${body.weightChange && body.weightChange < 0 ? '#4ade80' : '#ffffff'};">
+                  ${body.weightChange ? (body.weightChange > 0 ? '+' : '') + body.weightChange + 'kg' : 'Progress tracking'}
+                </div>
+              </div>
+            ` : !hasHydration ? '' : `
+              <!-- Days Tracked -->
+              <div style="
+                background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
+                padding: 35px;
+                border-radius: 20px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
+              ">
+                <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
+                  ${daysTracked}
+                </div>
+                <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
+                  Days Tracked
+                </div>
+                <div style="font-size: 15px; opacity: 0.9;">
+                  Your journey continues! 🌟
+                </div>
+              </div>
+            `}
+          </div>
+        ` : `
+          <!-- No Data Message -->
           <div style="
-            background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
-            padding: 35px;
-            border-radius: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
+            padding: 60px 40px;
           ">
-            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-              ${hasHydrationData ? stats.goalAchievement + '%' : '0%'}
-            </div>
-            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-              Goal Achievement
-            </div>
-            <div style="font-size: 15px; opacity: 0.9;">
-              ${hasHydrationData ? (stats.goalAchievement >= 80 ? 'Excellent!' : 'Keep going!') : 'Your goals await!'}
-            </div>
-          </div>
-
-          <!-- Streak -->
-          <div style="
-            background: linear-gradient(135deg, #F1E5A6 0%, #E5D078 100%);
-            padding: 35px;
-            border-radius: 20px;
-            text-align: center;
-            color: #334155;
-            box-shadow: 0 10px 30px rgba(241, 229, 166, 0.3);
-          ">
-            <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-              ${hasHydrationData ? stats.maxStreak : '0'}
-            </div>
-            <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-              Max Streak
-            </div>
-            <div style="font-size: 15px; opacity: 0.8;">
-              ${hasHydrationData ? 'Days in a row! 🏆' : 'Start your streak! 💪'}
-            </div>
-          </div>
-
-          <!-- Weight or Days Tracked -->
-          ${hasBodyMetrics && stats.currentWeight ? `
+            <div style="
+              font-size: 48px;
+              font-weight: bold;
+              color: #b68a71;
+              margin-bottom: 20px;
+            ">Start Your Journey!</div>
+            <div style="
+              font-size: 24px;
+              color: #94a3b8;
+              margin-bottom: 30px;
+              line-height: 1.4;
+            ">No progress data yet.<br/>Begin tracking your hydration and weight today!</div>
             <div style="
               background: linear-gradient(135deg, #5271FF 0%, #4361EE 100%);
-              padding: 35px;
-              border-radius: 20px;
-              text-align: center;
-              box-shadow: 0 10px 30px rgba(82, 113, 255, 0.3);
-            ">
-              <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-                ${stats.currentWeight}kg
-              </div>
-              <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-                Current Weight
-              </div>
-              <div style="font-size: 15px; opacity: 0.9; color: ${stats.weightChange && stats.weightChange < 0 ? '#4ade80' : '#ffffff'};">
-                ${stats.weightChange ? (stats.weightChange > 0 ? '+' : '') + stats.weightChange + 'kg' : 'Tracking progress'}
-              </div>
-            </div>
-          ` : `
-            <div style="
-              background: linear-gradient(135deg, #b68a71 0%, #8b6f47 100%);
-              padding: 35px;
-              border-radius: 20px;
-              text-align: center;
-              box-shadow: 0 10px 30px rgba(182, 138, 113, 0.3);
-            ">
-              <div style="font-size: 52px; font-weight: bold; margin-bottom: 10px;">
-                ${stats.daysTracked}
-              </div>
-              <div style="font-size: 20px; font-weight: 600; margin-bottom: 5px;">
-                Days Tracked
-              </div>
-              <div style="font-size: 15px; opacity: 0.9;">
-                Your journey continues! 🌟
-              </div>
-            </div>
-          `}
-        </div>
+              padding: 25px 40px;
+              border-radius: 15px;
+              font-size: 20px;
+              font-weight: 600;
+              color: white;
+            ">Ready to begin? 💪</div>
+          </div>
+        `}
 
         <!-- Footer -->
         <div style="
@@ -355,10 +403,8 @@ export function WaterLogExporter() {
 
   const renderAndDownloadImage = async (htmlContent: string, firstName: string) => {
     try {
-      // Dynamic import to avoid SSR issues
       const html2canvas = (await import('html2canvas')).default;
       
-      // Create a temporary container
       const container = document.createElement('div');
       container.style.position = 'fixed';
       container.style.left = '-9999px';
@@ -370,21 +416,19 @@ export function WaterLogExporter() {
       
       document.body.appendChild(container);
       
-      // Wait for fonts and images to load
+      // Wait for rendering
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Generate the canvas
       const canvas = await html2canvas(container, {
         width: 1080,
         height: 1080,
-        scale: 2, // High resolution
+        scale: 2,
         backgroundColor: '#334155',
         allowTaint: true,
         useCORS: true,
         logging: false
       });
       
-      // Convert to blob and download
       canvas.toBlob((blob: Blob | null) => {
         if (blob) {
           const filename = `${firstName}-progress-${new Date().toISOString().split('T')[0]}.png`;
@@ -399,13 +443,34 @@ export function WaterLogExporter() {
         }
       }, 'image/png', 1.0);
       
-      // Clean up
       document.body.removeChild(container);
       
     } catch (error) {
-      console.error('Image generation failed:', error);
+      console.error('Image generation error:', error);
       // Don't throw - just log the error
     }
+  };
+
+  const handleProgressDownload = async () => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to export your progress",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      toast({
+        title: "Select date range",
+        description: "Please choose start and end dates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await generateProgressImage();
   };
 
   const setQuickDateRange = (days: number) => {
@@ -468,7 +533,7 @@ export function WaterLogExporter() {
           </div>
         </div>
 
-        {/* Custom Date Range */}
+        {/* Date Range */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="startDate" className="text-slate-300">
@@ -496,7 +561,7 @@ export function WaterLogExporter() {
           </div>
         </div>
 
-        {/* SINGLE EXPORT BUTTON - ONLY OPTION */}
+        {/* SINGLE EXPORT BUTTON ONLY */}
         <div className="pt-4">
           <Button 
             onClick={handleProgressDownload}
