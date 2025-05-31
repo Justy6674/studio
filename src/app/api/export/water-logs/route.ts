@@ -48,11 +48,10 @@ export async function GET(request: NextRequest) {
 
     const hydrationGoal = userProfile?.hydrationGoal || 2000;
 
-    // Build query for hydration logs
+    // Build query for hydration logs without orderBy to avoid index issues
     let q = query(
       collection(db, "hydration_logs"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "asc")
+      where("userId", "==", userId)
     );
 
     // Add date range filters if provided
@@ -62,8 +61,7 @@ export async function GET(request: NextRequest) {
       q = query(
         collection(db, "hydration_logs"),
         where("userId", "==", userId),
-        where("timestamp", ">=", Timestamp.fromDate(start)),
-        orderBy("timestamp", "asc")
+        where("timestamp", ">=", Timestamp.fromDate(start))
       );
     }
 
@@ -77,8 +75,7 @@ export async function GET(request: NextRequest) {
         collection(db, "hydration_logs"),
         where("userId", "==", userId),
         where("timestamp", ">=", Timestamp.fromDate(start)),
-        where("timestamp", "<=", Timestamp.fromDate(end)),
-        orderBy("timestamp", "asc")
+        where("timestamp", "<=", Timestamp.fromDate(end))
       );
     }
 
@@ -91,7 +88,7 @@ export async function GET(request: NextRequest) {
         amount: data.amount,
         timestamp: (data.timestamp as Timestamp).toDate(),
       };
-    });
+    }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()); // Sort in JavaScript (oldest first)
 
     if (logs.length === 0) {
       return NextResponse.json({ error: 'No hydration logs found' }, { status: 404 });
@@ -166,147 +163,59 @@ export async function GET(request: NextRequest) {
     let bodyMetricsData: BodyMetricsExport[] = [];
     if (includeBodyMetrics && (includeWeight || includeWaist)) {
       try {
-        let bodyQ = query(
+        // Use simple query without orderBy to avoid index requirements
+        const bodyQ = query(
           collection(db, "body_metrics"),
-          where("userId", "==", userId),
-          orderBy("timestamp", "desc")
+          where("userId", "==", userId)
         );
 
-        // Try with date range filters - if this fails due to missing index, we'll fallback
+        const bodyQuerySnapshot = await getDocs(bodyQ);
+        const allBodyMetrics = bodyQuerySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            userId: data.userId,
+            weight_kg: data.weight_kg,
+            waist_cm: data.waist_cm,
+            notes: data.notes || "",
+            timestamp: (data.timestamp as Timestamp).toDate(),
+          } as BodyMetrics;
+        });
+
+        // Client-side filtering by date range and sorting
+        let filteredMetrics = allBodyMetrics;
         if (startDate && endDate) {
           const start = new Date(startDate);
           start.setHours(0, 0, 0, 0);
           const end = new Date(endDate);
           end.setHours(23, 59, 59, 999);
           
-          try {
-            bodyQ = query(
-              collection(db, "body_metrics"),
-              where("userId", "==", userId),
-              where("timestamp", ">=", Timestamp.fromDate(start)),
-              where("timestamp", "<=", Timestamp.fromDate(end)),
-              orderBy("timestamp", "desc")
-            );
-            
-            const bodyQuerySnapshot = await getDocs(bodyQ);
-            const bodyMetrics = bodyQuerySnapshot.docs.map(doc => {
-              const data = doc.data();
-              return {
-                id: doc.id,
-                userId: data.userId,
-                weight_kg: data.weight_kg,
-                waist_cm: data.waist_cm,
-                notes: data.notes || "",
-                timestamp: (data.timestamp as Timestamp).toDate(),
-              } as BodyMetrics;
-            });
-
-            // Client-side filtering by date range if needed
-            const filteredMetrics = bodyMetrics.filter(metric => {
-              const metricDate = metric.timestamp;
-              return metricDate >= start && metricDate <= end;
-            });
-
-            bodyMetricsData = filteredMetrics.map(metric => {
-              const exportEntry: BodyMetricsExport = {
-                date: metric.timestamp.toISOString().split('T')[0],
-                notes: metric.notes
-              };
-              
-              if (includeWeight) {
-                exportEntry.weight_kg = metric.weight_kg;
-              }
-              
-              if (includeWaist) {
-                exportEntry.waist_cm = metric.waist_cm;
-              }
-              
-              return exportEntry;
-            });
-
-          } catch (indexError: any) {
-            // If compound index doesn't exist, fall back to simple query and filter client-side
-            console.log('Falling back to simple query due to missing index:', indexError.message);
-            
-            const simpleBodyQ = query(
-              collection(db, "body_metrics"),
-              where("userId", "==", userId),
-              orderBy("timestamp", "desc")
-            );
-            
-            const bodyQuerySnapshot = await getDocs(simpleBodyQ);
-            const allBodyMetrics = bodyQuerySnapshot.docs.map(doc => {
-              const data = doc.data();
-              return {
-                id: doc.id,
-                userId: data.userId,
-                weight_kg: data.weight_kg,
-                waist_cm: data.waist_cm,
-                notes: data.notes || "",
-                timestamp: (data.timestamp as Timestamp).toDate(),
-              } as BodyMetrics;
-            });
-
-            // Client-side filtering by date range
-            const start = new Date(startDate);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999);
-            
-            const filteredMetrics = allBodyMetrics.filter(metric => {
-              const metricDate = metric.timestamp;
-              return metricDate >= start && metricDate <= end;
-            });
-
-            bodyMetricsData = filteredMetrics.map(metric => {
-              const exportEntry: BodyMetricsExport = {
-                date: metric.timestamp.toISOString().split('T')[0],
-                notes: metric.notes
-              };
-              
-              if (includeWeight) {
-                exportEntry.weight_kg = metric.weight_kg;
-              }
-              
-              if (includeWaist) {
-                exportEntry.waist_cm = metric.waist_cm;
-              }
-              
-              return exportEntry;
-            });
-          }
-        } else {
-          // No date range, simple query
-          const bodyQuerySnapshot = await getDocs(bodyQ);
-          const bodyMetrics = bodyQuerySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              userId: data.userId,
-              weight_kg: data.weight_kg,
-              waist_cm: data.waist_cm,
-              notes: data.notes || "",
-              timestamp: (data.timestamp as Timestamp).toDate(),
-            } as BodyMetrics;
-          });
-
-          bodyMetricsData = bodyMetrics.map(metric => {
-            const exportEntry: BodyMetricsExport = {
-              date: metric.timestamp.toISOString().split('T')[0],
-              notes: metric.notes
-            };
-            
-            if (includeWeight) {
-              exportEntry.weight_kg = metric.weight_kg;
-            }
-            
-            if (includeWaist) {
-              exportEntry.waist_cm = metric.waist_cm;
-            }
-            
-            return exportEntry;
+          filteredMetrics = allBodyMetrics.filter(metric => {
+            const metricDate = metric.timestamp;
+            return metricDate >= start && metricDate <= end;
           });
         }
+
+        // Sort by timestamp (newest first)
+        filteredMetrics.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+        bodyMetricsData = filteredMetrics.map(metric => {
+          const exportEntry: BodyMetricsExport = {
+            date: metric.timestamp.toISOString().split('T')[0],
+            notes: metric.notes
+          };
+          
+          if (includeWeight) {
+            exportEntry.weight_kg = metric.weight_kg;
+          }
+          
+          if (includeWaist) {
+            exportEntry.waist_cm = metric.waist_cm;
+          }
+          
+          return exportEntry;
+        });
+
       } catch (error: any) {
         console.error('Error fetching body metrics, continuing without them:', error.message);
         // Continue without body metrics rather than failing the entire export
@@ -462,98 +371,310 @@ async function generatePDFExport(
   const { jsPDF } = await import('jspdf');
   
   const pdf = new jsPDF();
-  let yPosition = 20;
   
-  // Title
-  pdf.setFontSize(20);
-  pdf.setTextColor(59, 130, 246); // Blue color
-  pdf.text('💧 Water4WeightLoss Report', 20, yPosition);
-  yPosition += 15;
+  // Load and embed logo
+  let logoDataUrl = '';
+  try {
+    // Convert logo to base64 for embedding
+    const fs = await import('fs');
+    const path = await import('path');
+    const logoPath = path.join(process.cwd(), 'public', 'logo.png');
+    const logoBuffer = fs.readFileSync(logoPath);
+    logoDataUrl = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+  } catch (error) {
+    console.warn('Could not load logo for PDF export:', error);
+  }
   
-  // User info
-  pdf.setFontSize(12);
-  pdf.setTextColor(0, 0, 0);
-  pdf.text(`User: ${summaryStats.user_name}`, 20, yPosition);
-  yPosition += 8;
-  pdf.text(`Date Range: ${summaryStats.date_range.start} to ${summaryStats.date_range.end}`, 20, yPosition);
-  yPosition += 8;
-  pdf.text(`Generated: ${new Date(summaryStats.export_date).toLocaleDateString()}`, 20, yPosition);
-  yPosition += 20;
+  // Define colors to match app branding
+  const colors = {
+    primary: [82, 113, 255] as [number, number, number], // Hydration blue
+    secondary: [182, 138, 113] as [number, number, number], // Brown/tan
+    success: [34, 197, 94] as [number, number, number], // Green
+    purple: [168, 85, 247] as [number, number, number], // Purple
+    text: [15, 23, 42] as [number, number, number], // Slate-900
+    muted: [100, 116, 139] as [number, number, number], // Slate-500
+    light: [248, 250, 252] as [number, number, number] // Slate-50
+  };
   
-  // Summary statistics
+  // Page setup
+  const pageWidth = pdf.internal.pageSize.width;
+  const pageHeight = pdf.internal.pageSize.height;
+  const margin = 20;
+  const contentWidth = pageWidth - (margin * 2);
+  let yPosition = margin;
+  
+  // Helper function to add a new page if needed
+  const checkPageBreak = (requiredSpace: number) => {
+    if (yPosition + requiredSpace > pageHeight - margin) {
+      pdf.addPage();
+      yPosition = margin;
+      return true;
+    }
+    return false;
+  };
+  
+  // Helper function to draw a section divider
+  const drawSectionDivider = (y: number) => {
+    pdf.setDrawColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, pageWidth - margin, y);
+  };
+  
+  // HEADER SECTION
+  // Add logo if available
+  if (logoDataUrl) {
+    try {
+      pdf.addImage(logoDataUrl, 'PNG', margin, yPosition, 25, 25);
+    } catch (error) {
+      console.warn('Could not add logo to PDF:', error);
+    }
+  }
+  
+  // Main title
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(24);
+  pdf.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  pdf.text('Water4WeightLoss', logoDataUrl ? margin + 35 : margin, yPosition + 18);
+  
+  // Subtitle
+  pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(16);
-  pdf.setTextColor(34, 197, 94); // Green color
-  pdf.text('📊 Summary Statistics', 20, yPosition);
-  yPosition += 15;
+  pdf.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+  pdf.text('Hydration Progress Report', logoDataUrl ? margin + 35 : margin, yPosition + 26);
   
+  yPosition += 45;
+  
+  // USER INFO SECTION
+  pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(11);
-  pdf.setTextColor(0, 0, 0);
-  const summaryItems = [
-    `Total Water Logged: ${(summaryStats.totals.total_water_logged_ml / 1000).toFixed(1)}L`,
-    `Average Daily Intake: ${(summaryStats.totals.average_daily_intake_ml / 1000).toFixed(1)}L`,
-    `Goal Achievement Rate: ${summaryStats.totals.goal_achievement_rate_percent}%`,
-    `Maximum Streak: ${summaryStats.totals.max_streak_days} days`,
-    `Current Streak: ${summaryStats.totals.current_streak_days} days`,
-    `Total Days Tracked: ${summaryStats.date_range.total_days}`
+  pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+  
+  const userInfo = [
+    { label: 'Name:', value: summaryStats.user_name },
+    { label: 'Email:', value: summaryStats.user_email },
+    { label: 'Report Period:', value: `${summaryStats.date_range.start} to ${summaryStats.date_range.end}` },
+    { label: 'Generated:', value: new Date(summaryStats.export_date).toLocaleDateString('en-AU', { 
+      weekday: 'long',
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })}
   ];
   
-  summaryItems.forEach(item => {
-    pdf.text(`• ${item}`, 25, yPosition);
+  userInfo.forEach(info => {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+    pdf.text(info.label, margin, yPosition);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+    pdf.text(info.value, margin + 35, yPosition);
     yPosition += 8;
   });
   
-  yPosition += 10;
+  yPosition += 15;
+  drawSectionDivider(yPosition);
+  yPosition += 20;
   
-  // Body metrics summary (if available)
-  if (bodyMetricsData.length > 0) {
-    pdf.setFontSize(16);
-    pdf.setTextColor(182, 138, 113); // Brown color
-    pdf.text('📊 Body Metrics Summary', 20, yPosition);
-    yPosition += 15;
+  // SUMMARY STATISTICS SECTION
+  checkPageBreak(80);
+  
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(18);
+  pdf.setTextColor(colors.success[0], colors.success[1], colors.success[2]);
+  pdf.text('📊 Summary Statistics', margin, yPosition);
+  yPosition += 20;
+  
+  // Create a visually appealing stats grid
+  const stats = [
+    { 
+      label: 'Total Water Consumed', 
+      value: `${(summaryStats.totals.total_water_logged_ml / 1000).toFixed(1)}L`,
+      desc: `Over ${summaryStats.date_range.total_days} days`
+    },
+    { 
+      label: 'Daily Average', 
+      value: `${(summaryStats.totals.average_daily_intake_ml / 1000).toFixed(1)}L`,
+      desc: `Target: ${(summaryStats.hydration_goal_ml / 1000).toFixed(1)}L`
+    },
+    { 
+      label: 'Goal Achievement', 
+      value: `${summaryStats.totals.goal_achievement_rate_percent}%`,
+      desc: `${summaryStats.totals.goal_achievement_rate_percent >= 80 ? 'Excellent!' : summaryStats.totals.goal_achievement_rate_percent >= 60 ? 'Good progress' : 'Room for improvement'}`
+    },
+    { 
+      label: 'Longest Streak', 
+      value: `${summaryStats.totals.max_streak_days} days`,
+      desc: summaryStats.totals.max_streak_days > 7 ? 'Great consistency!' : 'Building habits'
+    },
+    { 
+      label: 'Current Streak', 
+      value: `${summaryStats.totals.current_streak_days} days`,
+      desc: summaryStats.totals.current_streak_days > 0 ? 'Keep it up!' : 'Start fresh today'
+    }
+  ];
+  
+  // Draw stats in a clean grid layout
+  stats.forEach((stat, index) => {
+    const isLeftColumn = index % 2 === 0;
+    const xPos = isLeftColumn ? margin : margin + (contentWidth / 2) + 10;
+    const currentY = yPosition + Math.floor(index / 2) * 35;
     
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
+    // Stat value (large)
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    pdf.text(stat.value, xPos, currentY);
+    
+    // Stat label
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+    pdf.text(stat.label, xPos, currentY + 8);
+    
+    // Stat description
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+    pdf.text(stat.desc, xPos, currentY + 16);
+  });
+  
+  yPosition += Math.ceil(stats.length / 2) * 35 + 20;
+  
+  // BODY METRICS SECTION (if available)
+  if (bodyMetricsData.length > 0) {
+    checkPageBreak(60);
+    drawSectionDivider(yPosition);
+    yPosition += 20;
+    
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+    pdf.text('📏 Body Metrics Summary', margin, yPosition);
+    yPosition += 20;
     
     const latestMetrics = bodyMetricsData[bodyMetricsData.length - 1];
+    const earliestMetrics = bodyMetricsData[0];
+    
     if (latestMetrics.weight_kg) {
-      pdf.text(`• Current Weight: ${latestMetrics.weight_kg}kg`, 25, yPosition);
-      yPosition += 8;
+      const weightChange = earliestMetrics.weight_kg ? 
+        (latestMetrics.weight_kg - earliestMetrics.weight_kg).toFixed(1) : '0';
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14);
+      pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+      pdf.text(`Current Weight: ${latestMetrics.weight_kg}kg`, margin, yPosition);
+      
+      if (bodyMetricsData.length > 1 && parseFloat(weightChange) !== 0) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        const changeColor = parseFloat(weightChange) < 0 ? colors.success : colors.muted;
+        pdf.setTextColor(changeColor[0], changeColor[1], changeColor[2]);
+        pdf.text(`(${parseFloat(weightChange) > 0 ? '+' : ''}${weightChange}kg change)`, margin + 80, yPosition);
+      }
+      yPosition += 15;
     }
+    
     if (latestMetrics.waist_cm) {
-      pdf.text(`• Current Waist: ${latestMetrics.waist_cm}cm`, 25, yPosition);
-      yPosition += 8;
+      const waistChange = earliestMetrics.waist_cm ? 
+        (latestMetrics.waist_cm - earliestMetrics.waist_cm).toFixed(1) : '0';
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14);
+      pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+      pdf.text(`Current Waist: ${latestMetrics.waist_cm}cm`, margin, yPosition);
+      
+      if (bodyMetricsData.length > 1 && parseFloat(waistChange) !== 0) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        const changeColor = parseFloat(waistChange) < 0 ? colors.success : colors.muted;
+        pdf.setTextColor(changeColor[0], changeColor[1], changeColor[2]);
+        pdf.text(`(${parseFloat(waistChange) > 0 ? '+' : ''}${waistChange}cm change)`, margin + 80, yPosition);
+      }
+      yPosition += 15;
     }
     
     yPosition += 10;
   }
   
-  // Recent activity
-  pdf.setFontSize(16);
-  pdf.setTextColor(168, 85, 247); // Purple color
-  pdf.text('⚡ Recent Activity', 20, yPosition);
-  yPosition += 15;
+  // RECENT ACTIVITY SECTION
+  checkPageBreak(80);
+  drawSectionDivider(yPosition);
+  yPosition += 20;
   
-  pdf.setFontSize(10);
-  pdf.setTextColor(0, 0, 0);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(18);
+  pdf.setTextColor(colors.purple[0], colors.purple[1], colors.purple[2]);
+  pdf.text('⚡ Recent Activity', margin, yPosition);
+  yPosition += 20;
   
-  // Show last 10 entries
-  const recentLogs = exportData.slice(-10);
-  recentLogs.forEach(log => {
-    if (yPosition > 250) {
-      pdf.addPage();
-      yPosition = 20;
-    }
-    
-    pdf.text(`${log.date} ${log.time}: ${log.amount_ml}ml (Day total: ${log.daily_total_ml}ml)`, 25, yPosition);
-    yPosition += 6;
+  // Show last 15 entries in a clean table format
+  const recentLogs = exportData.slice(-15);
+  
+  // Table headers
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9);
+  pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+  
+  const colWidths = [35, 25, 30, 40, 30];
+  const headers = ['Date', 'Time', 'Amount', 'Daily Total', 'Goal %'];
+  let xPos = margin;
+  
+  headers.forEach((header, index) => {
+    pdf.text(header, xPos, yPosition);
+    xPos += colWidths[index];
   });
   
-  // Watermark
-  if (includeWatermark) {
-    pdf.setFontSize(8);
-    pdf.setTextColor(150, 150, 150);
-    pdf.text('Generated by Water4WeightLoss - Track your hydration journey', 20, 285);
-  }
+  yPosition += 12;
+  
+  // Table content
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  
+  recentLogs.forEach((log, index) => {
+    checkPageBreak(12);
+    
+    // Alternate row background (simulated with subtle text color change)
+    const textColor = index % 2 === 0 ? colors.text : colors.muted;
+    pdf.setTextColor(textColor[0], textColor[1], textColor[2]);
+    
+    xPos = margin;
+    const rowData = [
+      new Date(log.date).toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit' }),
+      log.time,
+      `${log.amount_ml}ml`,
+      `${(log.daily_total_ml / 1000).toFixed(1)}L`,
+      `${log.percentage_of_goal.toFixed(0)}%`
+    ];
+    
+    rowData.forEach((data, colIndex) => {
+      pdf.text(data, xPos, yPosition);
+      xPos += colWidths[colIndex];
+    });
+    
+    yPosition += 10;
+  });
+  
+  // FOOTER
+  yPosition = pageHeight - 30;
+  
+  // Professional footer
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+  
+  const footerText = includeWatermark ? 
+    'Generated by Water4WeightLoss | Professional Hydration Tracking | www.water4weightloss.com.au' :
+    'Professional Hydration Tracking Report';
+  
+  // Center the footer text
+  const textWidth = pdf.getTextWidth(footerText);
+  const footerX = (pageWidth - textWidth) / 2;
+  pdf.text(footerText, footerX, yPosition);
+  
+  // Add a thin line above footer
+  pdf.setDrawColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+  pdf.setLineWidth(0.3);
+  pdf.line(margin, yPosition - 8, pageWidth - margin, yPosition - 8);
   
   const pdfBuffer = pdf.output('arraybuffer');
   const filename = `water4weightloss-report-${new Date().toISOString().split('T')[0]}.pdf`;

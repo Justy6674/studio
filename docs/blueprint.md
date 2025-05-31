@@ -1,4 +1,4 @@
-# **App Name**: HydrateAI
+# **App Name**: By Downscale
 
 ## Core Features:
 

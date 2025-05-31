@@ -33,7 +33,7 @@ export function Logo({ size = 'md', showText = true, href = '/', className = '' 
       {showText && (
         <div className="flex flex-col">
           <span className="font-bold text-lg text-hydration-400">Water4WeightLoss</span>
-          <span className="text-xs text-brown-300">HydrateAI</span>
+          <span className="text-xs text-brown-300">By Downscale</span>
         </div>
       )}
     </div>
