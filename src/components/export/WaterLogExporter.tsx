@@ -106,23 +106,42 @@ export function WaterLogExporter() {
       // Create the stunning image content
       const imageContent = createStunningImageContent(data, logoBase64);
       
-      // Convert to image and download
-      const element = document.createElement('div');
-      element.innerHTML = imageContent;
-      element.style.position = 'absolute';
-      element.style.left = '-9999px';
-      element.style.top = '-9999px';
-      document.body.appendChild(element);
+      // Create wrapper element - FIX: Better DOM handling
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '-9999px';
+      wrapper.style.width = '1080px';
+      wrapper.style.height = '1080px';
+      wrapper.style.overflow = 'hidden';
+      wrapper.style.zIndex = '-1';
+      
+      // Set the HTML content directly on wrapper
+      wrapper.innerHTML = imageContent;
+      
+      // Append to body and wait for render
+      document.body.appendChild(wrapper);
+      
+      // Wait for fonts and images to load
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       try {
-        const canvas = await html2canvas(element.firstChild as HTMLElement, {
+        // Capture the wrapper element directly (not firstChild)
+        const canvas = await html2canvas(wrapper, {
           width: 1080,
           height: 1080,
-          scale: 2, // High resolution for crisp quality
-          backgroundColor: '#334155', // Brand slate background
+          scale: 2,
+          backgroundColor: '#334155',
           allowTaint: true,
           useCORS: true,
-          logging: false
+          logging: false,
+          onclone: (clonedDoc) => {
+            // Ensure fonts are loaded in cloned document
+            const clonedWrapper = clonedDoc.querySelector('div');
+            if (clonedWrapper) {
+              clonedWrapper.style.fontFamily = "'Inter', 'Segoe UI', system-ui, sans-serif";
+            }
+          }
         });
 
         canvas.toBlob((blob: Blob | null) => {
@@ -132,7 +151,8 @@ export function WaterLogExporter() {
           }
         }, 'image/png', 1.0);
       } finally {
-        document.body.removeChild(element);
+        // Always clean up
+        document.body.removeChild(wrapper);
       }
     } catch (error) {
       console.error('Image export failed:', error);
