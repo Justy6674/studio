@@ -5,6 +5,24 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Ti
 import type { HydrationLog, UserProfile } from "@/lib/types";
 
 export async function logHydration(amount: number): Promise<{ success?: string; error?: string }> {
+  return logDrink(amount, 'water', 'Water', 100);
+}
+
+export async function logOtherDrink(
+  amount: number, 
+  drinkType: string, 
+  drinkName: string, 
+  hydrationPercentage: number
+): Promise<{ success?: string; error?: string; isFirstTime?: boolean }> {
+  return logDrink(amount, drinkType, drinkName, hydrationPercentage);
+}
+
+async function logDrink(
+  amount: number, 
+  drinkType: string, 
+  drinkName: string, 
+  hydrationPercentage: number
+): Promise<{ success?: string; error?: string; isFirstTime?: boolean }> {
   const user = auth.currentUser;
   if (!user) {
     return { error: "User not authenticated." };
@@ -14,14 +32,33 @@ export async function logHydration(amount: number): Promise<{ success?: string; 
   }
 
   try {
+    // Calculate hydration value
+    const hydrationValue = Math.round(amount * (hydrationPercentage / 100));
+    
+    // Check if this is the first time logging this drink type
+    let isFirstTime = false;
+    if (drinkType !== 'water') {
+      const existingDrinksQuery = query(
+        collection(db, "hydration_logs"),
+        where("userId", "==", user.uid),
+        where("drinkType", "==", drinkType)
+      );
+      const existingDrinksSnapshot = await getDocs(existingDrinksQuery);
+      isFirstTime = existingDrinksSnapshot.docs.length === 0;
+    }
+
     // Add the hydration log
     await addDoc(collection(db, "hydration_logs"), {
       userId: user.uid,
       amount,
+      drinkType,
+      drinkName,
+      hydrationPercentage,
+      hydrationValue,
       timestamp: serverTimestamp(),
     });
 
-    // Update user streak
+    // Update user streak based on hydration value
     const userDocRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) {
@@ -57,7 +94,11 @@ export async function logHydration(amount: number): Promise<{ success?: string; 
       });
     }
 
-    return { success: "Hydration logged successfully!" };
+    const successMessage = drinkType === 'water' 
+      ? "Hydration logged successfully!" 
+      : `${drinkName} logged successfully!`;
+
+    return { success: successMessage, isFirstTime };
   } catch (error: any) {
     console.error("Error logging hydration:", error);
     return { error: error.message || "Failed to log hydration." };
@@ -84,6 +125,10 @@ export async function getHydrationLogs(limit = 7): Promise<HydrationLog[]> {
         id: doc.id,
         userId: data.userId,
         amount: data.amount,
+        drinkType: data.drinkType || 'water',
+        drinkName: data.drinkName || 'Water',
+        hydrationPercentage: data.hydrationPercentage || 100,
+        hydrationValue: data.hydrationValue || data.amount,
         timestamp: (data.timestamp as Timestamp).toDate(),
       };
     });
