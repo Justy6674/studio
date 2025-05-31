@@ -1,4 +1,4 @@
-# 💧 Water4WeightLoss — HydrateAI App
+# �� Water4WeightLoss — By Downscale App
 
 A comprehensive hydration tracking application built for Australians, focusing on using proper hydration to support fat metabolism and healthy, AI-supported weight loss.
 
@@ -37,7 +37,7 @@ A comprehensive hydration tracking application built for Australians, focusing o
 ## 🏗️ Overall Approach (for AI or Human Devs)
 
 * **NO Americanisation** (ml, not oz; AU date formats; all currency AUD)
-* **Never reference "HydrateAI" or "Hydrate" in brand—this is Water4WeightLoss**
+* **Never reference "By Downscale" or "Hydrate" in brand—this is Water4WeightLoss**
 * **No "Fitspo"** or toxic motivational garbage. Everything must be friendly, professional, and reflect how an actual Aussie prescriber speaks.
 * **No "diet"/restriction language or body shaming**
 * **Simple, clear, visually fun UI, but not childish**
@@ -146,7 +146,7 @@ A comprehensive hydration tracking application built for Australians, focusing o
 > **"Cursor: Stay on this README. Don't add new features unless described here.
 > Always check for Replit, Supabase, or old junk and delete.
 > If unsure about a feature, ask for clarification before coding.
-> Never use 'HydrateAI'—the app is called 'Water4WeightLoss' only.
+> Never use 'By Downscale'—the app is called 'Water4WeightLoss' only.
 > All motivational/AI content must be realistic, never toxic, and always Australian."**
 
 ---

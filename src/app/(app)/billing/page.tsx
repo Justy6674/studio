@@ -60,7 +60,7 @@ export default function BillingPage() {
   };
 
   const openDirectLink = () => {
-    window.open("https://buy.stripe.com/00wfZ91L9fH9biTb5Uf3a02", "_blank");
+    window.open("https://buy.stripe.com/fZu5kvexV0Mf3Qr3Dsf3a03", "_blank");
   };
 
   if (!user) {
@@ -114,7 +114,7 @@ export default function BillingPage() {
             Unlock Your Full Hydration Potential
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Get access to all premium features and transform your hydration habits with AI-powered insights.
+            Get access to all features and transform your hydration habits with AI-powered insights.
           </p>
         </div>
 
@@ -141,14 +141,14 @@ export default function BillingPage() {
         <Card className="bg-slate-800 border-slate-700 shadow-2xl">
           <CardHeader className="text-center pb-4">
             <div className="flex justify-center items-center gap-2 mb-2">
-              <Badge className="bg-hydration-500 text-white">Premium</Badge>
+              <Badge className="bg-hydration-500 text-white">All Features</Badge>
             </div>
-            <CardTitle className="text-2xl text-slate-100">Water4WeightLoss Premium</CardTitle>
+            <CardTitle className="text-2xl text-slate-100">Water4WeightLoss</CardTitle>
             <CardDescription className="text-slate-400">
-              Everything you need for optimal hydration
+              Complete hydration tracking with AI coaching
             </CardDescription>
             <div className="text-4xl font-bold text-hydration-400 mt-4">
-              $6.99 AUD<span className="text-lg text-slate-400">/month</span>
+              $9.95 AUD<span className="text-lg text-slate-400">/month</span>
             </div>
           </CardHeader>
           
@@ -174,7 +174,7 @@ export default function BillingPage() {
               {isStripeBuyButtonLoaded ? (
                 <div className="flex justify-center">
                   <stripe-buy-button
-                    buy-button-id="buy_btn_1RUIRQ01xl09Ntf41sumWTNC"
+                    buy-button-id="buy_btn_1RUbr801xl09Ntf40fasOqrK"
                     publishable-key="pk_live_51Q8bcy01xl09Ntf4KyX7ax9zvGm8Rg4yXv0eluw1thBvHuW6NNU5eMXnkyxPfdMYkL2Nj8q51HlivCa6xxoC6TXY00CRxbXhKI"
                   ></stripe-buy-button>
                 </div>
@@ -185,7 +185,7 @@ export default function BillingPage() {
                   size="lg"
                 >
                   <CreditCard className="h-5 w-5 mr-2" />
-                  Subscribe Now - $6.99 AUD/month
+                  Subscribe Now - $9.95 AUD/month
                   <ExternalLink className="h-4 w-4 ml-2" />
                 </Button>
               )}

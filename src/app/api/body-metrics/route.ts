@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    // Get body metrics ordered by timestamp (newest first)
+    // Get body metrics without orderBy to avoid index requirements
     const q = query(
       collection(db, "body_metrics"),
       where("userId", "==", userId)
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         notes: data.notes || "",
         timestamp: (data.timestamp as Timestamp).toDate(),
       };
-    }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort in JavaScript
+    }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort in JavaScript (newest first)
 
     // Calculate statistics
     let stats: BodyMetricsStats = {

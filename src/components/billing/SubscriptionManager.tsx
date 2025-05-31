@@ -7,31 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Check, Droplets, Zap, MessageCircle, Phone, Award } from 'lucide-react';
 
 interface SubscriptionManagerProps {
-  currentTier: 'free' | 'premium';
+  currentTier: 'free' | 'subscribed';
   subscriptionStatus?: string;
   onUpgrade: () => void;
   onManage: () => void;
   className?: string;
 }
 
-const features = {
-  free: [
-    'Basic hydration tracking',
-    'Manual water logging',
-    'Daily intake summary',
-    'Basic progress tracking'
-  ],
-  premium: [
-    'All free features',
-    'AI-powered motivation messages',
-    'Smart SMS reminders',
-    'Advanced analytics & insights',
-    'Weekly AI coaching',
-    'Customizable reminder tones',
-    'Progress charts & trends',
-    'Goal adjustment recommendations'
-  ]
-};
+const features = [
+  'Unlimited hydration tracking',
+  'AI-powered motivation messages',
+  'Smart SMS reminders',
+  'Advanced analytics & insights',
+  'Weekly AI coaching',
+  'Customizable reminder tones',
+  'Progress charts & trends',
+  'Goal adjustment recommendations',
+  'Body metrics tracking',
+  'Data export capabilities'
+];
 
 export function SubscriptionManager({ 
   currentTier, 
@@ -51,62 +45,26 @@ export function SubscriptionManager({
     }
   };
 
-  const isPremium = currentTier === 'premium';
+  const isSubscribed = currentTier === 'subscribed';
   const isActive = subscriptionStatus === 'active';
 
   return (
     <div className={`max-w-4xl mx-auto ${className}`}>
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-white mb-4">
-          Choose Your Hydration Journey
+          Water4WeightLoss Subscription
         </h2>
         <p className="text-muted-foreground text-center text-lg">
-          Unlock AI-powered insights and personalised coaching to accelerate your weight loss through proper hydration
+          All features included - AI-powered hydration coaching for optimal weight loss
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Free Tier */}
-        <Card className="bg-[#1e293b] border-[#b68a71]/30">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Droplets className="w-5 h-5 text-[#5271ff]" />
-                  Basic Hydration
-                </CardTitle>
-                <CardDescription className="text-white/70">
-                  Perfect for getting started
-                </CardDescription>
-              </div>
-              {!isPremium && (
-                <Badge variant="secondary" className="bg-[#b68a71] text-white">
-                  Current Plan
-                </Badge>
-              )}
-            </div>
-            <div className="mt-4">
-              <span className="text-3xl font-bold text-white">Free</span>
-              <span className="text-white/70 ml-2">forever</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {features.free.map((feature, index) => (
-                <li key={index} className="flex items-center gap-3">
-                  <Check className="w-4 h-4 text-[#5271ff]" />
-                  <span className="text-white/80 text-sm">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        {/* Premium Tier */}
-        <Card className={`border-2 ${isPremium ? 'border-[#5271ff] bg-[#5271ff]/5' : 'border-[#5271ff]/50'} bg-[#1e293b] relative overflow-hidden`}>
-          {/* Premium Badge */}
+      <div className="max-w-2xl mx-auto">
+        {/* Single Subscription Card */}
+        <Card className={`border-2 ${isSubscribed ? 'border-[#5271ff] bg-[#5271ff]/5' : 'border-[#5271ff]/50'} bg-[#1e293b] relative overflow-hidden`}>
+          {/* Badge */}
           <div className="absolute top-0 right-0 bg-gradient-to-l from-[#5271ff] to-[#b68a71] text-white px-4 py-2 text-xs font-bold transform rotate-12 translate-x-8 translate-y-2">
-            PREMIUM
+            ALL FEATURES
           </div>
           
           <CardHeader>
@@ -114,26 +72,26 @@ export function SubscriptionManager({
               <div>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Award className="w-5 h-5 text-[#5271ff]" />
-                  Premium Hydration
+                  Water4WeightLoss
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  AI-powered weight loss support
+                  Complete hydration & weight loss solution
                 </CardDescription>
               </div>
-              {isPremium && isActive && (
+              {isSubscribed && isActive && (
                 <Badge className="bg-[#5271ff] text-white">
                   Active
                 </Badge>
               )}
             </div>
             <div className="mt-4">
-              <span className="text-3xl font-bold text-white">$6.99</span>
+              <span className="text-3xl font-bold text-white">$9.95</span>
               <span className="text-white/70 ml-2">AUD/month</span>
             </div>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3 mb-6">
-              {features.premium.map((feature, index) => (
+              {features.map((feature, index) => (
                 <li key={index} className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-[#5271ff]" />
                   <span className="text-white/80 text-sm">{feature}</span>
@@ -160,13 +118,13 @@ export function SubscriptionManager({
               </div>
               <div className="bg-[#5271ff]/10 border border-[#5271ff]/30 rounded-lg p-3">
                 <Award className="w-6 h-6 text-[#5271ff] mb-2" />
-                <div className="text-white text-sm font-medium">Priority Support</div>
-                <div className="text-white/60 text-xs">Dedicated assistance</div>
+                <div className="text-white text-sm font-medium">Complete Access</div>
+                <div className="text-white/60 text-xs">All features included</div>
               </div>
             </div>
 
             {/* Action Button */}
-            {isPremium && isActive ? (
+            {isSubscribed && isActive ? (
               <Button 
                 onClick={onManage}
                 variant="outline" 
@@ -186,7 +144,7 @@ export function SubscriptionManager({
                     Processing...
                   </div>
                 ) : (
-                  `Upgrade to Premium - $6.99 AUD/month`
+                  `Subscribe - $9.95 AUD/month`
                 )}
               </Button>
             )}

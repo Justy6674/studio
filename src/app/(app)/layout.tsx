@@ -37,7 +37,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="py-6 text-center text-xs text-muted-foreground border-t border-border">
-        HydrateAI &copy; {new Date().getFullYear()}
+        By Downscale &copy; {new Date().getFullYear()}
       </footer>
     </div>
   );

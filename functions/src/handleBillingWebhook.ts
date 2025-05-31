@@ -41,7 +41,7 @@ export const handleBillingWebhook = functions.https.onRequest(async (req, res) =
           if (!userQuery.empty) {
             const userDoc = userQuery.docs[0];
             await userDoc.ref.update({
-              tier: status === 'active' ? 'premium' : 'free',
+              tier: status === 'active' ? 'subscribed' : 'free',
               subscriptionStatus: status,
               subscriptionUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
