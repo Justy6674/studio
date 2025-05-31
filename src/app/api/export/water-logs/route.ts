@@ -384,13 +384,13 @@ async function generatePDFExport(
     console.warn('Could not load logo for PDF export:', error);
   }
   
-  // Define branded colors to match the app
+  // Define branded colors to match the app - VIBRANT VERSION
   const colors = {
-    primary: '#5271FF',      // Hydration blue
-    secondary: '#B68A71',    // Brown/tan
-    success: '#22C55E',      // Green
-    purple: '#A855F7',       // Purple
-    dark: '#1E293B',         // Dark slate
+    primary: '#3B82F6',      // Bright blue
+    secondary: '#F59E0B',    // Bright orange/amber
+    success: '#10B981',      // Bright green
+    purple: '#A855F7',       // Bright purple
+    dark: '#0F172A',         // Very dark slate
     muted: '#64748B',        // Muted text
     light: '#F8FAFC'         // Light background
   };
@@ -402,7 +402,7 @@ async function generatePDFExport(
   let yPosition = margin;
   
   // HEADER SECTION - Professional gradient header
-  pdf.setFillColor(colors.dark);
+  pdf.setFillColor('#0F172A'); // Much darker background
   pdf.rect(0, 0, pageWidth, 60, 'F');
   
   // Add logo if available
@@ -417,7 +417,7 @@ async function generatePDFExport(
   // Main title with modern typography
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(26);
-  pdf.setTextColor(colors.primary);
+  pdf.setTextColor(255, 255, 255); // White text
   pdf.text('Water4WeightLoss', logoDataUrl ? margin + 25 : margin, 28);
   
   // Subtitle
@@ -429,7 +429,7 @@ async function generatePDFExport(
   // User name prominently displayed
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(16);
-  pdf.setTextColor('white');
+  pdf.setTextColor(255, 255, 255);
   pdf.text(`${summaryStats.user_name}'s Journey`, logoDataUrl ? margin + 25 : margin, 48);
   
   yPosition = 75;
@@ -451,29 +451,33 @@ async function generatePDFExport(
       title: 'Total Water',
       value: `${(summaryStats.totals.total_water_logged_ml / 1000).toFixed(1)}L`,
       subtitle: `Over ${summaryStats.date_range.total_days} days`,
-      color: colors.primary,
-      bgColor: '#EEF2FF'
+      color: '#FFFFFF',
+      bgColor: '#3B82F6',  // Bright blue background
+      borderColor: '#1D4ED8'
     },
     {
       title: 'Goal Achievement',
       value: `${summaryStats.totals.goal_achievement_rate_percent}%`,
       subtitle: summaryStats.totals.goal_achievement_rate_percent >= 80 ? 'Excellent!' : 'Good progress',
-      color: colors.success,
-      bgColor: '#F0FDF4'
+      color: '#FFFFFF',
+      bgColor: '#10B981',  // Bright green background  
+      borderColor: '#059669'
     },
     {
       title: 'Max Streak',
       value: `${summaryStats.totals.max_streak_days} days`,
       subtitle: summaryStats.totals.max_streak_days > 7 ? 'Amazing consistency!' : 'Building habits',
-      color: colors.purple,
-      bgColor: '#FAF5FF'
+      color: '#FFFFFF',
+      bgColor: '#A855F7',  // Bright purple background
+      borderColor: '#7C3AED'
     },
     {
       title: 'Daily Average',
       value: `${(summaryStats.totals.average_daily_intake_ml / 1000).toFixed(1)}L`,
       subtitle: `Target: ${(summaryStats.hydration_goal_ml / 1000).toFixed(1)}L`,
-      color: colors.secondary,
-      bgColor: '#FEF7ED'
+      color: '#FFFFFF',
+      bgColor: '#F59E0B',  // Bright orange background
+      borderColor: '#D97706'
     }
   ];
   
@@ -483,31 +487,33 @@ async function generatePDFExport(
     const cardX = margin + col * (cardWidth + cardSpacing);
     const cardY = yPosition + row * (cardHeight + cardSpacing);
     
-    // Card background with subtle shadow effect
-    pdf.setFillColor('#F8FAFC');
-    pdf.rect(cardX + 1, cardY + 1, cardWidth, cardHeight, 'F'); // Shadow
+    // Card shadow effect (darker)
+    pdf.setFillColor('#00000020');
+    pdf.rect(cardX + 2, cardY + 2, cardWidth, cardHeight, 'F');
+    
+    // Card background with vibrant color
     pdf.setFillColor(card.bgColor);
     pdf.rect(cardX, cardY, cardWidth, cardHeight, 'F');
     
-    // Card border
-    pdf.setDrawColor(card.color);
-    pdf.setLineWidth(0.5);
+    // Card border with darker shade
+    pdf.setDrawColor(card.borderColor);
+    pdf.setLineWidth(1);
     pdf.rect(cardX, cardY, cardWidth, cardHeight, 'S');
     
-    // Card content
+    // Card content with white text
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(20);
-    pdf.setTextColor(card.color);
+    pdf.setTextColor(255, 255, 255); // White text
     pdf.text(card.value, cardX + 8, cardY + 15);
     
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(10);
-    pdf.setTextColor(colors.dark);
+    pdf.setTextColor(255, 255, 255); // White text
     pdf.text(card.title, cardX + 8, cardY + 23);
     
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
-    pdf.setTextColor(colors.muted);
+    pdf.setTextColor(240, 240, 240); // Light gray text
     pdf.text(card.subtitle, cardX + 8, cardY + 30);
   });
   
@@ -517,7 +523,7 @@ async function generatePDFExport(
   if (bodyMetricsData.length > 0) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
-    pdf.setTextColor(colors.secondary);
+    pdf.setTextColor(255, 255, 255); // White text
     pdf.text('📏 Body Metrics Progress', margin, yPosition);
     yPosition += 15;
     
@@ -525,11 +531,11 @@ async function generatePDFExport(
     const latestMetrics = bodyMetricsData[bodyMetricsData.length - 1];
     const earliestMetrics = bodyMetricsData[0];
     
-    // Metrics background
-    pdf.setFillColor('#FEF7ED');
+    // Metrics background - vibrant orange gradient
+    pdf.setFillColor('#F59E0B'); // Bright orange background
     pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 40, 'F');
-    pdf.setDrawColor(colors.secondary);
-    pdf.setLineWidth(0.5);
+    pdf.setDrawColor('#D97706'); // Darker orange border
+    pdf.setLineWidth(1);
     pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, 40, 'S');
     
     let metricsX = margin + 10;
@@ -540,17 +546,17 @@ async function generatePDFExport(
       
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(16);
-      pdf.setTextColor(colors.secondary);
+      pdf.setTextColor(255, 255, 255); // White text
       pdf.text(`${latestMetrics.weight_kg}kg`, metricsX, yPosition + 10);
       
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
-      pdf.setTextColor(colors.dark);
+      pdf.setTextColor(255, 255, 255); // White text
       pdf.text('Current Weight', metricsX, yPosition + 18);
       
       if (bodyMetricsData.length > 1 && parseFloat(weightChange) !== 0) {
-        const changeColor = parseFloat(weightChange) < 0 ? colors.success : colors.muted;
-        pdf.setTextColor(changeColor);
+        const changeColor = parseFloat(weightChange) < 0 ? '#10B981' : '#64748B';
+        pdf.setTextColor(240, 240, 240); // Light gray for changes
         pdf.text(`${parseFloat(weightChange) > 0 ? '+' : ''}${weightChange}kg`, metricsX, yPosition + 25);
       }
       
@@ -563,17 +569,17 @@ async function generatePDFExport(
       
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(16);
-      pdf.setTextColor(colors.secondary);
+      pdf.setTextColor(255, 255, 255); // White text
       pdf.text(`${latestMetrics.waist_cm}cm`, metricsX, yPosition + 10);
       
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
-      pdf.setTextColor(colors.dark);
+      pdf.setTextColor(255, 255, 255); // White text
       pdf.text('Current Waist', metricsX, yPosition + 18);
       
       if (bodyMetricsData.length > 1 && parseFloat(waistChange) !== 0) {
-        const changeColor = parseFloat(waistChange) < 0 ? colors.success : colors.muted;
-        pdf.setTextColor(changeColor);
+        const changeColor = parseFloat(waistChange) < 0 ? '#10B981' : '#64748B';
+        pdf.setTextColor(240, 240, 240); // Light gray for changes
         pdf.text(`${parseFloat(waistChange) > 0 ? '+' : ''}${waistChange}cm`, metricsX, yPosition + 25);
       }
     }
