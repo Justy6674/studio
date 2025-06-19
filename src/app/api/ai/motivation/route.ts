@@ -1,5 +1,7 @@
+"use server";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 
@@ -39,7 +41,6 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
   // Determine streak status
   const hasRealStreak = current_streak >= 2;
   const isFreshStart = current_streak === 1;
-  const noStreak = current_streak === 0;
   
   // First log ever
   if (is_first_log) {
@@ -131,7 +132,6 @@ async function logMotivationRequest(logData: MotivationLog): Promise<void> {
 }
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
   let logData: Partial<MotivationLog> = {};
   
   try {
@@ -253,97 +253,60 @@ Generate ONE motivational message now:`;
         }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        geminiMessage = result.candidates?.[0]?.content?.parts?.[0]?.text;
-        logData.gemini_response = geminiMessage;
-        
-        if (geminiMessage && geminiMessage.length > 0) {
-          logData.final_message = geminiMessage.trim();
-          logData.source = 'gemini';
-          logData.success = true;
-          
-          // Log the successful request
-          await logMotivationRequest(logData as MotivationLog);
-          
-          const responseData: any = { 
-            message: geminiMessage.trim(),
-            source: 'gemini',
-            tone: motivationTone,
-            stats: { ml_logged_today, percent_of_goal, current_streak },
-            response_time_ms: Date.now() - startTime
-          };
-          
-          // Add debug info if requested
-          if (debug_mode) {
-            responseData.debug = {
-              prompt: contextualPrompt,
-              raw_response: result,
-              user_tone: motivationTone,
-              timestamp: new Date().toISOString()
-            };
-          }
-          
-          return NextResponse.json(responseData);
-        }
-      } else {
-        console.error('Gemini API non-OK response:', response.status, response.statusText);
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
-    } catch (geminiError) {
-      console.error('Gemini API error:', geminiError);
-      logData.error = geminiError instanceof Error ? geminiError.message : String(geminiError);
+      
+      const result = await response.json();
+      geminiMessage = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      logData.gemini_response = JSON.stringify(result);
+
+    } catch (error) {
+      console.error("Gemini API call failed:", error);
+      logData.error = error instanceof Error ? error.message : "Gemini API call failed";
     }
 
-    // Fallback to contextual built-in message
-    const fallbackMessage = getContextualFallback(body, motivationTone);
-    logData.final_message = fallbackMessage;
-    logData.source = 'fallback';
-    logData.success = true;
-    
-    // Log the fallback request
-    await logMotivationRequest(logData as MotivationLog);
-    
-    const responseData: any = { 
-      message: fallbackMessage,
-      source: 'fallback',
-      tone: motivationTone,
-      stats: { ml_logged_today, percent_of_goal, current_streak },
-      response_time_ms: Date.now() - startTime
-    };
-    
-    // Add debug info if requested
+    // Final message logic: use Gemini if available, otherwise use contextual fallback
+    let finalMessage = "";
+    if (geminiMessage) {
+      finalMessage = geminiMessage.trim();
+      logData.final_message = finalMessage;
+      logData.source = 'gemini';
+      logData.success = true;
+    } else {
+      finalMessage = getContextualFallback(body, motivationTone);
+      logData.final_message = finalMessage;
+      logData.source = 'fallback';
+      logData.success = true;
+    }
+
     if (debug_mode) {
-      responseData.debug = {
-        prompt: contextualPrompt,
-        fallback_used: true,
-        user_tone: motivationTone,
-        timestamp: new Date().toISOString()
-      };
+      return NextResponse.json({ 
+        message: finalMessage, 
+        source: logData.source, 
+        tone: logData.user_tone,
+        debug: logData 
+      });
+    } else {
+      await logMotivationRequest(logData as MotivationLog);
+      return NextResponse.json({ message: finalMessage });
     }
-    
-    return NextResponse.json(responseData);
 
-  } catch (error: any) {
-    console.error('Error generating AI motivation:', error);
-    
-    const errorMessage = "Keep hydrating! Every sip counts towards your health! 💧";
-    logData.final_message = errorMessage;
-    logData.source = 'error_fallback';
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     logData.success = false;
-    logData.error = error.message;
+    logData.error = errorMessage;
     
-    // Log the error
+    // Attempt to log the failure before exiting
     try {
       await logMotivationRequest(logData as MotivationLog);
     } catch (logError) {
-      console.error('Failed to log error case:', logError);
+      console.error("Critical: Failed to log the main error:", logError);
     }
-    
+
     return NextResponse.json({ 
-      message: errorMessage,
-      source: 'error_fallback',
-      error: error.message,
-      response_time_ms: Date.now() - startTime
-    }, { status: 200 }); // Return 200 so frontend gets the fallback message
+      error: 'Failed to generate motivation', 
+      details: errorMessage
+    }, { status: 500 });
   }
 } 

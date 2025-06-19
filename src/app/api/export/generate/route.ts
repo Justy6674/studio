@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCanvas } from 'canvas';
 
+interface ProgressSummaryData {
+  userName?: string;
+  currentIntake?: number;
+  hydrationGoal?: number;
+  dailyStreak?: number;
+  longestStreak?: number;
+}
+
+interface HydrationChartData {
+  // Define properties for hydration chart data later
+  [key: string]: any;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -12,19 +25,19 @@ export async function POST(request: NextRequest) {
 
     switch (type) {
       case 'progress-summary':
-        buffer = await generateProgressSummary(data, format);
+        buffer = await generateProgressSummary(data);
         break;
       case 'hydration-chart':
-        buffer = await generateHydrationChart(data, timeRange, format);
+        buffer = await generateHydrationChart(data, timeRange);
         break;
       case 'weight-chart':
-        buffer = await generateWeightChart(data, timeRange, format);
+        buffer = await generateWeightChart();
         break;
       case 'streak-calendar':
-        buffer = await generateStreakCalendar(data, timeRange, format);
+        buffer = await generateStreakCalendar();
         break;
       case 'comparison-chart':
-        buffer = await generateComparisonChart(data, timeRange, format);
+        buffer = await generateComparisonChart();
         break;
       default:
         throw new Error(`Unknown export type: ${type}`);
@@ -48,7 +61,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateProgressSummary(data: any, format: string): Promise<Buffer> {
+async function generateProgressSummary(data: ProgressSummaryData): Promise<Buffer> {
   const width = 1080;
   const height = 1080;
   const canvas = createCanvas(width, height);
@@ -160,7 +173,7 @@ async function generateProgressSummary(data: any, format: string): Promise<Buffe
   return canvas.toBuffer('image/png');
 }
 
-async function generateHydrationChart(data: any, timeRange: string, format: string): Promise<Buffer> {
+async function generateHydrationChart(_data: HydrationChartData, timeRange: string): Promise<Buffer> {
   // For now, create a placeholder chart
   // TODO: Implement actual chart generation with Chart.js or similar
   const width = 1080;
@@ -189,7 +202,7 @@ async function generateHydrationChart(data: any, timeRange: string, format: stri
   return canvas.toBuffer('image/png');
 }
 
-async function generateWeightChart(data: any, timeRange: string, format: string): Promise<Buffer> {
+async function generateWeightChart(): Promise<Buffer> {
   // Placeholder for weight chart
   const width = 1080;
   const height = 1080;
@@ -214,7 +227,7 @@ async function generateWeightChart(data: any, timeRange: string, format: string)
   return canvas.toBuffer('image/png');
 }
 
-async function generateStreakCalendar(data: any, timeRange: string, format: string): Promise<Buffer> {
+async function generateStreakCalendar(): Promise<Buffer> {
   // Placeholder for streak calendar
   const width = 1080;
   const height = 1080;
@@ -239,7 +252,7 @@ async function generateStreakCalendar(data: any, timeRange: string, format: stri
   return canvas.toBuffer('image/png');
 }
 
-async function generateComparisonChart(data: any, timeRange: string, format: string): Promise<Buffer> {
+async function generateComparisonChart(): Promise<Buffer> {
   // Placeholder for comparison chart
   const width = 1080;
   const height = 1080;
@@ -259,7 +272,7 @@ async function generateComparisonChart(data: any, timeRange: string, format: str
 
   ctx.fillStyle = '#5271FF';
   ctx.font = '24px Arial';
-  ctx.fillText('Comparison Chart Coming Soon', width / 2, 500);
+  ctx.fillText('Water vs Weight Chart Coming Soon', width / 2, 500);
 
   return canvas.toBuffer('image/png');
 } 

@@ -48,13 +48,14 @@ export default function LoginPage() {
         title: "Welcome back! 👋",
         description: "Successfully signed in to Water4WeightLoss.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Login error:", error);
-      setError(getErrorMessage(error.code));
+      const firebaseError = error as { code: string };
+      setError(getErrorMessage(firebaseError.code));
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: getErrorMessage(error.code),
+        description: getErrorMessage(firebaseError.code),
       });
     } finally {
       setIsLoading(false);
@@ -187,7 +188,7 @@ export default function LoginPage() {
         
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm text-slate-400">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-hydration-400 hover:text-hydration-300 underline">
               Sign up here
             </Link>

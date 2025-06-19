@@ -60,13 +60,14 @@ export default function SignUpPage() {
         title: "Account created! 🎉",
         description: "Welcome to Water4WeightLoss! Please check your email for verification.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Signup error:", error);
-      setError(getErrorMessage(error.code));
+      const firebaseError = error as { code: string };
+      setError(getErrorMessage(firebaseError.code));
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: getErrorMessage(error.code),
+        description: getErrorMessage(firebaseError.code),
       });
     } finally {
       setIsLoading(false);

@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
       ml_logged_today = 500,
       goal_ml = 2000,
       current_streak = 3,
-      test_mode = true
     } = body;
 
     const percent_of_goal = Math.round((ml_logged_today / goal_ml) * 100);
@@ -113,10 +112,11 @@ Generate ONE motivational message now:`;
       timestamp: new Date().toISOString()
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: errorMessage,
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }

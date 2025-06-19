@@ -83,9 +83,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         });
         router.push("/dashboard");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Auth error:", err);
-      const errorMessage = err.message || "Authentication failed. Please try again.";
+      const errorMessage = err instanceof Error ? err.message : "Authentication failed. Please try again.";
       setError(errorMessage);
       toast({
         variant: "destructive",

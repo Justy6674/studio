@@ -11,21 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { UserProfile } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlidersHorizontal, Palette, Clock, Phone, TestTube, Sparkles, Bell, BellRing, Target } from "lucide-react";
+import { SlidersHorizontal, Phone, TestTube, Sparkles, BellRing, Target } from "lucide-react";
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
-
-const aiTones = [
-  { value: 'Default', label: 'Default - Balanced & Friendly' },
-  { value: 'Clinical', label: 'Clinical - Professional & Educational' },
-  { value: 'Funny', label: 'Funny - Humorous & Playful' },
-  { value: 'Crass', label: 'Crass - Raw & Unfiltered' },
-  { value: 'Sarcastic', label: 'Sarcastic - Witty & Cheeky' },
-  { value: 'Warm', label: 'Warm - Caring & Supportive' },
-  { value: 'Kind', label: 'Kind - Gentle & Compassionate' },
-  { value: 'Educational', label: 'Educational - Informative & Learning' },
-];
 
 const reminderPresets = [
   { value: 'twice', label: '2 Times Daily (Recommended)', times: ['08:00', '18:00'] },
@@ -40,29 +28,205 @@ const availableTimes = [
   '18:00', '19:00', '20:00', '21:00', '22:00'
 ];
 
+// Define a type for the settings state
+interface Settings {
+  name: string;
+  hydrationGoal: number;
+  sipAmount: number;
+  phoneNumber: string;
+  smsEnabled: boolean;
+  motivationTone: string;
+  reminderPreset: string;
+  reminderTimes: Record<string, boolean>;
+  pushNotifications: boolean;
+  milestoneAnimations: boolean;
+}
+
+// Define prop types for sub-components
+interface ProfileSettingsProps {
+  settings: Settings;
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+interface NotificationSettingsProps {
+  settings: Settings;
+  setSettings: React.Dispatch<React.SetStateAction<Settings>>;
+  handleTimeToggle: (time: string) => void;
+  handleTestSMS: () => void;
+  testingSMS: boolean;
+  notificationPermission: NotificationPermission;
+  handleRequestNotificationPermission: () => void;
+}
+
+interface AppSettingsProps {
+  settings: Settings;
+  setSettings: React.Dispatch<React.SetStateAction<Settings>>;
+}
+
+const ProfileSettings: React.FC<ProfileSettingsProps> = ({ settings, handleInputChange }) => (
+    <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><SlidersHorizontal className="w-5 h-5" /> Profile & Goals</CardTitle>
+          <CardDescription>
+            <p className="text-muted-foreground">Adjust your daily goals and sips.</p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input id="name" name="name" value={settings.name} onChange={handleInputChange} placeholder="Your first name" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hydrationGoal">Daily Hydration Goal (ml)</Label>
+              <Input id="hydrationGoal" name="hydrationGoal" type="number" value={settings.hydrationGoal} onChange={handleInputChange} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sipAmount">Default Sip Amount (ml)</Label>
+              <Input id="sipAmount" name="sipAmount" type="number" value={settings.sipAmount} onChange={handleInputChange} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+);
+
+const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, setSettings, handleTimeToggle, handleTestSMS, testingSMS, notificationPermission, handleRequestNotificationPermission }) => (
+    <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><BellRing className="w-5 h-5" /> Notifications & Reminders</CardTitle>
+          <CardDescription>
+            <p className="text-muted-foreground">Stay on track with SMS and push notifications.</p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Push Notifications */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <Label htmlFor="pushNotifications" className="font-medium">Enable Push Notifications</Label>
+              <p className="text-sm text-muted-foreground">Get motivational nudges directly on your device.</p>
+            </div>
+            <Checkbox
+              id="pushNotifications"
+              checked={settings.pushNotifications && notificationPermission === 'granted'}
+              disabled={notificationPermission === 'denied'}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  if (notificationPermission === 'granted') {
+                    setSettings(prev => ({ ...prev, pushNotifications: true }));
+                  } else {
+                    handleRequestNotificationPermission();
+                  }
+                } else {
+                  setSettings(prev => ({ ...prev, pushNotifications: false }));
+                }
+              }}
+            />
+          </div>
+          {notificationPermission === 'denied' && (
+            <p className="text-sm text-destructive">You have blocked push notifications. Please enable them in your browser settings.</p>
+          )}
+
+          {/* SMS Notifications */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox id="smsEnabled" name="smsEnabled" checked={settings.smsEnabled} onCheckedChange={(checked) => setSettings(prev => ({ ...prev, smsEnabled: !!checked }))} />
+              <Label htmlFor="smsEnabled">Enable SMS Reminders</Label>
+            </div>
+            {settings.smsEnabled && (
+              <div className="space-y-4 pl-6 border-l-2">
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <div className="flex gap-2">
+                    <Input id="phoneNumber" name="phoneNumber" type="tel" value={settings.phoneNumber} onChange={(e) => setSettings(prev => ({ ...prev, phoneNumber: e.target.value }))} placeholder="+15551234567" />
+                    <Button variant="outline" onClick={handleTestSMS} disabled={testingSMS}>
+                      {testingSMS ? "Sending..." : "Test"}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Reminder Times (Max 2)</Label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {availableTimes.map(time => (
+                      <Button
+                        key={time}
+                        variant={settings.reminderTimes[time] ? "default" : "outline"}
+                        onClick={() => handleTimeToggle(time)}
+                        className="text-xs"
+                      >
+                        {time}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+);
+
+const AppSettings: React.FC<AppSettingsProps> = ({ settings, setSettings }) => (
+    <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> App & AI Experience</CardTitle>
+          <CardDescription>
+            <p className="text-muted-foreground">Customize how the app and AI assistant behave.</p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Motivation Tone */}
+          <div className="space-y-2">
+            <Label htmlFor="motivationTone">AI Motivation Tone</Label>
+            <Select
+              value={settings.motivationTone}
+              onValueChange={(value) => setSettings(prev => ({ ...prev, motivationTone: value }))}
+            >
+              <SelectTrigger id="motivationTone">
+                <SelectValue placeholder="Select a tone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Default">Default (Friendly & Supportive)</SelectItem>
+                <SelectItem value="Sarge">Drill Sergeant (Tough Love)</SelectItem>
+                <SelectItem value="Zen">Zen Master (Calm & Mindful)</SelectItem>
+                <SelectItem value="Pirate">Pirate (Adventurous & Fun)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Milestone Animations */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <Label htmlFor="milestoneAnimations" className="font-medium">Enable Milestone Animations</Label>
+              <p className="text-sm text-muted-foreground">See celebrations for streaks and goals.</p>
+            </div>
+            <Checkbox
+              id="milestoneAnimations"
+              checked={settings.milestoneAnimations}
+              onCheckedChange={(checked) => setSettings(prev => ({ ...prev, milestoneAnimations: !!checked }))}
+            />
+          </div>
+        </CardContent>
+      </Card>
+);
+
 export function SettingsForm() {
   const { user, userProfile, updateUserProfileData } = useAuth();
   const { toast } = useToast();
   
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Settings>({
     name: '',
     hydrationGoal: 2000,
     sipAmount: 50,
     phoneNumber: '',
     smsEnabled: false,
-    aiTone: 'Default',
     motivationTone: 'Default',
-    motivationFrequency: 'Every log',
     reminderPreset: 'meals',
     reminderTimes: {} as Record<string, boolean>,
     pushNotifications: false,
-    customMilestones: [50, 100] as number[],
     milestoneAnimations: true,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
-  const [testingAI, setTestingAI] = useState(false);
-  const [aiTestResult, setAiTestResult] = useState<any>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [requestingPermission, setRequestingPermission] = useState(false);
 
@@ -74,13 +238,10 @@ export function SettingsForm() {
         sipAmount: userProfile.sipAmount || 50,
         phoneNumber: userProfile.phoneNumber || '',
         smsEnabled: userProfile.smsEnabled || false,
-        aiTone: userProfile.aiTone || 'Default',
         motivationTone: userProfile.motivationTone || 'Default',
-        motivationFrequency: userProfile.motivationFrequency || 'Every log',
         reminderPreset: 'custom', // Default to custom since we're loading existing times
         reminderTimes: userProfile.reminderTimes || { '08:00': true, '12:00': true, '18:00': true },
         pushNotifications: userProfile.pushNotifications || false,
-        customMilestones: userProfile.customMilestones || [50, 100],
         milestoneAnimations: userProfile.milestoneAnimations || true,
       });
     }
@@ -180,64 +341,6 @@ export function SettingsForm() {
     }
   };
 
-  const handleTestAI = async () => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please log in to test AI motivation.",
-      });
-      return;
-    }
-
-    setTestingAI(true);
-    setAiTestResult(null);
-    
-    try {
-      const testData = {
-        userId: user.uid,
-        ml_logged_today: 1200,
-        goal_ml: settings.hydrationGoal,
-        percent_of_goal: (1200 / settings.hydrationGoal) * 100,
-        current_streak: 5,
-        best_streak: 12,
-        last_log_time: new Date().toISOString(),
-        is_first_log: false,
-        day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
-        time_of_day: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        debug_mode: true
-      };
-
-      const response = await fetch('/api/ai/motivation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(testData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setAiTestResult(result);
-        
-        toast({
-          title: "AI Test Complete! 🤖",
-          description: `Generated message with ${settings.motivationTone || settings.aiTone} tone`,
-          duration: 4000,
-        });
-      } else {
-        throw new Error('Failed to test AI');
-      }
-    } catch (error) {
-      console.error('Error testing AI:', error);
-      toast({
-        variant: "destructive",
-        title: "AI Test Failed",
-        description: "Could not test AI motivation. Please try again.",
-      });
-    } finally {
-      setTestingAI(false);
-    }
-  };
-
   const handleRequestNotificationPermission = async () => {
     setRequestingPermission(true);
     try {
@@ -249,25 +352,20 @@ export function SettingsForm() {
           title: "Notifications Enabled! 🔔",
           description: "You'll now receive motivational messages as push notifications.",
         });
-        
-        // Show a test notification
-        await showMotivationNotification(
-          "Test notification! Your hydration coach is ready to motivate you! 💧",
-          settings.motivationTone
-        );
-      } else {
+        showMotivationNotification("Test Notification", "This is how you'll get AI motivation!");
+      } else if (permission === 'denied') {
         toast({
           variant: "destructive",
-          title: "Permission Denied",
-          description: "Push notifications were not enabled. You can enable them in your browser settings.",
+          title: "Notifications Blocked",
+          description: "Please enable notifications in your browser settings to use this feature.",
         });
       }
     } catch (error) {
       console.error('Error requesting notification permission:', error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to request notification permission.",
+        title: "Permission Error",
+        description: "Could not request notification permission.",
       });
     } finally {
       setRequestingPermission(false);
@@ -277,457 +375,91 @@ export function SettingsForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) {
-      toast({ variant: "destructive", title: "Error", description: "You must be logged in." });
+      toast({
+        variant: "destructive",
+        title: "Not Logged In",
+        description: "You must be logged in to save settings.",
+      });
       return;
     }
 
     setIsLoading(true);
+
     try {
-      const updatedProfile: Partial<UserProfile> = {
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, {
         name: settings.name,
         hydrationGoal: settings.hydrationGoal,
         sipAmount: settings.sipAmount,
         phoneNumber: settings.phoneNumber,
         smsEnabled: settings.smsEnabled,
-        aiTone: settings.aiTone,
         motivationTone: settings.motivationTone,
-        motivationFrequency: settings.motivationFrequency,
         reminderTimes: settings.reminderTimes,
         pushNotifications: settings.pushNotifications,
-        customMilestones: settings.customMilestones,
         milestoneAnimations: settings.milestoneAnimations,
-      };
-
-      // Update Firestore
-      await updateDoc(doc(db, "users", user.uid), updatedProfile);
-      
-      // Update local context
-      await updateUserProfileData(updatedProfile);
-
-      toast({ 
-        title: "Settings Saved! ✅", 
-        description: "Your preferences have been updated successfully." 
       });
-    } catch (error: any) {
+
+      // Update local context
+      updateUserProfileData({
+        name: settings.name,
+        hydrationGoal: settings.hydrationGoal,
+        sipAmount: settings.sipAmount,
+        phoneNumber: settings.phoneNumber,
+        smsEnabled: settings.smsEnabled,
+        motivationTone: settings.motivationTone,
+        reminderTimes: settings.reminderTimes,
+        pushNotifications: settings.pushNotifications,
+        milestoneAnimations: settings.milestoneAnimations,
+      });
+
+      toast({
+        title: "Settings Saved! ✅",
+        description: "Your preferences have been updated.",
+      });
+    } catch (error) {
       console.error("Error updating settings:", error);
-      toast({ 
-        variant: "destructive", 
-        title: "Error Saving Settings", 
-        description: error.message || "Failed to update settings. Please try again." 
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "Could not save your settings. Please try again.",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const selectedTimes = Object.keys(settings.reminderTimes).filter(time => settings.reminderTimes[time]);
+  if (!userProfile) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Loading Settings...</CardTitle></CardHeader>
+        <CardContent>
+          <p>Please wait while we load your personalized settings.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-lg bg-slate-800 border-slate-700">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl text-slate-200">
-          <SlidersHorizontal className="h-7 w-7 text-hydration-400" />
-          Your Preferences
-        </CardTitle>
-        <CardDescription className="text-slate-400">
-          Customise your Water4WeightLoss experience and notifications.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Personal Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-              <div className="p-1 bg-hydration-400/20 rounded">
-                <SlidersHorizontal className="h-4 w-4 text-hydration-400" />
-              </div>
-              Personal Settings
-            </h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-slate-300">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                value={settings.name}
-                onChange={handleInputChange}
-                className="bg-slate-700 border-slate-600 text-slate-100"
-                disabled={isLoading}
-              />
-            </div>
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <ProfileSettings settings={settings} handleInputChange={handleInputChange} />
+      
+      <NotificationSettings
+        settings={settings}
+        setSettings={setSettings}
+        handleTimeToggle={handleTimeToggle}
+        handleTestSMS={handleTestSMS}
+        testingSMS={testingSMS}
+        notificationPermission={notificationPermission}
+        handleRequestNotificationPermission={handleRequestNotificationPermission}
+      />
 
-            <div className="space-y-2">
-              <Label htmlFor="hydrationGoal" className="text-slate-300">Daily Hydration Goal (ml)</Label>
-              <Input
-                id="hydrationGoal"
-                name="hydrationGoal"
-                type="number"
-                value={settings.hydrationGoal}
-                onChange={handleInputChange}
-                min="500"
-                max="5000"
-                step="100"
-                className="bg-slate-700 border-slate-600 text-slate-100"
-                disabled={isLoading}
-              />
-            </div>
+      <AppSettings settings={settings} setSettings={setSettings} />
 
-            <div className="space-y-2">
-              <Label htmlFor="sipAmount" className="text-slate-300">Quick Sip Amount (ml)</Label>
-              <Input
-                id="sipAmount"
-                name="sipAmount"
-                type="number"
-                value={settings.sipAmount}
-                onChange={handleInputChange}
-                min="10"
-                max="500"
-                step="10"
-                className="bg-slate-700 border-slate-600 text-slate-100"
-                disabled={isLoading}
-              />
-              <p className="text-xs text-slate-400">
-                Amount logged when using the quick "Sip" button
-              </p>
-            </div>
-          </div>
-
-          {/* AI Motivation Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-hydration-400" />
-                AI Motivation Settings
-              </CardTitle>
-              <CardDescription>
-                Customise how and when you receive motivational messages
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Motivation Tone */}
-              <div className="space-y-2">
-                <Label htmlFor="motivationTone" className="text-slate-200">
-                  Motivation Tone
-                </Label>
-                <Select 
-                  value={settings.motivationTone} 
-                  onValueChange={(value) => setSettings(prev => ({ ...prev, motivationTone: value }))}
-                >
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200">
-                    <SelectValue placeholder="Select tone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Clinical">Clinical/Educational - Health facts & scientific benefits</SelectItem>
-                    <SelectItem value="Funny">Crass/Funny - Humour, puns & playful language</SelectItem>
-                    <SelectItem value="Sarcastic">Sarcastic - Witty, clever & cheeky motivation</SelectItem>
-                    <SelectItem value="Warm">Warm - Caring, supportive & encouraging</SelectItem>
-                    <SelectItem value="Default">Default - Balanced & friendly</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-slate-400">
-                  Choose the personality style for your AI motivation coach
-                </p>
-              </div>
-
-              {/* Motivation Frequency */}
-              <div className="space-y-2">
-                <Label htmlFor="motivationFrequency" className="text-slate-200">
-                  Motivation Frequency
-                </Label>
-                <Select 
-                  value={settings.motivationFrequency} 
-                  onValueChange={(value) => setSettings(prev => ({ ...prev, motivationFrequency: value }))}
-                >
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200">
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Every log">After every water log</SelectItem>
-                    <SelectItem value="Every few logs">Every 3-4 logs</SelectItem>
-                    <SelectItem value="Once per day">Once per day maximum</SelectItem>
-                    <SelectItem value="Goal achieved">Only when daily goal is reached</SelectItem>
-                    <SelectItem value="Never">Never (manual refresh only)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-slate-400">
-                  Control how often you receive motivational messages
-                </p>
-              </div>
-
-              {/* Push Notifications */}
-              <div className="space-y-4 p-4 bg-slate-700/30 rounded-lg border border-slate-600">
-                <div className="space-y-2">
-                  <Label className="text-slate-200 flex items-center gap-2">
-                    <span>📱 Push Notifications</span>
-                    {notificationPermission === 'granted' && (
-                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-                        Enabled
-                      </span>
-                    )}
-                    {notificationPermission === 'denied' && (
-                      <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">
-                        Blocked
-                      </span>
-                    )}
-                  </Label>
-                  
-                  {!isNotificationSupported() ? (
-                    <div className="text-sm text-slate-400 p-3 bg-slate-600/50 rounded">
-                      ⚠️ Push notifications are not supported in this browser.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="pushNotifications"
-                          checked={settings.pushNotifications && notificationPermission === 'granted'}
-                          onCheckedChange={(checked) => setSettings(prev => ({ ...prev, pushNotifications: !!checked }))}
-                          disabled={isLoading || notificationPermission !== 'granted'}
-                        />
-                        <Label htmlFor="pushNotifications" className="text-slate-300">
-                          Enable motivational push notifications
-                        </Label>
-                      </div>
-                      
-                      {notificationPermission !== 'granted' && (
-                        <Button
-                          type="button"
-                          onClick={handleRequestNotificationPermission}
-                          disabled={requestingPermission}
-                          variant="outline"
-                          size="sm"
-                          className="bg-slate-700 border-slate-600 hover:bg-slate-600"
-                        >
-                          {requestingPermission ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                              Requesting...
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <BellRing className="h-4 w-4" />
-                              {notificationPermission === 'denied' ? 'Re-enable' : 'Enable'} Notifications
-                            </div>
-                          )}
-                        </Button>
-                      )}
-                      
-                      <p className="text-xs text-slate-400">
-                        {notificationPermission === 'granted' 
-                          ? "✅ You'll receive motivational messages as push notifications based on your frequency settings."
-                          : notificationPermission === 'denied'
-                          ? "❌ Notifications are blocked. Click above to request permission again or enable them in your browser settings."
-                          : "🔔 Allow notifications to receive motivational messages on your device."
-                        }
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SMS Reminders */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-              <div className="p-1 bg-slate-500/20 rounded">
-                <Phone className="h-4 w-4 text-slate-400" />
-              </div>
-              SMS Reminders
-            </h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber" className="text-slate-300">Phone Number</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  type="tel"
-                  value={settings.phoneNumber}
-                  onChange={handleInputChange}
-                  placeholder="+61412345678"
-                  className="bg-slate-700 border-slate-600 text-slate-100 flex-1"
-                  disabled={isLoading}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleTestSMS}
-                  disabled={testingSMS || !settings.phoneNumber}
-                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
-                >
-                  {testingSMS ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      Testing...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <TestTube className="h-4 w-4" />
-                      Test
-                    </div>
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="smsEnabled"
-                name="smsEnabled"
-                checked={settings.smsEnabled}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, smsEnabled: !!checked }))}
-                disabled={isLoading}
-              />
-              <Label htmlFor="smsEnabled" className="text-slate-300">
-                Enable SMS reminders (Max 2/day)
-              </Label>
-            </div>
-            
-            <div className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded p-2">
-              ⚠️ <strong>Important:</strong> SMS messages may incur standard carrier charges. We limit reminders to 2 per day to keep it helpful, not spammy.
-            </div>
-
-            {settings.smsEnabled && (
-              <div className="space-y-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Reminder Schedule</Label>
-                  <Select
-                    value={settings.reminderPreset}
-                    onValueChange={handlePresetChange}
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-100">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      {reminderPresets.map((preset) => (
-                        <SelectItem key={preset.value} value={preset.value} className="text-slate-100">
-                          {preset.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {settings.reminderPreset === 'custom' && (
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Custom Times</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {availableTimes.map((time) => (
-                        <div key={time} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`time-${time}`}
-                            checked={settings.reminderTimes[time] || false}
-                            onCheckedChange={() => handleTimeToggle(time)}
-                            disabled={isLoading}
-                          />
-                          <Label htmlFor={`time-${time}`} className="text-sm text-slate-300">
-                            {time}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="text-sm text-slate-400">
-                  Selected times: {selectedTimes.length > 0 ? selectedTimes.join(', ') : 'None'}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Custom Milestones Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-              <div className="p-1 bg-purple-400/20 rounded">
-                <Target className="h-4 w-4 text-purple-400" />
-              </div>
-              Milestone Celebrations
-            </h3>
-            
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="milestoneAnimations"
-                  checked={settings.milestoneAnimations}
-                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, milestoneAnimations: !!checked }))}
-                  disabled={isLoading}
-                />
-                <Label htmlFor="milestoneAnimations" className="text-slate-300">
-                  Enable milestone celebrations
-                </Label>
-              </div>
-              <p className="text-xs text-slate-400">
-                Show celebratory animations when you reach hydration milestones
-              </p>
-            </div>
-
-            {settings.milestoneAnimations && (
-              <div className="space-y-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Celebrate at these percentages:</Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[25, 50, 75, 100].map((percentage) => (
-                      <div key={percentage} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`milestone-${percentage}`}
-                          checked={settings.customMilestones.includes(percentage)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSettings(prev => ({
-                                ...prev,
-                                customMilestones: [...prev.customMilestones, percentage].sort((a, b) => a - b)
-                              }));
-                            } else {
-                              setSettings(prev => ({
-                                ...prev,
-                                customMilestones: prev.customMilestones.filter(m => m !== percentage)
-                              }));
-                            }
-                          }}
-                          disabled={isLoading}
-                        />
-                        <Label htmlFor={`milestone-${percentage}`} className="text-sm text-slate-300">
-                          {percentage}%
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="text-sm text-slate-400">
-                  Selected milestones: {settings.customMilestones.length > 0 ? settings.customMilestones.join('%, ') + '%' : 'None'}
-                </div>
-                
-                <div className="text-xs text-slate-500 p-2 bg-slate-800/50 rounded">
-                  💡 <strong>Tip:</strong> 50% shows "Halfway there!" and 100% shows confetti celebration. 
-                  25% and 75% give encouraging progress boosts!
-                </div>
-              </div>
-            )}
-          </div>
-
-          <CardFooter className="px-0">
-            <Button 
-              type="submit" 
-              disabled={isLoading} 
-              className="w-full bg-hydration-500 hover:bg-hydration-600 text-white"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  Saving Settings...
-                </div>
-              ) : (
-                "Save Settings"
-              )}
-            </Button>
-          </CardFooter>
-        </form>
-      </CardContent>
-    </Card>
+      <div className="flex justify-end gap-2">
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+    </form>
   );
 }

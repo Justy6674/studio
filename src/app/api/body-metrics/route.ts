@@ -1,6 +1,8 @@
+"use server";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, serverTimestamp, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, query, where, getDocs, doc, deleteDoc, updateDoc, getDoc, serverTimestamp, limit } from 'firebase/firestore';
 import type { BodyMetrics, BodyMetricsEntry, BodyMetricsStats } from '@/lib/types';
 
 // POST - Add new body metrics entry
@@ -36,11 +38,12 @@ export async function POST(request: NextRequest) {
       message: "Body metrics logged successfully!" 
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     console.error('Error adding body metrics:', error);
     return NextResponse.json({ 
       error: 'Failed to log body metrics',
-      details: error.message 
+      details: errorMessage 
     }, { status: 500 });
   }
 }
@@ -126,11 +129,12 @@ export async function GET(request: NextRequest) {
         success: true
       });
 
-    } catch (firestoreError: any) {
-      console.error('📊 Firestore query failed:', firestoreError);
+    } catch (firestoreError) {
+      const error = firestoreError as { code?: string };
+      console.error('📊 Firestore query failed:', error);
       
       // If it's an index error, return empty data gracefully
-      if (firestoreError.code === 'failed-precondition') {
+      if (error.code === 'failed-precondition') {
         console.log('📊 Firebase index required - returning empty data gracefully');
         return NextResponse.json({
           body_metrics: [],
@@ -192,11 +196,12 @@ export async function DELETE(request: NextRequest) {
       message: "Body metrics entry deleted successfully!" 
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     console.error('Error deleting body metrics:', error);
     return NextResponse.json({ 
       error: 'Failed to delete body metrics entry',
-      details: error.message 
+      details: errorMessage 
     }, { status: 500 });
   }
 }
@@ -244,11 +249,12 @@ export async function PUT(request: NextRequest) {
       message: "Body metrics entry updated successfully!" 
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     console.error('Error updating body metrics:', error);
     return NextResponse.json({ 
       error: 'Failed to update body metrics entry',
-      details: error.message 
+      details: errorMessage 
     }, { status: 500 });
   }
 } 

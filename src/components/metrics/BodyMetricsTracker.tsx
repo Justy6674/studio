@@ -58,7 +58,7 @@ export function BodyMetricsTracker() {
       const response = await fetch(`/api/body-metrics?userId=${user.uid}`);
       if (response.ok) {
         const data = await response.json();
-        setMetrics(data.metrics);
+        setMetrics(data.body_metrics || []);
         setStats(data.stats);
       } else {
         throw new Error('Failed to fetch metrics');
