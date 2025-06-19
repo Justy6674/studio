@@ -14,7 +14,6 @@ interface ExportCenterProps {
   longestStreak?: number;
   userName?: string;
   hydrationLogs?: any[];
-  bodyMetrics?: any;
 }
 
 type ExportType = 'progress-summary' | 'hydration-chart' | 'weight-chart' | 'streak-calendar' | 'comparison-chart';
@@ -28,7 +27,6 @@ export default function ExportCenter({
   longestStreak = 0,
   userName = "Friend",
   hydrationLogs = [],
-  bodyMetrics
 }: ExportCenterProps) {
   const { user } = useAuth();
   const [selectedExport, setSelectedExport] = useState<ExportType>('progress-summary');
@@ -97,7 +95,6 @@ export default function ExportCenter({
           longestStreak,
           userName,
           hydrationLogs,
-          bodyMetrics,
           userId: user?.uid
         }
       });

@@ -114,7 +114,7 @@ export default function TestCelebrationsPage() {
                   <li>• <strong>100% Goal:</strong> Multi-stage confetti with brand colors</li>
                   <li>• <strong>Colors:</strong> Blue (#5271FF), Brown (#b68a71), Wheat (#F1E5A6)</li>
                   <li>• <strong>Performance:</strong> Optimized for mobile and desktop</li>
-                  <li>• <strong>Non-blocking:</strong> Doesn't interfere with UI interactions</li>
+                  <li>• <strong>Non-blocking:</strong> Doesn&apos;t interfere with UI interactions</li>
                   <li>• <strong>Auto-dismiss:</strong> Celebrations automatically complete</li>
                 </ul>
               </CardContent>

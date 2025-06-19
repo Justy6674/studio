@@ -1,26 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogWaterForm } from "@/components/water/LogWaterForm";
 import { WaterGlass } from "@/components/water/WaterGlass";
 import { AIMotivationCard } from "@/components/water/AIMotivationCard";
-import { WaterLogExporter } from "@/components/export/WaterLogExporter";
 import { BodyMetricsTracker } from "@/components/metrics/BodyMetricsTracker";
 import { getHydrationLogs, getAIMotivation, logHydration, logOtherDrink } from "@/lib/hydration";
-import { showMotivationNotification } from "@/lib/notifications";
-import type { HydrationLog, UserProfile } from "@/lib/types";
+import type { HydrationLog, BodyMetrics } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Droplets, Target, Lock, Lightbulb, Download, Scale, Flame, Award, FileText, BookOpen } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Droplets, Target, Lock, Lightbulb, Scale, FileText, BookOpen } from "lucide-react";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, subDays, startOfDay, eachDayOfInterval, isSameDay } from "date-fns";
 import { OnboardingTip } from "@/components/onboarding/OnboardingTip";
 import { StreakCelebration } from "@/components/celebrations/StreakCelebration";
 import { MilestoneCelebration } from "@/components/celebrations/MilestoneCelebration";
@@ -44,17 +41,11 @@ export default function DashboardPage() {
   const [currentIntake, setCurrentIntake] = useState(0);
   const [dailyStreak, setDailyStreak] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [glassAnimation, setGlassAnimation] = useState(false);
   const [aiMotivation, setAIMotivation] = useState<string>("");
   const [loadingMotivation, setLoadingMotivation] = useState(false);
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
-  const [celebrationStreak, setCelebrationStreak] = useState(0);
-  const [isNewRecord, setIsNewRecord] = useState(false);
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
   const [milestoneCelebrated, setMilestoneCelebrated] = useState(0);
-  const [lastMilestoneReached, setLastMilestoneReached] = useState(0);
 
   // Enhanced Hydration Celebration State
   const [showHydrationCelebration, setShowHydrationCelebration] = useState(false);
@@ -69,46 +60,15 @@ export default function DashboardPage() {
     isFirstTime: boolean;
   } | null>(null);
 
-  const [bodyMetrics, setBodyMetrics] = useState<any>(null);
-
   const userName = userProfile?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Friend';
   const hydrationGoal = userProfile?.hydrationGoal || 2000;
 
-  // Enhanced onboarding tip for first-time users
-  const [showOnboardingTip, setShowOnboardingTip] = useState(false);
-
   useEffect(() => {
-    // Show onboarding tip for new users (first 3 logs)
-    if (hydrationLogs.length <= 3 && hydrationLogs.length > 0) {
-      setShowOnboardingTip(true);
-    }
+    // This effect can be used for onboarding logic in the future
   }, [hydrationLogs]);
-
-  // Generate smart AI tip based on progress
-  const generateSmartTip = useCallback(() => {
-    const percentage = hydrationGoal > 0 ? (currentIntake / hydrationGoal) * 100 : 0;
-    const remaining = hydrationGoal - currentIntake;
-    
-    if (percentage >= 100) {
-      return `🎉 Goal achieved! Great work staying hydrated today, ${userName}!`;
-    } else if (percentage >= 75) {
-      return `💪 Almost there! Just ${remaining}ml more to complete your goal.`;
-    } else if (percentage >= 50) {
-      return `👍 Halfway there! Keep up the momentum - ${remaining}ml to go.`;
-    } else if (percentage >= 25) {
-      return `🚀 Good start! Drink ${remaining}ml more to reach your hydration goal.`;
-    } else if (currentIntake > 0) {
-      return `💧 Every drop counts! ${remaining}ml remaining for today's goal.`;
-    } else {
-      return `🌅 Start your day right! Begin with a glass of water.`;
-    }
-  }, [currentIntake, hydrationGoal, userName]);
 
   const fetchDashboardData = useCallback(async () => {
     if (!user) return;
-    
-    setLoading(true);
-    setError(null);
     
     try {
       const logs = await getHydrationLogs();
@@ -138,9 +98,6 @@ export default function DashboardPage() {
       
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
     }
   }, [user, hydrationGoal, dailyStreak]);
 
@@ -179,9 +136,6 @@ export default function DashboardPage() {
     }
 
     try {
-      setGlassAnimation(true);
-      
-      // Use the existing logHydration function which still works with the old signature
       const result = await logHydration(amount);
       
       if (result.success) {
@@ -191,23 +145,18 @@ export default function DashboardPage() {
           className: "bg-hydration-500 text-white border-hydration-400",
         });
         
-        // Store old intake for celebration logic
         const oldIntake = currentIntake;
         
-        // Refresh data using existing pattern
         await fetchDashboardData();
         
-        // Enhanced Hydration Celebration Logic for regular water
         const newIntake = oldIntake + amount;
         const oldPercentage = (oldIntake / hydrationGoal) * 100;
         const newPercentage = (newIntake / hydrationGoal) * 100;
         
         if (newPercentage >= 50 && oldPercentage < 50) {
-          // Trigger 50% burst celebration
           setHydrationCelebrationType('50%');
           setShowHydrationCelebration(true);
         } else if (newPercentage >= 100 && oldPercentage < 100) {
-          // Trigger 100% full celebration
           setHydrationCelebrationType('100%');
           setShowHydrationCelebration(true);
         }
@@ -218,18 +167,13 @@ export default function DashboardPage() {
           variant: "destructive",
         });
       }
-      
-      // Reset glass animation after a delay
-      setTimeout(() => setGlassAnimation(false), 1000);
-      
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error logging water:', error);
       toast({
         title: "Hydration Logging Failed",
-        description: error.message || "Failed to log hydration. Please try again.",
+        description: (error as Error).message || "Failed to log hydration. Please try again.",
         variant: "destructive",
       });
-      setTimeout(() => setGlassAnimation(false), 1000);
     }
   };
 
@@ -237,8 +181,6 @@ export default function DashboardPage() {
     if (!user) return;
 
     try {
-      setGlassAnimation(true);
-      
       const result = await logOtherDrink(amount, drinkType, drinkName, hydrationPercentage);
       
       if (result.success) {
@@ -246,455 +188,322 @@ export default function DashboardPage() {
         const hydrationValue = Math.round(amount * (hydrationPercentage / 100));
         const newIntake = currentIntake + hydrationValue;
         
-        // Update current intake with hydration value
         setCurrentIntake(newIntake);
         
-        // Refresh hydration logs
-        const updatedLogs = await getHydrationLogs(30);
-        setHydrationLogs(updatedLogs);
+        toast({
+          title: `Drink logged!`,
+          description: `Added ${hydrationValue}ml of hydration from ${drinkName}.`,
+          className: "bg-hydration-500 text-white border-hydration-400",
+        });
+
+        await fetchDashboardData();
+
+        const oldPercentage = (oldIntake / hydrationGoal) * 100;
+        const newPercentage = (newIntake / hydrationGoal) * 100;
         
-        // Show drink celebration if it's a first-time drink
-        if (result.isFirstTime || drinkType !== 'water') {
-          setDrinkCelebrationData({
-            drinkType,
-            drinkName,
-            isFirstTime: result.isFirstTime || false
-          });
+        if (newPercentage >= 50 && oldPercentage < 50) {
+          setHydrationCelebrationType('50%');
+          setShowHydrationCelebration(true);
+        } else if (newPercentage >= 100 && oldPercentage < 100) {
+          setHydrationCelebrationType('100%');
+          setShowHydrationCelebration(true);
+        }
+
+        if (result.isFirstTime) {
+          setDrinkCelebrationData({ drinkType, drinkName, isFirstTime: true });
           setShowDrinkCelebration(true);
         }
+
+        const milestones = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000];
+        const highestMilestone = milestones.filter(m => newIntake >= m).pop();
         
-        // Check for milestone celebrations (same logic as water)
-        const customMilestones = userProfile?.customMilestones || [50, 100];
-        const milestoneAnimations = userProfile?.milestoneAnimations !== false;
-        
-        if (milestoneAnimations && customMilestones.length > 0) {
-          const oldPercentage = (oldIntake / hydrationGoal) * 100;
-          const newPercentage = (newIntake / hydrationGoal) * 100;
-          
-          // Enhanced Hydration Celebration Logic
-          if (newPercentage >= 50 && oldPercentage < 50) {
-            // Trigger 50% burst celebration
-            setHydrationCelebrationType('50%');
-            setShowHydrationCelebration(true);
-          } else if (newPercentage >= 100 && oldPercentage < 100) {
-            // Trigger 100% full celebration
-            setHydrationCelebrationType('100%');
-            setShowHydrationCelebration(true);
-          }
-          
-          const milestonesReached = customMilestones.filter(milestone => 
-            newPercentage >= milestone && oldPercentage < milestone
-          );
-          
-          if (milestonesReached.length > 0) {
-            const highestMilestone = Math.max(...milestonesReached);
-            setMilestoneCelebrated(highestMilestone);
-            setShowMilestoneCelebration(true);
-            setLastMilestoneReached(highestMilestone);
-          }
-        }
-        
-        // Show success toast
-        toast({
-          title: `${drinkName} logged! ${drinkType === 'water' ? '💧' : '🍹'}`,
-          description: hydrationPercentage < 100 
-            ? `Added ${amount}ml (${hydrationValue}ml hydration value)`
-            : `Added ${amount}ml to your daily intake`,
-          duration: 3000,
-        });
-        
-        // Check for goal achievement notification
-        const newPercentage = (newIntake / hydrationGoal) * 100;
-        if (newPercentage >= 100 && oldIntake < hydrationGoal) {
-          showMotivationNotification("🎉 Daily goal achieved! Great hydration work!");
+        if (highestMilestone && highestMilestone > milestoneCelebrated) {
+          setMilestoneCelebrated(highestMilestone);
+          setShowMilestoneCelebration(true);
         }
       } else {
         toast({
-          title: "Error",
-          description: result.error || "Failed to log drink. Please try again.",
+          title: "Logging Failed",
+          description: result.error || "Failed to log other drink. Please try again.",
           variant: "destructive",
         });
       }
-      
-      // Close modal and reset glass animation
-      setShowOtherDrinkModal(false);
-      setTimeout(() => setGlassAnimation(false), 1000);
-      
     } catch (error) {
       console.error('Error logging other drink:', error);
       toast({
-        title: "Error",
-        description: "Failed to log drink. Please try again.",
+        title: "Logging Failed",
+        description: (error as Error).message || "Failed to log other drink. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setShowOtherDrinkModal(false);
     }
   };
 
   const calculateDailyTotals = (logs: HydrationLog[]): DailyLogSummary[] => {
-    const dailyMap = new Map<string, number>();
-    
+    const dailyTotals: { [key: string]: number } = {};
     logs.forEach(log => {
       const date = format(new Date(log.timestamp), 'yyyy-MM-dd');
-      dailyMap.set(date, (dailyMap.get(date) || 0) + (log.hydrationValue || log.amount));
+      dailyTotals[date] = (dailyTotals[date] || 0) + (log.hydrationValue || log.amount);
     });
-    
-    return Array.from(dailyMap.entries()).map(([date, amount]) => ({
+    return Object.entries(dailyTotals).map(([date, totalAmount]) => ({
       date,
-      totalAmount: amount
+      totalAmount
     }));
   };
 
   const calculateStreaks = (dailyTotals: DailyLogSummary[], goal: number) => {
-    const sortedDays = dailyTotals
-      .filter(day => day.totalAmount >= goal)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (dailyTotals.length === 0) return { currentStreak: 0, longestStreak: 0 };
+    
+    const sortedDays = dailyTotals.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     let currentStreak = 0;
     let longestStreak = 0;
-    let tempStreak = 0;
     
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    const today = startOfDay(new Date());
+    const yesterday = subDays(today, 1);
     
-    // Calculate current streak
-    for (let i = 0; i < sortedDays.length; i++) {
-      const expectedDate = format(subDays(new Date(), i), 'yyyy-MM-dd');
-      if (sortedDays[i]?.date === expectedDate) {
-        currentStreak++;
-      } else {
-        break;
+    let lastStreakDay: Date | null = null;
+    
+    const todayData = sortedDays.find(d => isSameDay(startOfDay(new Date(d.date)), today));
+    const yesterdayData = sortedDays.find(d => isSameDay(startOfDay(new Date(d.date)), yesterday));
+
+    if (todayData && todayData.totalAmount >= goal) {
+      currentStreak = 1;
+      lastStreakDay = today;
+    } else if (yesterdayData && yesterdayData.totalAmount >= goal) {
+      lastStreakDay = yesterday;
+    } else if (todayData && todayData.totalAmount < goal) {
+      return { currentStreak: 0, longestStreak: 0 };
+    }
+    
+    for (let i = sortedDays.length - 1; i >= 0; i--) {
+      const day = sortedDays[i];
+      const dayDate = startOfDay(new Date(day.date));
+      
+      if (day.totalAmount >= goal) {
+        if (lastStreakDay) {
+          const diff = Math.round((lastStreakDay.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diff === 1) {
+            currentStreak++;
+          } else if (diff > 1) {
+            longestStreak = Math.max(longestStreak, currentStreak);
+            currentStreak = 1;
+          }
+        } else {
+          currentStreak = 1;
+        }
+        lastStreakDay = dayDate;
       }
     }
     
-    // Calculate longest streak
-    for (let i = 0; i < sortedDays.length; i++) {
-      if (i === 0 || sortedDays[i-1].date === format(subDays(new Date(sortedDays[i].date), -1), 'yyyy-MM-dd')) {
-        tempStreak++;
-        longestStreak = Math.max(longestStreak, tempStreak);
-      } else {
-        tempStreak = 1;
+    longestStreak = Math.max(longestStreak, currentStreak);
+    
+    const todayMetGoal = todayData && todayData.totalAmount >= goal;
+    if (!todayMetGoal) {
+      const yesterdayMetGoal = yesterdayData && yesterdayData.totalAmount >= goal;
+      if (!yesterdayMetGoal) {
+         currentStreak = 0;
       }
     }
     
     return { currentStreak, longestStreak };
   };
 
-  // Prepare chart data
-  const last7Days = eachDayOfInterval({
-    start: subDays(new Date(), 6),
-    end: new Date()
-  });
+  const weeklyChartData = useMemo(() => {
+    const end = startOfDay(new Date());
+    const start = subDays(end, 6);
+    const dateRange = eachDayOfInterval({ start, end });
 
-  const weeklyChartData = last7Days.map(date => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const dayLogs = hydrationLogs.filter(log => {
-      const logDate = format(new Date(log.timestamp), 'yyyy-MM-dd');
-      return logDate === dateStr;
+    return dateRange.map(date => {
+      const dayLogs = hydrationLogs.filter(log => {
+        const logDate = startOfDay(new Date(log.timestamp));
+        return isSameDay(logDate, date);
+      });
+      const total = dayLogs.reduce((sum, log) => sum + (log.hydrationValue || log.amount), 0);
+      return {
+        date: format(date, "EEE"),
+        goal: hydrationGoal,
+        consumed: total,
+      };
     });
-    const totalWater = dayLogs.reduce((sum, log) => sum + (log.hydrationValue || log.amount), 0);
-    
-    return {
-      date: format(date, 'EEE'),
-      water: totalWater,
-      goal: hydrationGoal
-    };
-  });
+  }, [hydrationLogs, hydrationGoal]);
 
   const chartConfig = {
-    water: {
-      label: "Water Intake",
+    consumed: {
+      label: "Consumed",
       color: "#5271ff",
     },
-  };
+    goal: {
+      label: "Goal",
+      color: "#b68a71",
+    },
+  } satisfies ChartConfig;
 
   if (isSubscriptionLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Skeleton className="h-8 w-48 mx-auto bg-slate-800" />
-          <Skeleton className="h-4 w-32 mx-auto bg-slate-800" />
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="w-full max-w-md p-8 space-y-4">
+          <Skeleton className="w-3/4 h-8 mx-auto" />
+          <Skeleton className="w-full h-48" />
+          <div className="flex justify-between">
+            <Skeleton className="w-1/3 h-12" />
+            <Skeleton className="w-1/3 h-12" />
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!hasActiveSubscription()) {
+  if (!hasActiveSubscription) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-6">
-        <div className="max-w-md w-full">
-          <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-4">
-                <Lock className="h-8 w-8 text-slate-400" />
-              </div>
-              <CardTitle className="text-2xl text-slate-200">Subscription Required</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-6">
-              <p className="text-slate-400">
-                Access your personalised hydration dashboard with AI insights and progress tracking.
-              </p>
-              
-              <div className="space-y-4">
-                <Button 
-                  onClick={() => router.push("/billing")}
-                  className="w-full bg-hydration-600 hover:bg-hydration-700 text-white"
-                >
-                  View Plans
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => router.push("/settings")}
-                  className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
-                >
-                  Manage Account
-                </Button>
-              </div>
-              
-              <p className="text-xs text-slate-500 mt-4">
-                Questions? Contact support@water4weightloss.com
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold flex items-center justify-center">
+              <Lock className="mr-2 h-6 w-6" /> Premium Feature
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-6">
+              The full dashboard experience is available for our premium subscribers.
+            </p>
+            <p className="mb-6">
+              Unlock streaks, advanced analytics, AI motivation, and more.
+            </p>
+            <Button onClick={() => router.push('/billing')} className="w-full">
+              Upgrade to Premium
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  const progressPercentage = hydrationGoal > 0 ? Math.min((currentIntake / hydrationGoal) * 100, 100) : 0;
-
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Onboarding Tip */}
-      {user && <OnboardingTip userId={user.uid} />}
+    <div className="flex flex-col min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8">
       
-      {/* Streak Celebration */}
-      {showStreakCelebration && (
-        <StreakCelebration
-          streak={celebrationStreak}
-          isNewRecord={isNewRecord}
-          onDismiss={() => setShowStreakCelebration(false)}
-        />
-      )}
-      
-      {/* Milestone Celebration */}
-      {showMilestoneCelebration && (
-        <MilestoneCelebration
-          milestone={milestoneCelebrated}
-          currentAmount={currentIntake}
-          goalAmount={hydrationGoal}
-          onDismiss={() => setShowMilestoneCelebration(false)}
-        />
-      )}
-
-      {/* Enhanced Hydration Celebration */}
+      {/* Celebrations Layer */}
+      {showStreakCelebration && <StreakCelebration streak={dailyStreak} isNewRecord={longestStreak === dailyStreak && dailyStreak > 0} onDismiss={() => setShowStreakCelebration(false)} />}
+      {showMilestoneCelebration && <MilestoneCelebration milestone={milestoneCelebrated} currentAmount={currentIntake} goalAmount={hydrationGoal} onDismiss={() => setShowMilestoneCelebration(false)} />}
       {showHydrationCelebration && (
         <HydrationCelebration
           type={hydrationCelebrationType}
           currentAmount={currentIntake}
           goalAmount={hydrationGoal}
-          userName={userName}
           onComplete={() => setShowHydrationCelebration(false)}
         />
       )}
-
-      <div className="container mx-auto px-4 py-4 max-w-6xl">
-        {/* Page Header */}
-        <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2">
-            Hello, {userName}! 👋
-          </h1>
-          <p className="text-slate-300 text-sm sm:text-base">
-            {aiMotivation}
-          </p>
-        </div>
-
-        {/* Main Tabbed Content with Brown Borders */}
-        <Tabs defaultValue="water" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 md:mb-6 bg-slate-800 border border-[#b68a71] h-16 sm:h-12 md:h-10">
-            <TabsTrigger value="water" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
-              <Droplets className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Water</span>
-              <span className="sm:hidden">💧</span>
-            </TabsTrigger>
-            <TabsTrigger value="metrics" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
-              <Scale className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Metrics</span>
-              <span className="sm:hidden">📊</span>
-            </TabsTrigger>
-            <TabsTrigger value="exports" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
-              <FileText className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Export</span>
-              <span className="sm:hidden">📄</span>
-            </TabsTrigger>
-            <TabsTrigger value="info" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm py-2 md:py-1.5">
-              <BookOpen className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Info</span>
-              <span className="sm:hidden">ℹ️</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Water Tab - Streamlined Dashboard */}
-          <TabsContent value="water" className="space-y-4 md:space-y-6">
-            {/* Main Hero Section - Large Glass & Quick Actions Above Fold */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {/* Progress Glass - Compact, Less Dead Space */}
-              <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-slate-200 text-lg">
-                    <div className="p-1.5 bg-hydration-400/20 rounded-lg">
-                      <Target className="h-4 w-4 text-hydration-400" />
-                    </div>
-                    Today's Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center py-3">
-                  <WaterGlass 
-                    currentIntake={currentIntake} 
-                    goalIntake={hydrationGoal}
-                    size="lg"
-                    className="w-full"
-                  />
-                  
-                  {/* Compact Smart Tip */}
-                  <div className="w-full mt-4 p-3 bg-slate-700/50 border border-[#b68a71]/30 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <div className="p-1 bg-hydration-400/20 rounded-lg">
-                        <Lightbulb className="h-3 w-3 text-hydration-400" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-semibold text-slate-200 mb-1">Smart Tip</h4>
-                        <p className="text-xs text-slate-300">{generateSmartTip()}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Log Water - Thumb-Friendly, Above Fold */}
-              <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-                <CardHeader className="pb-3 md:pb-4">
-                  <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
-                    <div className="p-1.5 md:p-2 bg-slate-600/20 rounded-lg">
-                      <Droplets className="h-4 w-4 md:h-6 md:w-6 text-slate-400" />
-                    </div>
-                    Log Water
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <LogWaterForm 
-                    onLogWater={handleLogWater} 
-                    onOtherDrink={() => setShowOtherDrinkModal(true)}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* AI Motivation - Streamlined */}
-            <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-              <CardContent className="p-4 md:p-6">
-                <AIMotivationCard 
-                  motivation={aiMotivation} 
-                  loading={loadingMotivation}
-                  onRefresh={fetchMotivation}
-                />
-              </CardContent>
-            </Card>
-
-            {/* 7-Day Chart - Optional Below Fold */}
-            <Card className="bg-slate-800 border-[#b68a71] shadow-2xl">
-              <CardHeader className="pb-3 md:pb-4">
-                <CardTitle className="flex items-center gap-2 md:gap-3 text-slate-200 text-lg md:text-xl">
-                  <div className="p-1.5 md:p-2 bg-[#b68a71]/20 rounded-lg">
-                    <BarChart className="h-4 w-4 md:h-6 md:w-6 text-[#b68a71]" />
-                  </div>
-                  7-Day Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[180px] md:h-[200px] lg:h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsBarChart data={weeklyChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis 
-                        dataKey="date" 
-                        stroke="#9CA3AF" 
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        stroke="#9CA3AF" 
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar 
-                        dataKey="water" 
-                        fill="#5271ff" 
-                        radius={[4, 4, 0, 0]}
-                        name="Water Intake"
-                      />
-                    </RechartsBarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Body Metrics Tab */}
-          <TabsContent value="metrics" className="space-y-6">
-            <BodyMetricsTracker />
-          </TabsContent>
-
-          {/* Export Tab - REPLACED WITH PROPER EXPORT CENTER */}
-          <TabsContent value="exports" className="space-y-6">
-            <ExportCenter 
-              currentIntake={currentIntake}
-              hydrationGoal={hydrationGoal}
-              dailyStreak={dailyStreak}
-              longestStreak={longestStreak}
-              userName={userName}
-              hydrationLogs={hydrationLogs}
-              bodyMetrics={bodyMetrics}
-            />
-          </TabsContent>
-
-          {/* Info Tab - New */}
-          <TabsContent value="info" className="space-y-6">
-            <InfoCards />
-          </TabsContent>
-        </Tabs>
-
-        {/* Privacy Notice - Subtle Footer */}
-        <div className="text-center py-4 border-t border-slate-700">
-          <p className="text-xs text-slate-500">
-            🔒 Your data is private and only you can download it. No data sold or shared.
-          </p>
-        </div>
-      </div>
-
-      {/* Other Drink Modal */}
-      <OtherDrinkModal
-        isOpen={showOtherDrinkModal}
-        onClose={() => setShowOtherDrinkModal(false)}
-        onConfirm={handleOtherDrink}
-      />
-
-      {/* Drink Celebration */}
       {showDrinkCelebration && drinkCelebrationData && (
         <DrinkCelebration
           drinkType={drinkCelebrationData.drinkType}
           drinkName={drinkCelebrationData.drinkName}
           isFirstTime={drinkCelebrationData.isFirstTime}
-          onComplete={() => {
-            setShowDrinkCelebration(false);
-            setDrinkCelebrationData(null);
-          }}
+          onComplete={() => setShowDrinkCelebration(false)}
         />
       )}
+
+      {/* Onboarding */}
+      {user && <OnboardingTip userId={user.uid} />}
+
+      {/* Main Content */}
+      <Tabs defaultValue="overview" className="flex-grow">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Droplets className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="metrics" className="flex items-center gap-2">
+            <Scale className="h-4 w-4" />
+            Metrics
+          </TabsTrigger>
+          <TabsTrigger value="exports" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Export
+          </TabsTrigger>
+          <TabsTrigger value="info" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Info
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-6 space-y-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Today&apos;s Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WaterGlass currentIntake={currentIntake} goalIntake={hydrationGoal} size="lg" />
+              </CardContent>
+            </Card>
+            <Card className="p-6 space-y-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Droplets className="h-4 w-4" />
+                  Log Water
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LogWaterForm onLogWater={handleLogWater} onOtherDrink={() => setShowOtherDrinkModal(true)} />
+              </CardContent>
+            </Card>
+          </div>
+          <Card className="p-6 space-y-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="h-4 w-4" />
+                AI Motivation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AIMotivationCard motivation={aiMotivation} loading={loadingMotivation} onRefresh={fetchMotivation} />
+            </CardContent>
+          </Card>
+          <Card className="p-6 space-y-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="h-4 w-4" />
+                7-Day Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <RechartsBarChart data={weeklyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="consumed" fill="#5271ff" />
+                    <Bar dataKey="goal" fill="#b68a71" />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="metrics" className="space-y-6">
+          <BodyMetricsTracker />
+        </TabsContent>
+        <TabsContent value="exports" className="space-y-6">
+          <ExportCenter
+            userName={userName}
+            hydrationLogs={hydrationLogs}
+          />
+        </TabsContent>
+        <TabsContent value="info" className="space-y-6">
+          <InfoCards />
+        </TabsContent>
+      </Tabs>
+
+      <OtherDrinkModal
+        isOpen={showOtherDrinkModal}
+        onClose={() => setShowOtherDrinkModal(false)}
+        onConfirm={handleOtherDrink}
+      />
     </div>
   );
 }

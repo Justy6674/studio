@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, currentIntake, goal, streak, preferences } = await request.json();
+    const { currentIntake, goal, streak, preferences } = await request.json();
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(

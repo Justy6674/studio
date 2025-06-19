@@ -1,6 +1,6 @@
 "use server";
 
-import { auth, db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, getDoc } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import { generateMotivationalSms, type GenerateMotivationalSmsInput } from "@/ai/flows/generate-motivational-sms";
@@ -59,13 +59,14 @@ export async function logHydration(userId: string, amount: number) {
 
     revalidatePath("/dashboard");
     return { success: "Hydration logged successfully." };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error logging hydration:", error);
-    return { error: error.message || "Failed to log hydration." };
+    const errorMessage = error instanceof Error ? error.message : "Failed to log hydration.";
+    return { error: errorMessage };
   }
 }
 
-export async function getHydrationLogs(userId: string, limit = 7): Promise<HydrationLog[]> {
+export async function getHydrationLogs(userId: string): Promise<HydrationLog[]> {
   if (!userId) {
     return [];
   }

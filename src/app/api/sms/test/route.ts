@@ -31,11 +31,12 @@ export async function POST(request: NextRequest) {
       messageSid: message.sid,
       message: 'Test SMS sent successfully!'
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending test SMS:', error);
+    const details = error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json({ 
       error: 'Failed to send test SMS',
-      details: error.message 
+      details
     }, { status: 500 });
   }
 } 

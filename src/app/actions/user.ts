@@ -1,6 +1,6 @@
 "use server";
 
-import { auth, db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import type { UserSettings, UserProfile } from "@/lib/types";
@@ -16,9 +16,10 @@ export async function updateUserSettings(userId: string, settings: Partial<UserS
     revalidatePath("/dashboard");
     revalidatePath("/settings");
     return { success: "Settings updated successfully." };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating user settings:", error);
-    return { error: error.message || "Failed to update settings." };
+    const errorMessage = error instanceof Error ? error.message : "Failed to update settings.";
+    return { error: errorMessage };
   }
 }
 
