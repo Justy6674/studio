@@ -61,7 +61,14 @@ export function Header() {
           <div className="md:hidden">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="active:scale-95 transition-transform"
+                  aria-expanded={mobileMenuOpen}
+                  aria-label="Toggle navigation menu"
+                  aria-controls="mobile-navigation"
+                >
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Toggle menu</span>
                 </Button>
@@ -80,12 +87,12 @@ export function Header() {
                   </div>
                   <span className="font-bold text-hydration-400">Water4WeightLoss</span>
                 </div>
-                <nav className="flex flex-col space-y-4">
+                <nav id="mobile-navigation" className="flex flex-col space-y-1">
                   {user && navLinks.map(link => (
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="text-lg transition-colors hover:text-primary text-foreground/80"
+                      className="text-lg transition-colors hover:text-primary text-foreground/80 py-3 px-4 -mx-4 active:bg-accent/50"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {link.label}
