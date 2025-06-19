@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +19,26 @@ import Link from "next/link";
 
 export function UserNav() {
   const { user, userProfile, logOut } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!user) return null;
+  useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [user]);
+
+  if (!user) return null; 
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center space-x-2 px-2">
+        <Skeleton className="h-9 w-9 rounded-full" />
+      </div>
+    );
+  }
 
   const getInitials = (name?: string | null) => {
     if (!name) return "U";
@@ -43,10 +63,14 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-          <Avatar className="h-9 w-9">
+        <Button 
+          variant="ghost" 
+          className="relative h-10 w-10 rounded-full active:scale-95 transition-transform"
+          aria-label="User menu"
+        >
+          <Avatar className="h-10 w-10">
             <AvatarImage src={user.photoURL || undefined} alt={displayName} />
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback className="text-sm">{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -59,17 +83,17 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/settings">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+          <DropdownMenuItem asChild className="py-2">
+            <Link href="/settings" className="flex items-center w-full">
+              <Settings className="mr-3 h-5 w-5" />
+              <span className="text-base">Settings</span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+        <DropdownMenuItem onClick={handleLogout} className="py-2">
+          <LogOut className="mr-3 h-5 w-5" />
+          <span className="text-base">Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Enhanced touch targets and feedback */
+@layer base {
+  /* Ensure minimum touch target size for better mobile interaction */
+  button, [role="button"], .btn {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  /* Improved button tap feedback */
+  button:active {
+    @apply transition-transform duration-75 ease-out scale-95;
+  }
+  
+  /* Better touch feedback for interactive elements */
+  [role="button"], button, a[href], .interactive {
+    @apply active:opacity-80 transition-opacity;
+  }
+  
+  /* Slightly increase tap target size for mobile navigation */
+  @media (max-width: 768px) {
+    a[href], button, [role="button"] {
+      @apply min-h-[48px] min-w-[48px];
+    }
+  }
+}
+
 @layer base {
   :root {
     /* Water4WeightLoss Design System - Light Mode */
