@@ -96,6 +96,6 @@ export function getBorderWidth(width: BorderWidth = 'DEFAULT'): string {
   return borderWidth[width];
 }
 
-export function getOpacity(level: Opacity = '100'): string {
+export function getOpacity(level: Opacity = 100): string {
   return opacity[level];
 }
