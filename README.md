@@ -25,6 +25,89 @@ A comprehensive hydration tracking application built for Australians, focusing o
 - **Subscription**: $6.99 AUD/month via Stripe
 - **Gated Features**: Account management, AI coaching, and Twilio SMS behind authentication
 
+## 📊 Monitoring and Error Tracking
+
+### Performance Monitoring
+
+We use Lighthouse CI to track performance metrics and ensure our app meets performance standards. The following metrics are monitored:
+
+- **First Contentful Paint (FCP)**: Measures loading performance
+- **Largest Contentful Paint (LCP)**: Measures loading performance
+- **Cumulative Layout Shift (CLS)**: Measures visual stability
+- **First Input Delay (FID)**: Measures interactivity
+- **Time to First Byte (TTFB)**: Measures server response time
+
+To run Lighthouse CI locally:
+
+```bash
+npm run lhci:autorun
+```
+
+### Web Vitals
+
+Web Vitals are automatically tracked and reported to our analytics service. The following metrics are collected:
+
+- **CLS** (Cumulative Layout Shift)
+- **FID** (First Input Delay)
+- **FCP** (First Contentful Paint)
+- **LCP** (Largest Contentful Paint)
+- **TTFB** (Time to First Byte)
+
+### Error Tracking with Sentry
+
+We use Sentry for error tracking and monitoring. The following types of errors are tracked:
+
+- Unhandled exceptions
+- Unhandled promise rejections
+- React component errors (via ErrorBoundary)
+- Network request failures
+
+To test error tracking in development:
+
+```typescript
+// Example: Manually report an error
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.captureException(new Error('Test error'));
+```
+
+### Analytics
+
+We track user interactions and page views using Firebase Analytics. The following events are tracked:
+
+- Page views
+- Feature usage
+- User interactions
+- Conversion events
+
+## 🔧 Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```env
+# Feature Flags (Unleash)
+NEXT_PUBLIC_UNLEASH_URL=https://app.unleash-hosted.com/demo/api/
+NEXT_PUBLIC_UNLEASH_CLIENT_KEY=your-client-key
+NEXT_PUBLIC_UNLEASH_APP_NAME=water4weightloss-production
+
+# Firebase (existing)
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-bucket.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
+
+# Twilio (if not already configured)
+TWILIO_ACCOUNT_SID=your-account-sid
+TWILIO_AUTH_TOKEN=your-auth-token
+TWILIO_PHONE_NUMBER=+1234567890
+
+# Gemini AI
+GEMINI_API_KEY=your-gemini-api-key
+```
+
 ## 🛠 Tech Stack
 
 - **Frontend**: Next.js 15 on Replit

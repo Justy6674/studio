@@ -165,6 +165,13 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, s
       </Card>
 );
 
+const reminderTones = [
+  { value: 'kind', label: 'Kind & Gentle' },
+  { value: 'strict', label: 'Strict & Direct' },
+  { value: 'funny', label: 'Funny & Lighthearted' },
+  { value: 'kick', label: 'Kick My Ass!' },
+];
+
 const AppSettings: React.FC<AppSettingsProps> = ({ settings, setSettings }) => (
     <Card>
         <CardHeader>
@@ -196,14 +203,34 @@ const AppSettings: React.FC<AppSettingsProps> = ({ settings, setSettings }) => (
           {/* Milestone Animations */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
-              <Label htmlFor="milestoneAnimations" className="font-medium">Enable Milestone Animations</Label>
-              <p className="text-sm text-muted-foreground">See celebrations for streaks and goals.</p>
+              <Label htmlFor="milestoneAnimations">Milestone Animations</Label>
+              <p className="text-sm text-muted-foreground">Enable celebratory animations for hydration milestones.</p>
             </div>
-            <Checkbox
-              id="milestoneAnimations"
-              checked={settings.milestoneAnimations}
-              onCheckedChange={(checked) => setSettings(prev => ({ ...prev, milestoneAnimations: !!checked }))}
+            <Checkbox 
+              id="milestoneAnimations" 
+              checked={settings.milestoneAnimations} 
+              onCheckedChange={(checked) => setSettings(prev => ({ ...prev, milestoneAnimations: !!checked }))} 
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="motivationTone">Reminder Tone</Label>
+            <Select 
+              value={settings.motivationTone} 
+              onValueChange={(value) => setSettings(prev => ({ ...prev, motivationTone: value }))}
+            >
+              <SelectTrigger id="motivationTone">
+                <SelectValue placeholder="Select a reminder tone" />
+              </SelectTrigger>
+              <SelectContent>
+                {reminderTones.map(tone => (
+                  <SelectItem key={tone.value} value={tone.value}>
+                    {tone.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">Choose the style of your AI motivational messages and reminders.</p>
           </div>
         </CardContent>
       </Card>
