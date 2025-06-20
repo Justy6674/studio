@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { UnleashProvider as BaseUnleashProvider } from '@unleash/nextjs';
+import { FlagProvider as BaseUnleashProvider } from '@unleash/nextjs';
 import { FeatureFlagName, defaultFlags } from '@/lib/feature-flags';
 
 interface FeatureFlagContextType {
