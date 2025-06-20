@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 // Helper type to handle both Date and Firestore Timestamp
@@ -124,21 +124,23 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
 
       const today = getCurrentDateString();
       const docRef = doc(db, 'users', user.uid, 'hydration', today);
-      const newLog = createHydrationRecord(amount, serverTimestamp() as unknown as Timestamp);
 
-      const updatedLogs = [...dailyHydration.logs, newLog];
+      // Atomically update the document in Firestore
+      await updateDoc(docRef, {
+        total: dailyHydration.total + amount,
+        logs: arrayUnion({ amount, timestamp: serverTimestamp() }),
+        lastUpdated: serverTimestamp(),
+      });
+
+      // Optimistically update the local state for a responsive UI
+      const newLogForState = createHydrationRecord(amount, new Date());
+      const updatedLogs = [...dailyHydration.logs, newLogForState];
       const updatedHydration: DailyHydration = {
         ...dailyHydration,
         total: dailyHydration.total + amount,
         logs: updatedLogs,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
-
-      await updateDoc(docRef, {
-        total: updatedHydration.total,
-        logs: [...updatedHydration.logs],
-        lastUpdated: updatedHydration.lastUpdated
-      });
 
       setDailyHydration(updatedHydration);
 
@@ -146,8 +148,10 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
       if (updatedHydration.total >= hydrationGoal) {
         // 100% hydration - show celebration
         // This will be handled by the UI component
-      } else if (updatedHydration.total >= hydrationGoal * 0.5 && 
-                dailyHydration.total < hydrationGoal * 0.5) {
+      } else if (
+        updatedHydration.total >= hydrationGoal * 0.5 &&
+        dailyHydration.total < hydrationGoal * 0.5
+      ) {
         // Crossed 50% - show encouragement
         // This will be handled by the UI component
       }

@@ -6,14 +6,17 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { HydrationProvider } from '@/contexts/HydrationContext';
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
-import { FeatureFlagProvider } from './providers/FeatureFlagProvider';
+// import { FeatureFlagProvider } from './providers/FeatureFlagProvider';
 import { ThemeProvider } from './providers/ThemeProvider';
 
 // Validate required environment variables
 const requiredEnvVars = [
-  'NEXT_PUBLIC_UNLEASH_URL',
-  'NEXT_PUBLIC_UNLEASH_CLIENT_KEY',
-  'NEXT_PUBLIC_UNLEASH_APP_NAME'
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  // 'NEXT_PUBLIC_UNLEASH_URL',
+  // 'NEXT_PUBLIC_UNLEASH_CLIENT_KEY',
+  // 'NEXT_PUBLIC_UNLEASH_APP_NAME'
 ];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -32,15 +35,15 @@ const queryClient = new QueryClient({
 });
 
 export function Providers({ children }: { children: ReactNode }) {
-  const unleashConfig = {
-    url: process.env.NEXT_PUBLIC_UNLEASH_URL || 'https://app.unleash-hosted.com/demo/api/',
-    clientKey: process.env.NEXT_PUBLIC_UNLEASH_CLIENT_KEY || 'demo-app:default.9a5bcb937e5b9d3473de3bf99b3b9f9a1a7e42c7b2635959478dcb81',
-    appName: process.env.NEXT_PUBLIC_UNLEASH_APP_NAME || 'water4weightloss-development',
-  };
+  // const unleashConfig = {
+  //   url: process.env.NEXT_PUBLIC_UNLEASH_URL || 'https://app.unleash-hosted.com/demo/api/',
+  //   clientKey: process.env.NEXT_PUBLIC_UNLEASH_CLIENT_KEY || 'demo-app:default.9a5bcb937e5b9d3473de3bf99b3b9f9a1a7e42c7b2635959478dcb81',
+  //   appName: process.env.NEXT_PUBLIC_UNLEASH_APP_NAME || 'water4weightloss-development',
+  // };
 
   return (
     <QueryClientProvider client={queryClient}>
-      <FeatureFlagProvider unleashConfig={unleashConfig}>
+      {/* <FeatureFlagProvider unleashConfig={unleashConfig}> */}
         <ThemeProvider>
           <AuthProvider>
             <HydrationProvider>
@@ -50,7 +53,7 @@ export function Providers({ children }: { children: ReactNode }) {
             </HydrationProvider>
           </AuthProvider>
         </ThemeProvider>
-      </FeatureFlagProvider>
+      {/* </FeatureFlagProvider> */}
     </QueryClientProvider>
   );
 }

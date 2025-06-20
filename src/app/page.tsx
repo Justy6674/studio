@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Droplets, ArrowRight, User, Clock } from "lucide-react";
+import FAB from "@/components/FAB";
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -61,6 +62,7 @@ export default function HomePage() {
             </Link>
           </CardContent>
         </Card>
+        <FAB />
       </div>
     );
   }
