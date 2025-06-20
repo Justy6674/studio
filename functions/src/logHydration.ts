@@ -1,7 +1,10 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { createAuthenticatedFunction } from "./types/firebase";
 
-admin.initializeApp();
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 export interface LogHydrationData {
   amount: number;
@@ -9,15 +12,20 @@ export interface LogHydrationData {
   unit: string;
 }
 
-export const logHydration = functions.https.onCall(
-  async (data: LogHydrationData, context: functions.https.CallableContext) => {
-    if (!context.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
-    }
+interface LogHydrationResponse {
+  success: boolean;
+  logId: string;
+  message: string;
+}
 
-    const userId = context.auth.uid;
-    const userEmail = context.auth.token?.email || null;
-    const userName = context.auth.token?.name || "User";
+export const logHydration = createAuthenticatedFunction<LogHydrationData, LogHydrationResponse>(
+  async (data, userId) => {
+    // Get user information from Firestore instead of context
+    // This is a more robust approach anyway
+    const userDoc = await admin.firestore().collection("users").doc(userId).get();
+    const userData = userDoc.data() || {};
+    const userEmail = userData.email || null;
+    const userName = userData.name || "User";
 
     const logEntry = {
       amount: data.amount,

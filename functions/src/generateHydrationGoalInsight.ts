@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel } from '@google/generative-ai';
 import { format, startOfWeek, addDays } from 'date-fns';
+import { createAuthenticatedFunction } from "./types/firebase";
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -28,18 +29,19 @@ interface UserProfileData {
   name?: string;
 }
 
-interface RequestData {
+interface HydrationInsightRequest {
   hydrationPattern: number[];
   weekStart: string;
 }
 
-export const generateHydrationGoalInsight = functions.https.onCall(async (data: any, context: any) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
+interface HydrationInsightResponse {
+  insight: string;
+  recommendations: string[];
+}
 
-  const userId = context.auth.uid;
-  const { hydrationPattern, weekStart } = data as RequestData;
+export const generateHydrationGoalInsight = createAuthenticatedFunction<HydrationInsightRequest, HydrationInsightResponse>(
+  async (data, userId) => {
+    const { hydrationPattern, weekStart } = data;
 
   if (!hydrationPattern || !Array.isArray(hydrationPattern) || hydrationPattern.length !== 7) {
     throw new functions.https.HttpsError('invalid-argument', 'hydrationPattern must be an array of 7 numbers (one for each day of the week)');
@@ -164,7 +166,16 @@ export const generateHydrationGoalInsight = functions.https.onCall(async (data: 
       }
     });
 
-    return { insight: insightText };
+    // Generate recommendations based on hydration pattern
+    const recommendations = [
+      lowestDay < hydrationGoal ? `Try to increase your intake on ${worstDay}s` : 'Keep up your consistent hydration throughout the week',
+      averageDailyIntake < hydrationGoal ? 'Set reminders to drink water throughout the day' : 'Continue your excellent hydration habits'
+    ];
+
+    return { 
+      insight: insightText,
+      recommendations
+    };
 
   } catch (error: any) {
     console.error('Error generating hydration goal insight for user', userId, ':', error);
