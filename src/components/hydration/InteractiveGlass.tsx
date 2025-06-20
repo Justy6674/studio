@@ -212,7 +212,7 @@ export function InteractiveGlass({
           {/* Progress indicator */}
           <div className="w-full max-w-xs">
             <div className="flex justify-between text-xs text-brown-300 mb-1">
-              <span>Today's Progress</span>
+              <span>Today&apos;s Progress</span>
               <span>{Math.round(percentage)}%</span>
             </div>
             <div className="w-full bg-slate-600 rounded-full h-2">

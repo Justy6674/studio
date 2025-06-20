@@ -9,11 +9,10 @@ import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import { useAuth as useAuthContext } from "@/contexts/AuthContext";
+
 import { Logo } from "@/components/ui/logo";
 
 interface AuthFormProps {
@@ -23,7 +22,7 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { fetchUserProfile } = useAuthContext();
+
 
   const [isLogin, setIsLogin] = useState(mode === "login");
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +48,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       if (isLogin) {
         const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        await fetchUserProfile(userCredential.user);
+
         toast({ 
           title: "Welcome back!", 
           description: `Signed in successfully as ${userCredential.user.email}` 
@@ -75,7 +74,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         };
         
         await setDoc(doc(db, "users", user.uid), userProfile);
-        await fetchUserProfile(user);
+
         
         toast({ 
           title: `Welcome ${userProfile.name}!`, 

@@ -11,7 +11,7 @@ interface StreakCelebrationProps {
 }
 
 export function StreakCelebration({ streak, isNewRecord = false, onDismiss }: StreakCelebrationProps) {
-  const [showConfetti, setShowConfetti] = useState(true);
+  const [showConfetti] = useState(true);
 
   useEffect(() => {
     // Auto-dismiss after 5 seconds

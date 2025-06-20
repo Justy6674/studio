@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlidersHorizontal, Phone, TestTube, Sparkles, BellRing, Target } from "lucide-react";
+import { SlidersHorizontal, Sparkles, BellRing } from "lucide-react";
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
 
 const reminderPresets = [
@@ -166,9 +166,9 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, s
 );
 
 const reminderTones = [
-  { value: 'kind', label: 'Kind & Gentle' },
-  { value: 'strict', label: 'Strict & Direct' },
-  { value: 'funny', label: 'Funny & Lighthearted' },
+  { value: 'kind', label: 'Kind &amp; Gentle' },
+  { value: 'strict', label: 'Strict &amp; Direct' },
+  { value: 'funny', label: 'Funny &amp; Lighthearted' },
   { value: 'kick', label: 'Kick My Ass!' },
 ];
 
@@ -181,24 +181,7 @@ const AppSettings: React.FC<AppSettingsProps> = ({ settings, setSettings }) => (
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Motivation Tone */}
-          <div className="space-y-2">
-            <Label htmlFor="motivationTone">AI Motivation Tone</Label>
-            <Select
-              value={settings.motivationTone}
-              onValueChange={(value) => setSettings(prev => ({ ...prev, motivationTone: value }))}
-            >
-              <SelectTrigger id="motivationTone">
-                <SelectValue placeholder="Select a tone" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Default">Default (Friendly & Supportive)</SelectItem>
-                <SelectItem value="Sarge">Drill Sergeant (Tough Love)</SelectItem>
-                <SelectItem value="Zen">Zen Master (Calm & Mindful)</SelectItem>
-                <SelectItem value="Pirate">Pirate (Adventurous & Fun)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
 
           {/* Milestone Animations */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -255,7 +238,7 @@ export function SettingsForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  const [requestingPermission, setRequestingPermission] = useState(false);
+
 
   useEffect(() => {
     if (userProfile) {
@@ -369,7 +352,7 @@ export function SettingsForm() {
   };
 
   const handleRequestNotificationPermission = async () => {
-    setRequestingPermission(true);
+
     try {
       const permission = await requestNotificationPermission();
       setNotificationPermission(permission);
@@ -395,7 +378,7 @@ export function SettingsForm() {
         description: "Could not request notification permission.",
       });
     } finally {
-      setRequestingPermission(false);
+
     }
   };
 

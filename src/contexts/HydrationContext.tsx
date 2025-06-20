@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -42,80 +42,78 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [hydrationGoal, setHydrationGoal] = useState(3000); // Default 3L goal
 
-  // Format date as YYYY-MM-DD
-  const getCurrentDateString = () => {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
-  };
-
   // Calculate hydration percentage
-  const hydrationPercentage = dailyHydration 
+  const hydrationPercentage = dailyHydration
     ? Math.min(Math.round((dailyHydration.total / hydrationGoal) * 100), 100)
     : 0;
 
-  // Helper to convert Firestore timestamp to Date
-  const toDate = (timestamp: MaybeTimestamp): Date => {
+  const getCurrentDateString = useCallback(() => {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  }, []);
+
+  const toDate = useCallback((timestamp: MaybeTimestamp): Date => {
     return timestamp instanceof Date ? timestamp : timestamp?.toDate?.() || new Date();
-  };
-  
-  // Helper to create a hydration record
-  const createHydrationRecord = (amount: number, timestamp: MaybeTimestamp = new Date()): HydrationRecord => ({
+  }, []);
+
+  const createHydrationRecord = useCallback((amount: number, timestamp: MaybeTimestamp = new Date()): HydrationRecord => ({
     amount,
     timestamp,
     getDate: () => toDate(timestamp)
-  });
+  }), [toDate]);
 
-  // Load user's hydration data
-  useEffect(() => {
+  const loadHydrationData = useCallback(async () => {
     if (!user) return;
 
-    const loadHydrationData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const today = getCurrentDateString();
-        const docRef = doc(db, 'users', user.uid, 'hydration', today);
-        const docSnap = await getDoc(docRef);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const today = getCurrentDateString();
+      const docRef = doc(db, 'users', user.uid, 'hydration', today);
+      const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data() as Omit<DailyHydration, 'date'>;
-          const logs = (data.logs || []).map((log: any) => 
-            createHydrationRecord(log.amount, log.timestamp)
-          );
-          
-          setDailyHydration({
-            ...data,
-            date: today,
-            logs,
-            lastUpdated: toDate(data.lastUpdated)
-          });
-          setHydrationGoal(data.goal || 3000);
-        } else {
-          // Create new daily hydration record
-          const newHydration: DailyHydration = {
-            date: today,
-            total: 0,
-            goal: 3000,
-            logs: [],
-            lastUpdated: new Date()
-          };
-          await setDoc(docRef, newHydration);
-          setDailyHydration(newHydration);
-        }
-      } catch (err) {
-        console.error('Error loading hydration data:', err);
-        setError('Failed to load hydration data');
-      } finally {
-        setIsLoading(false);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as Omit<DailyHydration, 'date'>;
+        const logs = (data.logs || []).map((log: any) => 
+          createHydrationRecord(log.amount, log.timestamp)
+        );
+        
+        setDailyHydration({
+          ...data,
+          date: today,
+          logs,
+          lastUpdated: toDate(data.lastUpdated)
+        });
+        setHydrationGoal(data.goal || 3000);
+      } else {
+        // Create new daily hydration record
+        const newHydration: DailyHydration = {
+          date: today,
+          total: 0,
+          goal: 3000,
+          logs: [],
+          lastUpdated: new Date()
+        };
+        await setDoc(docRef, newHydration);
+        setDailyHydration(newHydration);
       }
-    };
+    } catch (err) {
+      console.error('Error loading hydration data:', err);
+      setError('Failed to load hydration data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, getCurrentDateString, createHydrationRecord, toDate]);
 
-    loadHydrationData();
-  }, [user]);
+  useEffect(() => {
+    loadHydrationData().catch(err => {
+      console.error("Failed to load hydration data from useEffect:", err);
+      setError('An unexpected error occurred while loading data.');
+    });
+  }, [loadHydrationData]);
 
-  // Log hydration
-  const logHydration = async (amount: number) => {
+  const logHydration = useCallback(async (amount: number) => {
     if (!user || !dailyHydration) return;
 
     try {
@@ -162,10 +160,9 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, dailyHydration, getCurrentDateString, createHydrationRecord, hydrationGoal]);
 
-  // Update hydration goal
-  const updateHydrationGoal = async (newGoal: number) => {
+  const updateHydrationGoal = useCallback(async (newGoal: number) => {
     if (!user || !dailyHydration) return;
 
     try {
@@ -189,7 +186,7 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, dailyHydration]);
 
   return (
     <HydrationContext.Provider

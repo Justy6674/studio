@@ -100,7 +100,7 @@ export function HydrationLogModal({ isOpen, onClose }: HydrationLogModalProps) {
         <DialogHeader>
           <DialogTitle>Log Water Intake</DialogTitle>
           <DialogDescription>
-            Track your hydration by entering the amount of water you've consumed.
+            Track your hydration by entering the amount of water you&apos;ve consumed.
           </DialogDescription>
         </DialogHeader>
         
