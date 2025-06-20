@@ -1,23 +1,51 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [
-        "*.replit.dev",
-        "*.replit.app",
         "localhost:*",
-        "127.0.0.1:*",
-        "*"
+        "127.0.0.1:*"
       ]
+    },
+    optimizePackageImports: ['lucide-react']
+  },
+
+  webpack: (config, { isServer }) => {
+    // Handle font files
+    config.module.rules.push({
+      test: /\.(woff|woff2|eot|ttf|otf)$/i,
+      type: 'asset/resource',
+    });
+
+    // Only use Babel for test files in test environment
+    if (process.env.NODE_ENV === 'test') {
+      const originalEntry = config.entry;
+      config.entry = async () => {
+        const entries = await originalEntry();
+        if (entries['main.js']) {
+          entries['main.js'] = entries['main.js'].filter(
+            (file: string) => !file.includes('node_modules')
+          );
+        }
+        return entries;
+      };
     }
+
+    return config;
   },
+  // TypeScript configuration
   typescript: {
-    ignoreBuildErrors: true,
+    // Enable TypeScript type checking during build
+    ignoreBuildErrors: false,
   },
+  // ESLint configuration
   eslint: {
-    ignoreDuringBuilds: true,
+    // Enable ESLint during build
+    ignoreDuringBuilds: false,
   },
+  // Disable font optimization to prevent Babel/SWC conflict
+  optimizeFonts: false,
   images: {
     remotePatterns: [
       {

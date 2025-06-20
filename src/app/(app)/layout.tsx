@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HydrationFAB } from '@/components/HydrationFAB';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -39,6 +40,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <footer className="py-6 text-center text-xs text-muted-foreground border-t border-border">
         By Downscale &copy; {new Date().getFullYear()}
       </footer>
+      <HydrationFAB />
     </div>
   );
 }

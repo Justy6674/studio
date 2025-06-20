@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogWaterForm } from "@/components/water/LogWaterForm";
-import { WaterGlass } from "@/components/water/WaterGlass";
-import { AIMotivationCard } from "@/components/water/AIMotivationCard";
+import { HydrationProgressRing } from "@/components/water/HydrationProgressRing";
+import { AIMotivationPopup } from "@/components/water/AIMotivationPopup";
 import { BodyMetricsTracker } from "@/components/metrics/BodyMetricsTracker";
 import { getHydrationLogs, getAIMotivation, logHydration, logOtherDrink } from "@/lib/hydration";
 import type { HydrationLog, BodyMetrics } from "@/lib/types";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Droplets, Target, Lock, Lightbulb, Scale, FileText, BookOpen } from "lucide-react";
+import { BarChart, Droplets, Target, Lock, Lightbulb, Scale, FileText, BookOpen, Flame } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, eachDayOfInterval, isSameDay } from "date-fns";
@@ -26,6 +26,7 @@ import OtherDrinkModal from '@/components/OtherDrinkModal';
 import DrinkCelebration from '@/components/celebrations/DrinkCelebration';
 import { InfoCards } from '@/components/info/InfoCards';
 import ExportCenter from "@/components/export/ExportCenter";
+import { StreakTracker } from "@/components/water/StreakTracker";
 
 interface DailyLogSummary {
   date: string; // YYYY-MM-DD
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
   const [milestoneCelebrated, setMilestoneCelebrated] = useState(0);
+  const [showMotivationPopup, setShowMotivationPopup] = useState(false);
 
   // Enhanced Hydration Celebration State
   const [showHydrationCelebration, setShowHydrationCelebration] = useState(false);
@@ -62,6 +64,11 @@ export default function DashboardPage() {
 
   const userName = userProfile?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Friend';
   const hydrationGoal = userProfile?.hydrationGoal || 2000;
+
+  const hydrationPercentage = useMemo(() => {
+    if (hydrationGoal === 0) return 0;
+    return (currentIntake / hydrationGoal) * 100;
+  }, [currentIntake, hydrationGoal]);
 
   useEffect(() => {
     // This effect can be used for onboarding logic in the future
@@ -119,6 +126,23 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Effect to automatically refresh data at midnight
+  useEffect(() => {
+    const calculateMsUntilMidnight = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      return tomorrow.getTime() - now.getTime();
+    };
+
+    const timeoutId = setTimeout(() => {
+      fetchDashboardData();
+    }, calculateMsUntilMidnight());
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchDashboardData]);
+
   useEffect(() => {
     if (currentIntake > 0) {
       fetchMotivation();
@@ -144,6 +168,7 @@ export default function DashboardPage() {
           description: `Added ${amount}ml to your daily intake.`,
           className: "bg-hydration-500 text-white border-hydration-400",
         });
+        setShowMotivationPopup(true);
         
         const oldIntake = currentIntake;
         
@@ -195,6 +220,7 @@ export default function DashboardPage() {
           description: `Added ${hydrationValue}ml of hydration from ${drinkName}.`,
           className: "bg-hydration-500 text-white border-hydration-400",
         });
+        setShowMotivationPopup(true);
 
         await fetchDashboardData();
 
@@ -435,8 +461,8 @@ export default function DashboardPage() {
                   Today&apos;s Progress
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <WaterGlass currentIntake={currentIntake} goalIntake={hydrationGoal} size="lg" />
+              <CardContent className="flex items-center justify-center">
+                <HydrationProgressRing progress={hydrationPercentage} />
               </CardContent>
             </Card>
             <Card className="p-6 space-y-4">
@@ -451,17 +477,19 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
           <Card className="p-6 space-y-4">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="h-4 w-4" />
-                AI Motivation
+                <Flame className="h-5 w-5 text-orange-500" />
+                Streak Tracker
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <AIMotivationCard motivation={aiMotivation} loading={loadingMotivation} onRefresh={fetchMotivation} />
+            <CardContent className="flex items-center justify-center pt-4">
+              <StreakTracker currentStreak={dailyStreak} longestStreak={longestStreak} />
             </CardContent>
           </Card>
+
           <Card className="p-6 space-y-4">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -503,6 +531,14 @@ export default function DashboardPage() {
         isOpen={showOtherDrinkModal}
         onClose={() => setShowOtherDrinkModal(false)}
         onConfirm={handleOtherDrink}
+      />
+
+      <AIMotivationPopup
+        isOpen={showMotivationPopup}
+        onClose={() => setShowMotivationPopup(false)}
+        motivation={aiMotivation}
+        loading={loadingMotivation}
+        onRefresh={fetchMotivation}
       />
     </div>
   );
