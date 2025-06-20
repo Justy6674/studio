@@ -362,7 +362,7 @@ async function generatePDFExport(
     try {
       // Use pdfkit for PDFDocument, pdfkit-table for table plugin
       const PDFDocument = (await import('pdfkit')).default;
-      const pdfkitTable = (await import('pdfkit-table')).default;
+      await import('pdfkit-table'); // just import, don't call
       
       const doc = new PDFDocument({
         size: 'A4',
@@ -375,9 +375,6 @@ async function generatePDFExport(
           Keywords: 'hydration, weight loss, health, export'
         }
       });
-
-      // Patch doc with table plugin
-      pdfkitTable(doc);
 
       const stream = doc.pipe(new ((await import('stream')).PassThrough)());
       const chunks: Buffer[] = [];
