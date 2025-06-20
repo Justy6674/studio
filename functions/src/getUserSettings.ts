@@ -3,6 +3,7 @@
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { createAuthenticatedFunction } from './types/firebase';
 import type { UserPreferences, MotivationTone } from '../../src/lib/types'; // Adjust path as needed
 
 interface UserSettingsOutput {
@@ -14,12 +15,23 @@ interface UserSettingsOutput {
   preferences?: UserPreferences;
 }
 
-export const getUserSettings = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
-  const userId = context.auth.uid;
-  const db = admin.firestore();
+interface UserSettingsRequest {
+  // No specific parameters needed
+}
+
+interface UserSettingsResponse {
+  settings: UserSettingsOutput;
+  profileExists: boolean;
+}
+
+export const getUserSettings = createAuthenticatedFunction<UserSettingsRequest, UserSettingsResponse>(
+  async (data, userId) => {
+    const db = admin.firestore();
+    
+    // Get auth token data from user record in Firebase Auth
+    const userRecord = await admin.auth().getUser(userId);
+    const userName = userRecord.displayName || userRecord.email?.split('@')[0] || 'User';
+    const userEmail = userRecord.email || null;
 
   try {
     const userDocRef = db.collection('users').doc(userId);
@@ -28,15 +40,15 @@ export const getUserSettings = functions.https.onCall(async (data, context) => {
     if (!userDoc.exists) {
       console.warn(`User profile for ${userId} not found. Returning default settings or an indication.`);
       const defaultSettings: UserSettingsOutput = {
-        name: context.auth.token.name || context.auth.token.email?.split('@')[0] || 'User',
+        name: userName,
         hydrationGoal: 2000,
         phoneNumber: null,
         reminderTimes: { '08:00': false, '12:00': true, '16:00': false },
-        email: context.auth.token.email || null,
+        email: userEmail,
         preferences: { tone: 'default' as MotivationTone },
       };
       return { settings: defaultSettings, profileExists: false };
-    }
+    };
     
     const userData = userDoc.data();
 
@@ -45,7 +57,7 @@ export const getUserSettings = functions.https.onCall(async (data, context) => {
       hydrationGoal: userData?.hydrationGoal,
       phoneNumber: userData?.phoneNumber,
       reminderTimes: userData?.reminderTimes,
-      email: userData?.email || context.auth.token.email,
+      email: userData?.email || userEmail,
       preferences: userData?.preferences || { tone: 'default' as MotivationTone },
     };
 

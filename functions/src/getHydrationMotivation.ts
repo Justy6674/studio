@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Firebase Function to generate a hydration-based motivational
  * message using the Gemini API, tailored to a user-selected tone.
@@ -7,6 +6,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel } from '@google/generative-ai';
 import { subDays, format, startOfDay } from 'date-fns';
+import { createAuthenticatedFunction } from './types/firebase';
 import type { MotivationTone } from '../../src/lib/types'; // Adjust path as needed
 
 let genAI: GoogleGenerativeAI | null = null;
@@ -30,18 +30,20 @@ interface HydrationData {
     timestamp: string; // ISO string
 }
 
-interface GetHydrationMotivationData {
+interface GetHydrationMotivationRequest {
   tone: MotivationTone;
   userName?: string;
   hydrationGoal?: number;
   recentLogs?: HydrationData[]; // Optional recent logs for context
 }
 
-export const getHydrationMotivation = functions.https.onCall(async (data: GetHydrationMotivationData, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
-  // const userId = context.auth.uid; // Not strictly needed for this function if all data is passed
+interface GetHydrationMotivationResponse {
+  message: string;
+  tone: MotivationTone;
+}
+
+export const getHydrationMotivation = createAuthenticatedFunction<GetHydrationMotivationRequest, GetHydrationMotivationResponse>(
+  async (data, userId) => {
 
   initializeGenAI();
   if (!model) {

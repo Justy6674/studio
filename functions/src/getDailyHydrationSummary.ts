@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { createAuthenticatedFunction } from "./types/firebase";
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -11,13 +12,12 @@ interface DailyHydrationSummary {
   dailyTotal: number;
 }
 
-export const getDailyHydrationSummary = functions.https.onCall(
-  async (data, context) => {
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-    }
+interface DailyHydrationRequest {
+  // Add request parameters here if needed
+}
 
-    const userId = context.auth.uid;
+export const getDailyHydrationSummary = createAuthenticatedFunction<DailyHydrationRequest, DailyHydrationSummary>(
+  async (data, userId) => {
 
     try {
       const db = admin.firestore();

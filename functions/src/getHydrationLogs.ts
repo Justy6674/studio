@@ -5,13 +5,26 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
+import { createAuthenticatedFunction } from './types/firebase';
 
-export const getHydrationLogs = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
-  const userId = context.auth.uid;
-  const daysToFetch = (typeof data?.daysToFetch === 'number' && data.daysToFetch > 0) ? data.daysToFetch : 7;
+interface HydrationLogRequest {
+  daysToFetch?: number;
+}
+
+interface HydrationLog {
+  id: string;
+  userId: string;
+  amount: number;
+  timestamp: string;
+}
+
+interface HydrationLogsResponse {
+  logs: HydrationLog[];
+}
+
+export const getHydrationLogs = createAuthenticatedFunction<HydrationLogRequest, HydrationLogsResponse>(
+  async (data, userId) => {
+    const daysToFetch = (typeof data?.daysToFetch === 'number' && data.daysToFetch > 0) ? data.daysToFetch : 7;
 
   const db = admin.firestore();
   const today = new Date();

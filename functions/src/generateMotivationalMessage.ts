@@ -28,14 +28,18 @@ interface UserProfileData {
   name?: string;
 }
 
-// @ts-ignore - Force skip TypeScript check for this entire function
-export const generateMotivationalMessage = functions.https.onCall(async (data: any, context: any) => {
-  // TypeScript will now ignore type checking in this function
-  if (!context || !context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
-  
-  const userId = context.auth.uid;
+import { createAuthenticatedFunction } from "./types/firebase";
+
+interface MotivationalMessageRequest {
+  name?: string;
+}
+
+interface MotivationalMessageResponse {
+  message: string;
+}
+
+export const generateMotivationalMessage = createAuthenticatedFunction<MotivationalMessageRequest, MotivationalMessageResponse>(
+  async (data, userId) => {
   const db = admin.firestore();
 
   initializeGenAI(); 

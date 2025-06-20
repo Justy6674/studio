@@ -5,13 +5,24 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { format, subDays, eachDayOfInterval, startOfDay, isSameDay, endOfDay } from 'date-fns';
+import { createAuthenticatedFunction } from './types/firebase';
 
-export const getWeeklyChartData = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
-  const userId = context.auth.uid;
-  const db = admin.firestore();
+interface ChartDataRequest {
+  // No specific parameters needed
+}
+
+interface DailyTotal {
+  date: string;
+  totalAmount: number;
+}
+
+interface WeeklyChartDataResponse {
+  weeklyChartData: DailyTotal[];
+}
+
+export const getWeeklyChartData = createAuthenticatedFunction<ChartDataRequest, WeeklyChartDataResponse>(
+  async (data, userId) => {
+    const db = admin.firestore();
 
   try {
     const today = startOfDay(new Date()); // Current date, time set to 00:00:00

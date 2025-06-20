@@ -5,12 +5,21 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { formatISO, subDays, isSameDay } from 'date-fns';
+import { createAuthenticatedFunction } from './types/firebase';
 
-export const getStreakData = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
-  const userId = context.auth.uid;
+interface StreakDataRequest {
+  // No specific request parameters needed
+}
+
+interface StreakDataResponse {
+  dailyStreak: number;
+  longestStreak: number;
+  lastLogDate: string | null;
+  message?: string;
+}
+
+export const getStreakData = createAuthenticatedFunction<StreakDataRequest, StreakDataResponse>(
+  async (data, userId) => {
   const db = admin.firestore();
 
   try {

@@ -1,10 +1,10 @@
-
 /**
  * @fileOverview Firebase Function to update user settings such as
  * daily hydration goal, reminder times, phone number, and preferences.
  */
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { createAuthenticatedFunction } from './types/firebase';
 import type { UserSettings, UserPreferences, MotivationTone, availableTones } from '../../src/lib/types'; // Adjust path as needed
 
 interface UserSettingsInput {
@@ -15,13 +15,16 @@ interface UserSettingsInput {
   preferences?: UserPreferences;
 }
 
-export const updateUserSettings = functions.https.onCall(async (data: UserSettingsInput, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
-  const userId = context.auth.uid;
-  const { name, hydrationGoal, reminderTimes, phoneNumber, preferences } = data;
-  const db = admin.firestore();
+interface UpdateSettingsResponse {
+  success: boolean;
+  message: string;
+  updatedFields?: string[];
+}
+
+export const updateUserSettings = createAuthenticatedFunction<UserSettingsInput, UpdateSettingsResponse>(
+  async (data, userId) => {
+    const { name, hydrationGoal, reminderTimes, phoneNumber, preferences } = data;
+    const db = admin.firestore();
 
   const settingsToUpdate: Partial<UserSettings & { lastUpdated?: admin.firestore.FieldValue }> = {};
 
@@ -56,13 +59,8 @@ export const updateUserSettings = functions.https.onCall(async (data: UserSettin
   }
   
   if (phoneNumber !== undefined) {
-    if (phoneNumber === null || phoneNumber === "" ) {
-        settingsToUpdate.phoneNumber = null;
-    } else if (typeof phoneNumber === 'string') {
-        if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-             throw new functions.https.HttpsError('invalid-argument', 'Phone number format is invalid. Expected E.164 format e.g. +12345678900.');
-        }
-        settingsToUpdate.phoneNumber = phoneNumber;
+    if (typeof phoneNumber === 'string' || phoneNumber === null) {
+        settingsToUpdate.phoneNumber = phoneNumber === null ? undefined : phoneNumber;
     } else {
         throw new functions.https.HttpsError('invalid-argument', 'Phone number must be a string or null.');
     }

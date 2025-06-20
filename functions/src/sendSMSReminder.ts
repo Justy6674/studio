@@ -1,101 +1,96 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { createAuthenticatedFunction } from "./types/firebase";
 
 const twilio = require('twilio');
 
-export const sendSMSReminder = functions.https.onCall(async (data, context) => {
-  // Verify user is authenticated
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
+interface SMSReminderRequest {
+  tone?: string;
+}
 
-  const { userId, tone } = data;
+interface SMSReminderResponse {
+  success: boolean;
+  message: string;
+}
 
-  if (!userId) {
-    throw new functions.https.HttpsError('invalid-argument', 'userId is required');
-  }
+// Define valid tones as a const array for type safety
+const validTones = ["funny", "supportive", "crass", "kind", "weightloss"] as const;
+type ValidTone = typeof validTones[number];
 
-  // Verify user owns this profile
-  if (context.auth.uid !== userId) {
-    throw new functions.https.HttpsError('permission-denied', 'User can only send reminders to themselves');
-  }
-
-  // Validate tone
-  const validTones = ["funny", "supportive", "crass", "kind", "weightloss"];
-  if (tone && !validTones.includes(tone)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid tone. Must be one of: funny, supportive, crass, kind, weightloss');
-  }
-
-  try {
-    // Get user settings to find phone number and preferences
-    const userSettingsDoc = await admin.firestore().collection('user_preferences').doc(userId).get();
-    if (!userSettingsDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'User preferences not found');
+export const sendSMSReminder = createAuthenticatedFunction<SMSReminderRequest, SMSReminderResponse>(
+  async (data, userId) => {
+    const { tone } = data;
+    
+    // Validate tone if provided
+    if (tone && !validTones.includes(tone as ValidTone)) {
+      throw new functions.https.HttpsError('invalid-argument', 
+        'Invalid tone. Must be one of: funny, supportive, crass, kind, weightloss');
     }
 
-    const userSettings = userSettingsDoc.data();
-    const phoneNumber = userSettings?.phoneNumber;
+    try {
+      // Get user settings to find phone number and preferences
+      const userSettingsDoc = await admin.firestore().collection('user_preferences').doc(userId).get();
+      if (!userSettingsDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'User preferences not found');
+      }
 
-    if (!phoneNumber) {
-      throw new functions.https.HttpsError('failed-precondition', 'Phone number not set in user preferences');
+      const userSettings = userSettingsDoc.data();
+      const phoneNumber = userSettings?.phoneNumber;
+
+      if (!phoneNumber) {
+        throw new functions.https.HttpsError('failed-precondition', 'Phone number not set in user preferences');
+      }
+
+      if (!userSettings?.smsReminderOn) {
+        throw new functions.https.HttpsError('failed-precondition', 'SMS reminders are disabled for this user');
+      }
+
+      // Get Twilio credentials from environment
+      const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+      const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+
+      if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+        throw new functions.https.HttpsError('failed-precondition', 'Twilio credentials not configured');
+      }
+
+      // Define reminder messages by tone
+      const reminderMessages: Record<ValidTone, string> = {
+        funny: "Hey water buddy! Your body is 70% water, not 70% coffee. Time to hydrate!",
+        supportive: "You're doing great! Remember to stay hydrated - your body will thank you.",
+        crass: "Oi! Drink some water now. Your pee shouldn't look like apple juice!",
+        kind: "Gentle reminder: A glass of water now will keep your energy up all day.",
+        weightloss: "Drinking water boosts your metabolism and helps burn calories. Hydrate now!"
+      };
+
+      // Select message based on tone or default to supportive
+      const validTone = (tone && validTones.includes(tone as ValidTone)) ? (tone as ValidTone) : 'supportive';
+      const messageToSend = reminderMessages[validTone];
+
+      // Now send the SMS
+      const twilioClient = twilio(twilioAccountSid, twilioAuthToken);
+      await twilioClient.messages.create({
+        body: messageToSend,
+        from: twilioPhoneNumber,
+        to: phoneNumber
+      });
+
+      // Log the SMS sent for analytics and rate limiting
+      await admin.firestore().collection('sms_logs').add({
+        userId,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        phoneNumber,
+        tone: validTone
+      });
+
+      return { 
+        success: true,
+        message: "SMS reminder sent successfully"
+      };
+    } catch (error: unknown) {
+      console.error("Error sending SMS:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new functions.https.HttpsError('internal', `Failed to send SMS reminder: ${errorMessage}`);
     }
-
-    if (!userSettings?.smsReminderOn) {
-      throw new functions.https.HttpsError('failed-precondition', 'SMS reminders are disabled for this user');
-    }
-
-    // Get Twilio credentials from environment
-    const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
-    const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
-    const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
-
-    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      throw new functions.https.HttpsError('failed-precondition', 'Twilio credentials not configured');
-    }
-
-    // Generate tone-appropriate message
-    const selectedTone = tone || userSettings?.aiTone || 'supportive';
-    const messages = {
-      funny: "G'day! Your water bottle is feeling lonely 😄 Time for a hydration celebration! 💧",
-      supportive: "You're doing great! A glass of water now will keep you on track for your goals 💙💧",
-      crass: "Oi! Stop being a drongo and drink some bloody water! Your body needs it! 💧",
-      kind: "Gentle reminder to be kind to yourself with a refreshing glass of water 🌸💧",
-      weightloss: "Boost your metabolism! Water helps burn fat and flush toxins. Drink up! 🔥💧"
-    };
-
-    const message = messages[selectedTone] || messages.supportive;
-
-    const client = twilio(twilioAccountSid, twilioAuthToken);
-
-    // Send SMS
-    await client.messages.create({
-      body: message,
-      from: twilioPhoneNumber,
-      to: phoneNumber,
-    });
-
-    // Log the reminder in Firestore
-    await admin.firestore().collection('sms_logs').add({
-      userId,
-      phoneNumber,
-      message,
-      tone: selectedTone,
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'sent'
-    });
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error sending SMS reminder:', error);
-
-    // Log the error
-    await admin.firestore().collection('sms_logs').add({
-      userId,
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'failed',
-      error: error.message
-    });
-
-    throw new functions.https.HttpsError('internal', 'Failed to send reminder');
   }
-});
+);
