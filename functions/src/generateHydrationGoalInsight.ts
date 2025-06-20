@@ -28,13 +28,18 @@ interface UserProfileData {
   name?: string;
 }
 
-export const generateHydrationGoalInsight = functions.https.onCall(async (data, context) => {
+interface RequestData {
+  hydrationPattern: number[];
+  weekStart: string;
+}
+
+export const generateHydrationGoalInsight = functions.https.onCall(async (data: any, context: any) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
   const userId = context.auth.uid;
-  const { hydrationPattern, weekStart } = data;
+  const { hydrationPattern, weekStart } = data as RequestData;
 
   if (!hydrationPattern || !Array.isArray(hydrationPattern) || hydrationPattern.length !== 7) {
     throw new functions.https.HttpsError('invalid-argument', 'hydrationPattern must be an array of 7 numbers (one for each day of the week)');
