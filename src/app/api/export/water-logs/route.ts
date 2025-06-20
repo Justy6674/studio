@@ -360,7 +360,9 @@ async function generatePDFExport(
 ): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
-      const PDFDocument = (await import('pdfkit-table')).default;
+      // Use pdfkit for PDFDocument, pdfkit-table for table plugin
+      const PDFDocument = (await import('pdfkit')).default;
+      const pdfkitTable = (await import('pdfkit-table')).default;
       
       const doc = new PDFDocument({
         size: 'A4',
@@ -373,6 +375,9 @@ async function generatePDFExport(
           Keywords: 'hydration, weight loss, health, export'
         }
       });
+
+      // Patch doc with table plugin
+      pdfkitTable(doc);
 
       const stream = doc.pipe(new ((await import('stream')).PassThrough)());
       const chunks: Buffer[] = [];
@@ -625,4 +630,4 @@ function generateCSVExport(
       'Cache-Control': 'no-cache'
     }
   });
-} 
+}
