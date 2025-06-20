@@ -2,19 +2,20 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { FirebaseError } from "firebase/app";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogWaterForm } from "@/components/water/LogWaterForm";
 import { HydrationProgressRing } from "@/components/water/HydrationProgressRing";
 import { AIMotivationPopup } from "@/components/water/AIMotivationPopup";
 import { BodyMetricsTracker } from "@/components/metrics/BodyMetricsTracker";
 import { getHydrationLogs, getAIMotivation, logHydration, logOtherDrink } from "@/lib/hydration";
-import type { HydrationLog, BodyMetrics } from "@/lib/types";
+import type { HydrationLog } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Droplets, Target, Lock, Lightbulb, Scale, FileText, BookOpen, Flame } from "lucide-react";
+import { BarChart, Droplets, Target, Scale, FileText, BookOpen, Flame, Lock } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay, eachDayOfInterval, isSameDay } from "date-fns";
@@ -70,10 +71,6 @@ export default function DashboardPage() {
     return (currentIntake / hydrationGoal) * 100;
   }, [currentIntake, hydrationGoal]);
 
-  useEffect(() => {
-    // This effect can be used for onboarding logic in the future
-  }, [hydrationLogs]);
-
   const fetchDashboardData = useCallback(async () => {
     if (!user) return;
     
@@ -95,7 +92,7 @@ export default function DashboardPage() {
       const { currentStreak, longestStreak: maxStreak } = calculateStreaks(dailyTotals, hydrationGoal);
       
       // Celebrate streak milestones
-      if (currentStreak > dailyStreak && (currentStreak === 3 || currentStreak === 7 || currentStreak % 10 === 0)) {
+      if (currentStreak > 0 && (currentStreak === 3 || currentStreak === 7 || currentStreak % 10 === 0)) {
         setShowStreakCelebration(true);
         setTimeout(() => setShowStreakCelebration(false), 3000);
       }
@@ -103,10 +100,14 @@ export default function DashboardPage() {
       setDailyStreak(currentStreak);
       setLongestStreak(maxStreak);
       
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error('Error fetching dashboard data:', error);
+      } else {
+        console.error('Error fetching dashboard data:', error);
+      }
     }
-  }, [user, hydrationGoal, dailyStreak]);
+  }, [user, hydrationGoal]);
 
   const fetchMotivation = useCallback(async () => {
     if (!user) return;
@@ -115,8 +116,12 @@ export default function DashboardPage() {
     try {
       const result = await getAIMotivation(hydrationGoal);
       setAIMotivation(result.message);
-    } catch (error) {
-      console.error('Error fetching AI motivation:', error);
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error('Error fetching AI motivation:', error);
+      } else {
+        console.error('Error fetching AI motivation:', error);
+      }
     } finally {
       setLoadingMotivation(false);
     }
@@ -192,13 +197,22 @@ export default function DashboardPage() {
           variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error('Error logging water:', error);
-      toast({
-        title: "Hydration Logging Failed",
-        description: (error as Error).message || "Failed to log hydration. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error('Error logging water:', error);
+        toast({
+          title: "Hydration Logging Failed",
+          description: (error as Error).message || "Failed to log hydration. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        console.error('Error logging water:', error);
+        toast({
+          title: "Hydration Logging Failed",
+          description: (error as Error).message || "Failed to log hydration. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -254,13 +268,22 @@ export default function DashboardPage() {
           variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error('Error logging other drink:', error);
-      toast({
-        title: "Logging Failed",
-        description: (error as Error).message || "Failed to log other drink. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        console.error('Error logging other drink:', error);
+        toast({
+          title: "Logging Failed",
+          description: (error as Error).message || "Failed to log other drink. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        console.error('Error logging other drink:', error);
+        toast({
+          title: "Logging Failed",
+          description: (error as Error).message || "Failed to log other drink. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setShowOtherDrinkModal(false);
     }

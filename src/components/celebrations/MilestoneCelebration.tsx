@@ -11,8 +11,8 @@ interface MilestoneCelebrationProps {
   onDismiss: () => void;
 }
 
-export function MilestoneCelebration({ milestone, currentAmount, goalAmount, onDismiss }: MilestoneCelebrationProps) {
-  const [showConfetti, setShowConfetti] = useState(true);
+export function MilestoneCelebration({ milestone, currentAmount, onDismiss }: MilestoneCelebrationProps) {
+  const [showConfetti] = useState(true);
 
   useEffect(() => {
     // Auto-dismiss after 4 seconds

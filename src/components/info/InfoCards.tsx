@@ -14,7 +14,6 @@ import {
   Star,
   User,
   Percent,
-  Clock,
   AlertTriangle,
   CheckCircle,
   Target,
@@ -40,7 +39,7 @@ export function InfoCards() {
         <CardContent className="space-y-4">
           <p className="text-slate-300">
             Welcome to your comprehensive guide for hydration and weight loss success. 
-            Whether you're on GLP-1 medications or following a structured weight loss program, 
+            Whether you&apos;re on GLP-1 medications or following a structured weight loss program, 
             proper hydration is crucial for optimal results.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -293,7 +292,7 @@ export function InfoCards() {
           
           <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3">
             <p className="text-xs text-slate-400">
-              💡 <strong>Pro Tip:</strong> If you're not used to drinking water, start with your current 
+              💡 <strong>Pro Tip:</strong> If you&apos;re not used to drinking water, start with your current 
               intake + 500ml per day and gradually increase. Your body will adapt!
             </p>
           </div>

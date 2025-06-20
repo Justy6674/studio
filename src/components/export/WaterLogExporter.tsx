@@ -10,6 +10,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 // Props interface for receiving dashboard data
+interface HydrationLog {
+  amount: number;
+  timestamp: { seconds: number; nanoseconds: number } | string;
+}
+
+interface HydrationExportData {
+  totalWaterL: number;
+  goalAchievement: number;
+  maxStreak: number;
+  daysTracked: number;
+  hasData: boolean;
+}
+
+interface BodyExportData {
+  currentWeight?: number | null;
+  weightChange?: number;
+  currentWaist?: number | null;
+  waistChange?: number;
+  hasData?: boolean;
+}
+
 interface WaterLogExporterProps {
   // Dashboard data to use as primary source
   currentIntake?: number;
@@ -17,7 +38,7 @@ interface WaterLogExporterProps {
   dailyStreak?: number;
   longestStreak?: number;
   userName?: string;
-  hydrationLogs?: any[];
+  hydrationLogs?: HydrationLog[];
   // Optional - can be undefined if not available
   bodyMetrics?: {
     currentWeight?: number;
@@ -72,84 +93,7 @@ export function WaterLogExporter({
     return 'User';
   };
 
-  const getDashboardHydrationData = () => {
-    try {
-      // Calculate goal achievement from current dashboard data
-      const goalAchievement = hydrationGoal > 0 ? Math.round((currentIntake / hydrationGoal) * 100) : 0;
-      
-      // Calculate total water from recent period or use current intake
-      const daysTracked = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
-      
-      // Use dashboard data directly
-      return {
-        totalWaterL: Math.round(currentIntake / 100) / 10, // Convert to L with 1 decimal
-        goalAchievement: Math.min(goalAchievement, 100), // Cap at 100%
-        maxStreak: Math.max(dailyStreak, longestStreak), // Use the higher of current or longest
-        hasData: currentIntake > 0 || dailyStreak > 0 || hydrationLogs.length > 0
-      };
-    } catch (error) {
-      console.log('Error processing dashboard data:', error);
-      return {
-        totalWaterL: 0,
-        goalAchievement: 0,
-        maxStreak: 0,
-        hasData: false
-      };
-    }
-  };
 
-  const fetchHydrationData = async () => {
-    try {
-      const response = await fetch(`/api/export/water-logs?userId=${user?.uid}&startDate=${startDate}&endDate=${endDate}&format=csv`);
-      
-      if (!response.ok) {
-        console.log('Hydration API failed with status:', response.status);
-        return null;
-      }
-
-      const csvText = await response.text();
-      const lines = csvText.split('\n');
-      
-      let totalWaterML = 0;
-      let goalAchievement = 0;
-      let dataEntries = 0;
-
-      // Parse CSV comments for summary stats
-      for (const line of lines) {
-        try {
-          if (line.includes('Goal Achievement Rate:')) {
-            const match = line.match(/(\d+)%/);
-            if (match) goalAchievement = parseInt(match[1]);
-          }
-          if (line.includes('Total Water Logged:')) {
-            const match = line.match(/(\d+)ml/);
-            if (match) totalWaterML = parseInt(match[1]);
-          }
-        } catch (parseError) {
-          console.log('Error parsing CSV line:', parseError);
-        }
-      }
-
-      // Count actual data rows (not headers or comments)
-      dataEntries = lines.filter(line => 
-        !line.startsWith('#') && 
-        line.trim() && 
-        !line.includes('Date') && 
-        line.includes(',')
-      ).length;
-
-      return {
-        totalWaterL: Math.round(totalWaterML / 100) / 10, // Convert to L with 1 decimal
-        goalAchievement,
-        maxStreak: Math.min(Math.ceil(dataEntries / 3), 30), // Rough estimate
-        hasData: totalWaterML > 0 || goalAchievement > 0 || dataEntries > 0
-      };
-
-    } catch (error) {
-      console.log('Hydration data fetch failed:', error);
-      return null;
-    }
-  };
 
   const fetchBodyMetrics = async () => {
     try {
@@ -251,7 +195,7 @@ export function WaterLogExporter({
       let logoBase64 = '';
       try {
         logoBase64 = await loadLogo();
-      } catch (error) {
+      } catch {
         console.log('Logo load failed, using text fallback');
       }
 
@@ -275,7 +219,7 @@ export function WaterLogExporter({
             finalBodyMetrics = apiBodyMetrics;
             console.log('✅ Got body metrics from API:', finalBodyMetrics);
           }
-        } catch (error) {
+        } catch {
           console.log('📊 API fetch failed, trying direct Firestore...');
         }
       }
@@ -333,7 +277,7 @@ export function WaterLogExporter({
     }
   };
 
-  const createProgressImageHTML = (firstName: string, daysTracked: number, hydration: any, body: any, logoBase64: string) => {
+  const createProgressImageHTML = (firstName: string, daysTracked: number, hydration: HydrationExportData, body: BodyExportData, logoBase64: string) => {
     // ALWAYS show all 4 cards - never hide any sections
     const hasHydrationData = hydration?.hasData;
 
@@ -378,7 +322,7 @@ export function WaterLogExporter({
             font-weight: bold;
             color: #b68a71;
             margin-bottom: 10px;
-          ">${firstName}'s Progress</div>
+          ">${firstName}&apos;s Progress</div>
           <div style="
             font-size: 16px;
             color: #94a3b8;

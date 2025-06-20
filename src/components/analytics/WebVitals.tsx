@@ -5,14 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { reportWebVitals, trackPageView } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
 
-type Metric = {
-  name: string;
-  value: number;
-  id: string;
-  delta: number;
-  entries: PerformanceEntry[];
-  rating?: string;
-};
+
 
 export function WebVitals() {
   const pathname = usePathname();

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 
 interface HydrationCelebrationProps {
@@ -20,21 +20,7 @@ export function HydrationCelebration({
 }: HydrationCelebrationProps) {
   const animationRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (type === '50%') {
-      triggerBurstAnimation();
-    } else if (type === '100%') {
-      triggerFullCelebration();
-    }
-
-    return () => {
-      if (animationRef.current) {
-        clearTimeout(animationRef.current);
-      }
-    };
-  }, [type]);
-
-  const triggerBurstAnimation = () => {
+  const triggerBurstAnimation = useCallback(() => {
     // Quick burst animation for 50% goal
     const burstColors = ['#5271FF', '#60A5FA', '#3B82F6', '#1E40AF'];
     
@@ -65,9 +51,9 @@ export function HydrationCelebration({
 
     // Complete after 1 second
     animationRef.current = setTimeout(onComplete, 1000);
-  };
+  }, [onComplete]);
 
-  const triggerFullCelebration = () => {
+  const triggerFullCelebration = useCallback(() => {
     // Full confetti celebration for 100% goal
     const brandColors = [
       '#5271FF',  // Primary blue
@@ -132,7 +118,21 @@ export function HydrationCelebration({
 
     // Complete after 2.5 seconds
     animationRef.current = setTimeout(onComplete, 2500);
-  };
+  }, [onComplete]);
+
+  useEffect(() => {
+    if (type === '50%') {
+      triggerBurstAnimation();
+    } else if (type === '100%') {
+      triggerFullCelebration();
+    }
+
+    return () => {
+      if (animationRef.current) {
+        clearTimeout(animationRef.current);
+      }
+    };
+  }, [type, triggerBurstAnimation, triggerFullCelebration]);
 
   const getMessage = () => {
     if (type === '50%') {

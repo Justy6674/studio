@@ -25,7 +25,7 @@ export default function DrinkCelebration({
   onComplete 
 }: DrinkCelebrationProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const [showConfetti, setShowConfetti] = useState(true);
+  const [showConfetti] = useState(true);
 
   useEffect(() => {
     // Auto-dismiss after 4 seconds (3 seconds visible + 1 second fade)

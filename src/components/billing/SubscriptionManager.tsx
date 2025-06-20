@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, Droplets, Zap, MessageCircle, Phone, Award } from 'lucide-react';
+import { Check, Zap, MessageCircle, Phone, Award } from 'lucide-react';
 
 interface SubscriptionManagerProps {
   currentTier: 'free' | 'subscribed';

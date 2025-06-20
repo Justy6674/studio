@@ -11,24 +11,45 @@ interface ProgressSummaryData {
 
 interface HydrationChartData {
   // Define properties for hydration chart data later
-  [key: string]: any;
+  date: string;
+  goal: number;
+  consumed: number;
 }
+
+type RequestBody =
+  | {
+      type: 'progress-summary';
+      data: ProgressSummaryData;
+      timeRange: string;
+      format: 'image' | 'pdf';
+    }
+  | {
+      type: 'hydration-chart';
+      data: HydrationChartData;
+      timeRange: string;
+      format: 'image' | 'pdf';
+    }
+  | {
+      type: 'weight-chart' | 'streak-calendar' | 'comparison-chart';
+      timeRange: string;
+      format: 'image' | 'pdf';
+    };
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { type, timeRange, format, data } = body;
+    const body: RequestBody = await request.json();
+    const { timeRange, format } = body;
 
-    console.log('🎨 Generating export:', { type, timeRange, format });
+    console.log('🎨 Generating export:', { type: body.type, timeRange, format });
 
     let buffer: Buffer;
 
-    switch (type) {
+    switch (body.type) {
       case 'progress-summary':
-        buffer = await generateProgressSummary(data);
+        buffer = await generateProgressSummary(body.data);
         break;
       case 'hydration-chart':
-        buffer = await generateHydrationChart(data, timeRange);
+        buffer = await generateHydrationChart(body.data, timeRange);
         break;
       case 'weight-chart':
         buffer = await generateWeightChart();
@@ -40,7 +61,7 @@ export async function POST(request: NextRequest) {
         buffer = await generateComparisonChart();
         break;
       default:
-        throw new Error(`Unknown export type: ${type}`);
+        return NextResponse.json({ error: `Unknown export type` }, { status: 400 });
     }
 
     const contentType = format === 'image' ? 'image/png' : 'application/pdf';
@@ -48,7 +69,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${type}-${timeRange}.${format === 'image' ? 'png' : 'pdf'}"`,
+        'Content-Disposition': `attachment; filename="${body.type}-${timeRange}.${format === 'image' ? 'png' : 'pdf'}"`,
       },
     });
 

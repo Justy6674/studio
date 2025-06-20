@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { 
   Scale, 
   Ruler, 
@@ -18,7 +18,6 @@ import {
   Calendar,
   Edit,
   Trash2,
-  Target,
   BarChart3,
   Minus
 } from "lucide-react";
@@ -44,13 +43,7 @@ export function BodyMetricsTracker() {
   // Edit state
   const [editingEntry, setEditingEntry] = useState<BodyMetrics | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchMetrics();
-    }
-  }, [user]);
-
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     if (!user) return;
     
     setIsLoading(true);
@@ -73,7 +66,13 @@ export function BodyMetricsTracker() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMetrics();
+    }
+  }, [user, fetchMetrics]);
 
   const handleAddEntry = async () => {
     if (!user || !weight || !waist) {

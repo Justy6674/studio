@@ -44,8 +44,7 @@ const nextConfig: NextConfig = {
     // Enable ESLint during build
     ignoreDuringBuilds: false,
   },
-  // Disable font optimization to prevent Babel/SWC conflict
-  optimizeFonts: false,
+
   images: {
     remotePatterns: [
       {
