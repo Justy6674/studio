@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     
     // Call the onError handler if provided
     if (this.props.onError) {
-      this.props.onError(error, errorInfo.componentStack);
+      this.props.onError(error, errorInfo.componentStack || '');
     }
   }
 
