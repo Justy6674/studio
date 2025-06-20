@@ -107,7 +107,7 @@ export const getHydrationMotivation = createAuthenticatedFunction<GetHydrationMo
       throw new functions.https.HttpsError('internal', 'AI service did not return a valid response text.');
     }
     
-    return { message: responseText.trim() };
+    return { message: responseText.trim(), tone };
 
   } catch (error: any) {
     console.error('Error generating hydration motivation:', error);
