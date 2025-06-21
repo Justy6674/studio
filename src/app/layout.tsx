@@ -38,6 +38,9 @@ export const metadata: Metadata = {
   },
 };
 
+// Create a client component wrapper for the error boundary to properly handle event handlers
+import { ClientErrorBoundaryWrapper } from "@/components/ClientErrorBoundaryWrapper";
+
 export default function RootLayout({
   children,
 }: {
@@ -46,22 +49,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.className} antialiased min-h-screen bg-background text-foreground pb-16`}>
-        <ErrorBoundary
-          fallback={
-            <div className="min-h-screen flex items-center justify-center p-4">
-              <div className="max-w-md w-full p-6 bg-card rounded-lg shadow-md">
-                <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-                <p className="mb-4">We're sorry, but an unexpected error occurred. Our team has been notified.</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  Reload Page
-                </button>
-              </div>
-            </div>
-          }
-        >
+        {/* Wrap the app content in a client component boundary to properly handle client/server separation */}
+        <ClientErrorBoundaryWrapper>
           <Providers>
             <div className="min-h-screen">
               {children}
@@ -72,7 +61,7 @@ export default function RootLayout({
               <WebVitals />
             </Suspense>
           </Providers>
-        </ErrorBoundary>
+        </ClientErrorBoundaryWrapper>
       </body>
     </html>
   );
