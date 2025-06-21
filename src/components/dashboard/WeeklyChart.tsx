@@ -29,7 +29,7 @@ export function WeeklyChart({
   const weeklyProgress = (totalIntake / weeklyGoal) * 100;
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: unknown[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-700 border border-brown-500/30 rounded-lg p-3 shadow-lg">

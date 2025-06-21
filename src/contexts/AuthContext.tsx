@@ -173,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return unsubscribe;
-  }, []);
+  }, [loadUserProfile]);
 
   const value = {
     user,

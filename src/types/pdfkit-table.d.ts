@@ -1,4 +1,4 @@
 declare module 'pdfkit-table' {
-  const value: any;
+  const value: unknown;
   export default value;
 }
