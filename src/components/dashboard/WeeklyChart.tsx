@@ -6,6 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, Droplets, Target, Award } from 'lucide-react';
 
+interface HydrationLog {
+  amount: number;
+  timestamp: {
+    toDate: () => Date;
+  };
+}
+
 interface HydrationData {
   day: string;
   amount: number;
@@ -29,7 +36,14 @@ export function WeeklyChart({
   const weeklyProgress = (totalIntake / weeklyGoal) * 100;
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: unknown[]; label?: string }) => {
+  interface TooltipPayload {
+    value: number;
+    name: string;
+    dataKey: string;
+    payload: HydrationData;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayload[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-700 border border-brown-500/30 rounded-lg p-3 shadow-lg">
@@ -254,7 +268,7 @@ export function WeeklyChart({
 }
 
 // Helper function to format data for the chart
-export function formatWeeklyData(hydrationLogs: unknown[], goalAmount: number = 2000): HydrationData[] {
+export function formatWeeklyData(hydrationLogs: unknown[] = [], goalAmount: number = 2000): HydrationData[] {
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const today = new Date();
   const weekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1)); // Start from Monday
@@ -264,16 +278,30 @@ export function formatWeeklyData(hydrationLogs: unknown[], goalAmount: number = 
     currentDate.setDate(weekStart.getDate() + index);
     
     const dateStr = currentDate.toISOString().split('T')[0];
-    const dayLogs = hydrationLogs.filter((log): log is { amount: number; timestamp: { toDate: () => Date } } => {
-      return (
+    const dayLogs = hydrationLogs.filter((log): log is HydrationLog => {
+      const isValidLog = (
         typeof log === 'object' &&
         log !== null &&
         'timestamp' in log &&
-        typeof (log as any).timestamp?.toDate === 'function' &&
+        log.timestamp && 
+        typeof log.timestamp === 'object' &&
+        log.timestamp !== null &&
+        'toDate' in log.timestamp &&
+        typeof log.timestamp.toDate === 'function' &&
         'amount' in log &&
-        typeof (log as any).amount === 'number' &&
-        (log as any).timestamp.toDate().toISOString().split('T')[0] === dateStr
+        typeof log.amount === 'number'
       );
+      
+      if (!isValidLog) return false;
+      
+      try {
+        // At this point, we've verified that log.timestamp has a toDate function
+        const timestampWithToDate = log.timestamp as { toDate: () => Date };
+        const logDate = timestampWithToDate.toDate().toISOString().split('T')[0];
+        return logDate === dateStr;
+      } catch (err) {
+        return false;
+      }
     });
     
     const totalAmount = dayLogs.reduce((sum, log) => sum + (typeof log.amount === 'number' ? log.amount : 0), 0);

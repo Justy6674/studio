@@ -23,6 +23,10 @@ export function InteractiveGlass({
     <div 
       className={`relative flex flex-col items-center ${className}`}
       onClick={onTap}
+      onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? onTap?.() : null}
+      role="button"
+      tabIndex={0}
+      aria-label="Log water by tapping on glass"
     >
       {/* Glass Container */}
       <div className="relative w-32 h-48 cursor-pointer group">

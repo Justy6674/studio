@@ -234,6 +234,13 @@ export function SettingsForm() {
 
 
   useEffect(() => {
+    // Load settings from Firestore will be implemented in future update
+    return () => {
+      // Cleanup function
+    };
+  }, []);
+
+  useEffect(() => {
     if (userProfile) {
       setSettings({
         name: userProfile.name || '',
@@ -354,7 +361,7 @@ export function SettingsForm() {
         description: "Could not request notification permission.",
       });
     } finally {
-
+      // No cleanup needed for notification permission request
     }
   };
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
+import { Suspense } from "react";
 import { AIMotivationTester } from "@/components/admin/AIMotivationTester";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
+// Convert entire page to client component to avoid client/server boundary issues
 export default function AdminTestPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function AdminTestPage() {
   // Simple admin check - you can make this more sophisticated
   const isAdmin = user?.email?.includes('admin') || user?.email?.includes('jb-downscale');
 
+  // If not admin, show access denied
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-6">
@@ -37,6 +40,7 @@ export default function AdminTestPage() {
     );
   }
 
+  // Admin authorized view
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
@@ -57,8 +61,10 @@ export default function AdminTestPage() {
         </div>
 
         {/* AI Motivation Tester */}
-        <AIMotivationTester />
+        <Suspense fallback={<div className="p-4 bg-slate-800 rounded-md">Loading tester...</div>}>
+          <AIMotivationTester />
+        </Suspense>
       </div>
     </div>
   );
-} 
+}
