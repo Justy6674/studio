@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
   },
 
   webpack: (config, { isServer }) => {
+    // suppress opentelemetry/sentry critical dependency warnings
+    config.ignoreWarnings = [
+      { message: /Critical dependency: the request of a dependency is an expression/ }
+    ];
+
     // Handle font files
     config.module.rules.push({
       test: /\.(woff|woff2|eot|ttf|otf)$/i,
