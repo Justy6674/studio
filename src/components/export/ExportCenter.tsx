@@ -13,7 +13,7 @@ interface ExportCenterProps {
   dailyStreak?: number;
   longestStreak?: number;
   userName?: string;
-  hydrationLogs?: any[];
+  hydrationLogs?: unknown[];
 }
 
 type ExportType = 'progress-summary' | 'hydration-chart' | 'weight-chart' | 'streak-calendar' | 'comparison-chart';
@@ -224,7 +224,7 @@ export default function ExportCenter({
               <div className="mt-2 text-xs text-gray-500">
                 <p>• {timeRangeOptions.find(t => t.value === timeRange)?.label} of data</p>
                 <p>• {format === 'image' ? 'High-quality image' : 'PDF document'} format</p>
-                <p>• Water4WeightLoss branding included</p>
+                <p>• <span className="font-semibold">Water4WeightLoss</span> branding included</p>
               </div>
             </div>
 
@@ -258,7 +258,7 @@ async function generateExport(options: {
   type: ExportType;
   timeRange: TimeRange;
   format: Format;
-  data: any;
+  data: unknown;
 }): Promise<{ success: boolean; url: string; filename: string }> {
   const response = await fetch('/api/export/generate', {
     method: 'POST',
@@ -279,4 +279,4 @@ async function generateExport(options: {
   }`;
 
   return { success: true, url, filename };
-} 
+}

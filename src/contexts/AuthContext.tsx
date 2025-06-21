@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Sign in error:", error);
       throw error;
     }
@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await setDoc(doc(db, "users", result.user.uid), userProfile);
       setUserProfile(userProfile);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Sign up error:", error);
       throw error;
     }
@@ -149,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signOut(auth);
       setUserProfile(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Sign out error:", error);
       throw error;
     }

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { FeatureFlagProvider, useFeatureFlag } from '../FeatureFlagProvider';
-import { featureFlags } from '@/lib/feature-flags';
 
 // Mock the UnleashProvider since we don't want to test its internals
 vi.mock('@unleash/nextjs', () => ({
@@ -12,7 +11,7 @@ vi.mock('@unleash/nextjs', () => ({
 
 // Test component that uses the useFeatureFlag hook
 const TestComponent = ({ flagName }: { flagName: string }) => {
-  const { isEnabled, isLoading, error } = useFeatureFlag(flagName as any);
+  const { isEnabled, isLoading, error } = useFeatureFlag(flagName as string);
   
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -54,8 +53,6 @@ describe('FeatureFlagProvider', () => {
     // Suppress console.warn for this test
     const consoleWarn = console.warn;
     console.warn = vi.fn();
-    
-    process.env.NODE_ENV = 'development';
     
     render(
       <FeatureFlagProvider 

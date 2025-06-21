@@ -1,34 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useHaptics } from '@/lib/hooks/use-haptics';
 import { HydrationLogModal } from './hydration/HydrationLogModal';
 import { useHydration } from '@/contexts/HydrationContext';
-
-// Animation variants for the FAB
-const fabVariants = {
-  initial: { scale: 0.8, opacity: 0 },
-  animate: { 
-    scale: 1, 
-    opacity: 1,
-    transition: { 
-      type: 'spring',
-      damping: 15,
-      stiffness: 300
-    }
-  },
-  hover: { 
-    scale: 1.1,
-    transition: { duration: 0.2 }
-  },
-  tap: { 
-    scale: 0.95,
-    transition: { duration: 0.1 }
-  }
-};
 
 export function HydrationFAB() {
   const [isModalOpen, setIsModalOpen] = useState(false);

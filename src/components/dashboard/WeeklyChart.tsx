@@ -29,7 +29,7 @@ export function WeeklyChart({
   const weeklyProgress = (totalIntake / weeklyGoal) * 100;
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-700 border border-brown-500/30 rounded-lg p-3 shadow-lg">
@@ -228,7 +228,7 @@ export function WeeklyChart({
               </p>
             ) : (
               <p className="text-brown-300">
-                💧 You're {Math.round(100 - weeklyProgress)}% away from your weekly goal. Keep going!
+                💧 You&apos;re {Math.round(100 - weeklyProgress)}% away from your weekly goal. Keep going!
               </p>
             )}
             
@@ -244,7 +244,7 @@ export function WeeklyChart({
             
             <p className="text-cream-400">
               💡 Tip: Your average daily intake is {(avgDaily / 1000).toFixed(1)}L. 
-              {avgDaily < 2000 ? ' Try adding an extra glass with each meal.' : ' You\'re doing great!'}
+              {avgDaily < 2000 ? ' Try adding an extra glass with each meal.' : ' You&apos;re doing great!'}
             </p>
           </div>
         </div>
@@ -254,7 +254,7 @@ export function WeeklyChart({
 }
 
 // Helper function to format data for the chart
-export function formatWeeklyData(hydrationLogs: any[], goalAmount: number = 2000): HydrationData[] {
+export function formatWeeklyData(hydrationLogs: unknown[], goalAmount: number = 2000): HydrationData[] {
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const today = new Date();
   const weekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1)); // Start from Monday
@@ -264,11 +264,19 @@ export function formatWeeklyData(hydrationLogs: any[], goalAmount: number = 2000
     currentDate.setDate(weekStart.getDate() + index);
     
     const dateStr = currentDate.toISOString().split('T')[0];
-    const dayLogs = hydrationLogs.filter(log => 
-      log.timestamp && log.timestamp.toDate().toISOString().split('T')[0] === dateStr
-    );
+    const dayLogs = hydrationLogs.filter((log): log is { amount: number; timestamp: { toDate: () => Date } } => {
+      return (
+        typeof log === 'object' &&
+        log !== null &&
+        'timestamp' in log &&
+        typeof (log as any).timestamp?.toDate === 'function' &&
+        'amount' in log &&
+        typeof (log as any).amount === 'number' &&
+        (log as any).timestamp.toDate().toISOString().split('T')[0] === dateStr
+      );
+    });
     
-    const totalAmount = dayLogs.reduce((sum, log) => sum + (log.amount || 0), 0);
+    const totalAmount = dayLogs.reduce((sum, log) => sum + (typeof log.amount === 'number' ? log.amount : 0), 0);
     const percentage = (totalAmount / goalAmount) * 100;
     
     return {
@@ -278,4 +286,4 @@ export function formatWeeklyData(hydrationLogs: any[], goalAmount: number = 2000
       percentage
     };
   });
-} 
+}

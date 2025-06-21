@@ -31,7 +31,7 @@ export function FeatureFlagProvider({
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [flags, setFlags] = useState<Record<FeatureFlagName, boolean>>(defaultFlags);
+  const [flags] = useState<Record<FeatureFlagName, boolean>>(defaultFlags);
 
   // In a real implementation, this would fetch flags from Unleash
   // For now, we'll just use the default values

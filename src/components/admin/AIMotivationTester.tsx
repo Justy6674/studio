@@ -18,9 +18,9 @@ interface TestResult {
   error?: string;
   prompt?: string;
   response_time_ms?: number;
-  test_params?: any;
-  gemini_config?: any;
-  raw_response?: any;
+  test_params?: unknown;
+  gemini_config?: unknown;
+  raw_response?: unknown;
   timestamp?: string;
 }
 
@@ -53,7 +53,7 @@ export function AIMotivationTester() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunningBatch, setIsRunningBatch] = useState(false);
 
-  const testGemini = async (customParams?: any) => {
+  const testGemini = async (customParams?: unknown) => {
     setIsLoading(true);
     try {
       const params = customParams || {
@@ -369,4 +369,4 @@ export function AIMotivationTester() {
       )}
     </div>
   );
-} 
+}

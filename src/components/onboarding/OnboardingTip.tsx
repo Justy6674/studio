@@ -57,10 +57,10 @@ export function OnboardingTip({ userId }: OnboardingTipProps) {
             onClick={handleDismiss}
             className="flex-1 bg-hydration-500 hover:bg-hydration-600 text-white"
           >
-            Let's Start! 🚀
+            Let&apos;s Start! 🚀
           </Button>
         </div>
       </div>
     </div>
   );
-} 
+}

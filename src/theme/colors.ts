@@ -95,7 +95,7 @@ export type ColorShade =
 type ColorValue = {
   [key in ColorShade]?: string;
 } & {
-  [key: string]: any; // For any additional properties that might exist
+  [key: string]: unknown; // For any additional properties that might exist
 };
 
 // Utility function to get color with type safety
@@ -105,5 +105,5 @@ export function getColor(
 ): string {
   const colorObj = colors[color] as ColorValue;
   const shadeKey = typeof shade === 'number' ? shade.toString() as keyof typeof colorObj : shade;
-  return colorObj[shadeKey] || colorObj[500] || '#000000';
+  return typeof colorObj[shadeKey] === 'string' ? colorObj[shadeKey] : (typeof colorObj[500] === 'string' ? colorObj[500] : '#000000');
 }
