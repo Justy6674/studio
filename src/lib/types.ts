@@ -1,5 +1,3 @@
-import type { User as FirebaseUser } from "firebase/auth";
-
 export type MotivationTone = "funny" | "crass" | "rude" | "sarcastic" | "kind" | "motivational" | "clinical" | "default" | "friendly" | "professional" | "encouraging";
 
 export const availableTones: MotivationTone[] = ["default", "funny", "crass", "rude", "sarcastic", "kind", "motivational", "clinical", "friendly", "professional", "encouraging"];

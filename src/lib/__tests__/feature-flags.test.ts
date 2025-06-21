@@ -50,7 +50,7 @@ describe('Feature Flags', () => {
     });
 
     it('should throw an error for unknown feature flags', () => {
-      expect(() => getFeatureFlag('unknownFlag' as any)).toThrow('Unknown feature flag: unknownFlag');
+      expect(() => getFeatureFlag('unknownFlag' as string)).toThrow('Unknown feature flag: unknownFlag');
     });
   });
 });

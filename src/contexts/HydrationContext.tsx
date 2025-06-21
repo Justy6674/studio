@@ -75,9 +75,13 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
 
       if (docSnap.exists()) {
         const data = docSnap.data() as Omit<DailyHydration, 'date'>;
-        const logs = (data.logs || []).map((log: any) => 
-          createHydrationRecord(log.amount, log.timestamp)
-        );
+        const logs = (data.logs || []).map((log: unknown) => {
+          if (typeof log === 'object' && log !== null && 'amount' in log && 'timestamp' in log) {
+            // @ts-expect-error: TypeScript can't infer the shape, but we checked keys
+            return createHydrationRecord(log.amount, log.timestamp);
+          }
+          return null;
+        }).filter(Boolean) as HydrationRecord[];
         
         setDailyHydration({
           ...data,

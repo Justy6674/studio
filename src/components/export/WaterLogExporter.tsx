@@ -624,7 +624,7 @@ export function WaterLogExporter({
           <div className="p-3 bg-slate-700/50 border border-slate-600 rounded-lg">
             <p className="text-xs text-slate-400 mb-2">Export Preview:</p>
             <p className="text-xs text-slate-300">
-              <strong>{getUserFirstName()}'s Progress:</strong> {Math.round(currentIntake / 100) / 10}L intake, 
+              <strong>{getUserFirstName()}&apos;s Progress:</strong> {Math.round(currentIntake / 100) / 10}L intake, 
               {hydrationGoal > 0 ? Math.round((currentIntake / hydrationGoal) * 100) : 0}% goal, 
               {Math.max(dailyStreak, longestStreak)} best streak
             </p>
@@ -657,4 +657,4 @@ export function WaterLogExporter({
       </CardContent>
     </Card>
   );
-} 
+}

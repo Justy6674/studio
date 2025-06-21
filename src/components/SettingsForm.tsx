@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SlidersHorizontal, Sparkles, BellRing } from "lucide-react";
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
 
@@ -270,23 +270,6 @@ export function SettingsForm() {
       ...prev, 
       [name]: type === 'checkbox' ? checked : (name === 'hydrationGoal' || name === 'sipAmount' ? parseInt(value) || 0 : value)
     }));
-  };
-
-  const handlePresetChange = (preset: string) => {
-    const presetData = reminderPresets.find(p => p.value === preset);
-    if (presetData && preset !== 'custom') {
-      const newTimes: Record<string, boolean> = {};
-      presetData.times.forEach(time => {
-        newTimes[time] = true;
-      });
-      setSettings(prev => ({
-        ...prev,
-        reminderPreset: preset,
-        reminderTimes: newTimes,
-      }));
-    } else {
-      setSettings(prev => ({ ...prev, reminderPreset: preset }));
-    }
   };
 
   const handleTimeToggle = (time: string) => {

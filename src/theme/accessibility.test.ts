@@ -3,13 +3,6 @@
 import { colors } from './colors';
 
 // Extend Jest matchers
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeGreaterThanOrEqual(arg: number): R;
-    }
-  }
-}
 
 // WCAG 2.1 AA requires a contrast ratio of at least 4.5:1 for normal text and 3:1 for large text
 describe('Color Accessibility', () => {

@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, signInAnonymously } from "firebase/auth";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {

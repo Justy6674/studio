@@ -106,9 +106,9 @@ async function logDrink(
       : `${drinkName} logged successfully!`;
 
     return { success: successMessage, isFirstTime };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error logging hydration:", error);
-    return { error: error.message || "Failed to log hydration." };
+    return { error: (error as Error).message || "Failed to log hydration." };
   }
 }
 
@@ -139,13 +139,13 @@ export async function getHydrationLogs(limit = 7): Promise<HydrationLog[]> {
         timestamp: (data.timestamp as Timestamp).toDate(),
       };
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching hydration logs:', error);
     return [];
   }
 }
 
-export async function getAIMotivation(hydrationGoal: number, debugMode = false): Promise<{ message: string; error?: string; source?: string; tone?: string; debug?: any }> {
+export async function getAIMotivation(hydrationGoal: number, debugMode = false): Promise<{ message: string; error?: string; source?: string; tone?: string; debug?: unknown }> {
   const user = auth.currentUser;
   if (!user) {
     return { message: "Login to get personalised motivation.", error: "Not authenticated" };
@@ -259,4 +259,4 @@ export async function getAIMotivation(hydrationGoal: number, debugMode = false):
     const randomFallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     return { message: randomFallback, error: "AI service unavailable", source: "client_fallback" };
   }
-} 
+}

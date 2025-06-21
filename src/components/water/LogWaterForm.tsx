@@ -19,8 +19,6 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
   const [amount, setAmount] = useState("");
   const [isLogging, setIsLogging] = useState(false);
 
-  const sipAmount = userProfile?.sipAmount || 50;
-
   // Quick-add drink options with proper emoji icons and consistent colors
   const drinkOptions = [
     { name: "Quick Sip", amount: 50, emoji: "💧", color: "from-purple-500 to-purple-600" },

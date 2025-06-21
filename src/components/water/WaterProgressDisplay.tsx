@@ -2,7 +2,6 @@
 
 import { WaterRing } from "./WaterRing";
 import { Progress } from "@/components/ui/progress";
-import { Target, Droplets } from "lucide-react";
 
 interface WaterProgressDisplayProps {
   currentIntake: number; // in ml

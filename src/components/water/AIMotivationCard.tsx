@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw } from "lucide-react";
 
 interface AIMotivationCardProps {
   motivation: string | null;

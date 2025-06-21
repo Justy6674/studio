@@ -36,7 +36,7 @@ const reportWebVitals = (onPerfEntry?: ReportHandler) => {
 // Custom event logger that includes user ID if available
 const logAnalyticsEvent = (
   eventName: string,
-  eventParams?: { [key: string]: any },
+  eventParams?: { [key: string]: unknown },
   userId?: string
 ) => {
   if (typeof window === 'undefined' || !analytics) return;
@@ -64,7 +64,7 @@ const trackFeatureUsage = (
   feature: FeatureName,
   action: 'view' | 'click' | 'enable' | 'disable',
   userId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) => {
   logAnalyticsEvent(
     'feature_usage',
@@ -81,7 +81,7 @@ const trackError = (
   componentStack?: string,
   severity: ErrorSeverity = 'error',
   userId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) => {
   logAnalyticsEvent(
     'error',

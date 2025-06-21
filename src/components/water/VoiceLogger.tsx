@@ -237,19 +237,19 @@ export function VoiceLogger({ onLogWater, isLoading }: VoiceLoggerProps) {
       {transcript && (
         <div className="p-3 bg-slate-700/50 rounded border border-slate-600">
           <p className="text-sm text-slate-400 mb-1">Voice Input:</p>
-          <p className="text-slate-200 italic">"{transcript}"</p>
+          <p className="text-slate-200 italic">&quot;{transcript}&quot;</p>
         </div>
       )}
 
       <div className="text-xs text-slate-500 space-y-1">
         <p>💡 Try saying:</p>
         <div className="grid grid-cols-2 gap-1 text-slate-400">
-          <span>• "Add 250ml"</span>
-          <span>• "Drank a glass"</span>
-          <span>• "Log 500ml"</span>
-          <span>• "Had a bottle"</span>
+          <span>&#8226; &quot;Add 250ml&quot;</span>
+          <span>&#8226; &quot;Drank a glass&quot;</span>
+          <span>&#8226; &quot;Log 500ml&quot;</span>
+          <span>&#8226; &quot;Had a bottle&quot;</span>
         </div>
       </div>
     </div>
   );
-} 
+}
