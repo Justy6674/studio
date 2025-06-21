@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { db } from '@/lib/firebase'; // Assuming firebase admin is initialized here
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase-admin/auth'; // If using Firebase Admin for user auth server-side
 import { app as adminApp } from '@/lib/firebase-admin'; // Your Firebase Admin App instance
 
