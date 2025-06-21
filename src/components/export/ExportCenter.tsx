@@ -166,7 +166,7 @@ export default function ExportCenter({
           <CardContent className="space-y-4">
             {/* Time Range */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="time-period-group" className="block text-sm font-medium text-gray-700 mb-2">
                 Time Period
               </label>
               <div className="flex flex-wrap gap-2">
@@ -188,7 +188,7 @@ export default function ExportCenter({
 
             {/* Format */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="export-format-group" className="block text-sm font-medium text-gray-700 mb-2">
                 Format
               </label>
               <div className="flex gap-2">
@@ -200,7 +200,7 @@ export default function ExportCenter({
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <Image className="w-4 h-4" alt="" />
+                  <Image className="w-4 h-4" aria-hidden="true" />
                   <span>Image (PNG)</span>
                 </button>
                 <button

@@ -46,7 +46,7 @@ declare global {
     readonly confidence: number;
   }
 
-  var SpeechRecognition: {
+  const SpeechRecognition: {
     prototype: SpeechRecognition;
     new(): SpeechRecognition;
   };

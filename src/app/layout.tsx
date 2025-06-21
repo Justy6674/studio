@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { WebVitals } from "@/components/analytics/WebVitals";
@@ -67,7 +68,9 @@ export default function RootLayout({
             </div>
             <HydrationFAB />
             <BottomNav />
-            <WebVitals />
+            <Suspense fallback={null}>
+              <WebVitals />
+            </Suspense>
           </Providers>
         </ErrorBoundary>
       </body>
