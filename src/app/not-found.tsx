@@ -1,4 +1,5 @@
-// Server component to handle 404 pages without event handlers
+'use client';
+
 import Link from 'next/link';
 
 export default function NotFound() {
