@@ -200,7 +200,7 @@ export default function ExportCenter({
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <Image className="w-4 h-4" />
+                  <Image className="w-4 h-4" alt="" />
                   <span>Image (PNG)</span>
                 </button>
                 <button

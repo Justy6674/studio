@@ -1,7 +1,7 @@
 'use client';
 
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, getDoc, limit } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, getDoc } from "firebase/firestore";
 import type { HydrationLog, UserProfile } from "@/lib/types";
 
 export async function logHydration(amount: number): Promise<{ success?: string; error?: string }> {
@@ -47,8 +47,7 @@ async function logDrink(
       const existingQuery = query(
         collection(db, "hydration_logs"),
         where("userId", "==", user.uid),
-        where("drinkType", "==", drinkType),
-        limit(1)
+        where("drinkType", "==", drinkType)
       );
       const existingSnapshot = await getDocs(existingQuery);
       isFirstTime = existingSnapshot.empty;
@@ -112,7 +111,7 @@ async function logDrink(
   }
 }
 
-export async function getHydrationLogs(limit = 7): Promise<HydrationLog[]> {
+export async function getHydrationLogs(): Promise<HydrationLog[]> {
   const user = auth.currentUser;
   if (!user) {
     console.warn("No authenticated user for getHydrationLogs");

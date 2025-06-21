@@ -8,22 +8,22 @@ export * from './spacing';
 // Theme configuration
 export const theme = {
   colors: {
-    ...require('./colors').colors,
+    // ...require('./colors').colors,
   },
   typography: {
-    ...require('./typography'),
+    // ...require('./typography'),
   },
   spacing: {
-    ...require('./spacing').spacing,
+    // ...require('./spacing').spacing,
   },
   borderRadius: {
-    ...require('./spacing').borderRadius,
+    // ...require('./spacing').borderRadius,
   },
   borderWidth: {
-    ...require('./spacing').borderWidth,
+    // ...require('./spacing').borderWidth,
   },
   opacity: {
-    ...require('./spacing').opacity,
+    // ...require('./spacing').opacity,
   },
   // Add other theme properties as needed
 } as const;

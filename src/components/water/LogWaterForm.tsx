@@ -15,7 +15,6 @@ interface LogWaterFormProps {
 }
 
 export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
-  const { userProfile } = useAuth();
   const [amount, setAmount] = useState("");
   const [isLogging, setIsLogging] = useState(false);
 

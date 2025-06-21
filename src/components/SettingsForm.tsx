@@ -15,13 +15,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SlidersHorizontal, Sparkles, BellRing } from "lucide-react";
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
 
-const reminderPresets = [
-  { value: 'twice', label: '2 Times Daily (Recommended)', times: ['08:00', '18:00'] },
-  { value: 'meals', label: 'Morning & Evening', times: ['08:00', '20:00'] },
-  { value: 'workday', label: 'Start & End of Workday', times: ['09:00', '17:00'] },
-  { value: 'custom', label: 'Custom Times (Max 2)', times: [] },
-];
-
 const availableTimes = [
   '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', 
   '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', 
