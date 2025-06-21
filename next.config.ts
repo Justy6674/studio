@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Experimental features
   experimental: {
     serverActions: {
       allowedOrigins: [
@@ -34,14 +35,18 @@ const nextConfig: NextConfig = {
 
     return config;
   },
-  // TypeScript configuration
+
+  // TypeScript configuration - keep type checking for better reliability
   typescript: {
-    // Enable TypeScript type checking during build
+    // Enable TypeScript type checking during build for better reliability
+    // Setting this to false will cause the build to fail on type errors
     ignoreBuildErrors: false,
   },
-  // ESLint configuration
+  
+  // ESLint configuration - enable for better code quality
   eslint: {
-    // Enable ESLint during build
+    // Enable ESLint during build for better reliability
+    // Setting this to false will cause the build to fail on linting errors
     ignoreDuringBuilds: false,
   },
 
@@ -63,12 +68,25 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  
+  // Keep server components enabled (don't use static export mode)
+  // This allows for server-side rendering and API routes
+  // output: 'export', // REMOVED - incompatible with server features
+
+  // React configuration
+  reactStrictMode: true, // Enable for better development experience
+
+  // Allow external packages (for server-side)
   serverExternalPackages: ['@google-cloud/vertexai'],
+  
+  // Development origins
   allowedDevOrigins: [
     'd0e3856c-ae67-4138-af3a-914ab03197d2-00-1arjfvfyhoz4r.worf.replit.dev',
     '*.replit.dev',
     'localhost:5000'
   ],
+  
+  // API routing
   async rewrites() {
     return [
       {
@@ -77,6 +95,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  
+  // Security headers
   async headers() {
     return [
       {
