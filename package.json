@@ -8,7 +8,8 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "xo",
+    "lint:fix": "xo --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
@@ -101,8 +102,6 @@
     "@vitest/browser": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
     "babel-plugin-dynamic-import-node": "^2.3.3",
-    "eslint-config-next": "15.3.4",
-    "eslint-plugin-storybook": "^9.0.12",
     "genkit-cli": "^1.8.0",
     "jest": "^30.0.2",
     "jest-environment-jsdom": "^30.0.2",
@@ -111,6 +110,39 @@
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.4.0",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "xo": "^0.57.0"
+  },
+  "xo": {
+    "extends": [
+      "xo",
+      "xo/typescript",
+      "xo/react"
+    ],
+    "rules": {
+      "react/react-in-jsx-scope": "off",
+      "no-async-promise-executor": "warn",
+      "@typescript-eslint/no-unused-expressions": ["error", {"allowShortCircuit": true, "allowTernary": true}]
+    },
+    "overrides": [
+      {
+        "files": ["**/*.d.ts", "**/*.test.ts", "**/*.test.tsx", "**/__tests__/**/*.ts", "**/__tests__/**/*.tsx"],
+        "rules": {
+          "@typescript-eslint/no-explicit-any": "off"
+        }
+      },
+      {
+        "files": ["**/app/**/route.ts", "**/app/**/page.tsx", "**/pages/**/*.tsx"],
+        "rules": {
+          "@typescript-eslint/no-unused-expressions": "off"
+        }
+      }
+    ],
+    "settings": {
+      "react": {
+        "version": "detect",
+        "runtime": "automatic"
+      }
+    }
   }
 }
