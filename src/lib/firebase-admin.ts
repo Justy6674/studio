@@ -1,32 +1,64 @@
 import * as admin from 'firebase-admin';
 
+// Ensure service account key is available and valid before proceeding
 const serviceAccountKey = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
 
-if (!admin.apps.length) {
+// Function to validate JSON string before parsing
+function isValidJSON(str: string | undefined): boolean {
+  if (!str) return false;
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(serviceAccountKey as string)),
-      // databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com` // Optional: if using Realtime Database
-    });
-    console.log('Firebase Admin SDK initialized successfully.');
-  } catch (error) {
-    console.error('Firebase Admin SDK initialization error:', error);
-    // Prevent app from starting if admin SDK fails to initialize, as it's critical for some backend functions
-    // throw new Error('Firebase Admin SDK failed to initialize. Check service account key and config.'); 
-    // Or handle more gracefully depending on how critical admin functions are at startup
+    JSON.parse(str);
+    return true;
+  } catch (e) {
+    return false;
   }
-} else {
-  // console.log('Firebase Admin SDK already initialized.');
 }
 
+// Check for presence of service account key during build/initialization
+if (!serviceAccountKey) {
+  throw new Error(
+    'FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY environment variable is missing. ' +
+    'This must be set in Vercel environment variables with the complete service account JSON.'
+  );
+}
+
+// Validate that the service account key is valid JSON
+if (!isValidJSON(serviceAccountKey)) {
+  throw new Error(
+    'FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY contains invalid JSON. ' +
+    'Please ensure it contains the complete, valid service account JSON object.'
+  );
+}
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    // Parse service account key (already validated)
+    const serviceAccount = JSON.parse(serviceAccountKey);
+    
+    // Verify essential fields exist in the service account object
+    if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount.client_email) {
+      throw new Error('Service account JSON is missing required fields (project_id, private_key, or client_email)');
+    }
+    
+    // Initialize with service account
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      // Additional config options can be added here if needed
+    });
+    
+    console.log('Firebase Admin SDK initialized successfully.');
+  } catch (error) {
+    // Provide detailed error for troubleshooting
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Firebase Admin SDK initialization failed: ${errorMessage}`);
+  }
+} else {
+  console.log('Firebase Admin SDK already initialized.');
+}
+
+// Export admin app and services
 export const app = admin.apps[0] as admin.app.App;
 export const auth = admin.auth(app);
 export const firestore = admin.firestore(app);
 // export const storage = admin.storage(app); // If using Firebase Storage admin features
-
-// You might want to ensure environment variables are correctly loaded and parsed.
-// Consider using a library like `dotenv` if not already handled by your framework (Next.js handles .env.local etc.)
-if (!serviceAccountKey) {
-  console.warn('FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY is not set. Firebase Admin SDK features requiring authentication will not work.');
-  // Depending on your app's needs, you might throw an error here or allow the app to run with limited admin capabilities.
-}
