@@ -1,30 +1,17 @@
 "use client";
 
-import type { ReactNode } from 'react';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { HydrationProvider } from '@/contexts/HydrationContext';
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
-// import { FeatureFlagProvider } from './providers/FeatureFlagProvider';
 import { ThemeProvider } from './providers/ThemeProvider';
 
-// Validate required environment variables
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  // 'NEXT_PUBLIC_UNLEASH_URL',
-  // 'NEXT_PUBLIC_UNLEASH_CLIENT_KEY',
-  // 'NEXT_PUBLIC_UNLEASH_APP_NAME'
-];
-
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingVars.length > 0 && process.env.NODE_ENV !== 'test') {
-  console.warn(`Missing required environment variables: ${missingVars.join(', ')}`);
-  console.warn('Feature flags will fall back to default values');
-}
-
+/**
+ * Creating the QueryClient instance outside component
+ * to prevent reinstantiation on every render
+ */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -34,16 +21,44 @@ const queryClient = new QueryClient({
   },
 });
 
-export function Providers({ children }: { children: ReactNode }) {
-  // const unleashConfig = {
-  //   url: process.env.NEXT_PUBLIC_UNLEASH_URL || 'https://app.unleash-hosted.com/demo/api/',
-  //   clientKey: process.env.NEXT_PUBLIC_UNLEASH_CLIENT_KEY || 'demo-app:default.9a5bcb937e5b9d3473de3bf99b3b9f9a1a7e42c7b2635959478dcb81',
-  //   appName: process.env.NEXT_PUBLIC_UNLEASH_APP_NAME || 'water4weightloss-development',
-  // };
+/**
+ * Environment variable helper that works in both server and client contexts safely
+ * without causing hydration mismatches or render loops.
+ */
+function useNextPublicEnvVars() {
+  // Only check these once during initialization, not on every render
+  // This prevents unnecessary re-renders and flickering
+  const [checkedEnv] = useState(() => {
+    // Define required vars
+    const requiredEnvVars = [
+      'NEXT_PUBLIC_FIREBASE_API_KEY',
+      'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+      'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+    ];
+    
+    // Only log warnings once during development
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+      if (missingVars.length > 0) {
+        console.warn(`Missing required environment variables: ${missingVars.join(', ')}`);
+        console.warn('Ensure these are set in .env.local or Vercel environment variables');
+      }
+    }
+    
+    return true;
+  });
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      {/* <FeatureFlagProvider unleashConfig={unleashConfig}> */}
+  return checkedEnv;
+}
+
+export function Providers({ children }: { children: ReactNode }) {
+  // Check environment variables safely without causing render loops
+  useNextPublicEnvVars();
+  
+  // Memoize the provider structure to prevent unnecessary re-renders
+  const providers = useMemo(() => {
+    return (
+      <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
             <HydrationProvider>
@@ -53,7 +68,9 @@ export function Providers({ children }: { children: ReactNode }) {
             </HydrationProvider>
           </AuthProvider>
         </ThemeProvider>
-      {/* </FeatureFlagProvider> */}
-    </QueryClientProvider>
-  );
+      </QueryClientProvider>
+    );
+  }, [children]);
+
+  return providers;
 }
