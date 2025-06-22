@@ -1,8 +1,9 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getFunctions, Functions } from "firebase/functions";
 
+// Always define the configuration, but initialize Firebase only in browser context
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,16 +14,68 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-console.log('🔍 Firebase Environment Debug:');
-console.log('NEXT_PUBLIC_FIREBASE_API_KEY:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'SET' : 'UNDEFINED');
-console.log('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'SET' : 'UNDEFINED');
-console.log('NEXT_PUBLIC_FIREBASE_PROJECT_ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'SET' : 'UNDEFINED');
-console.log('All env keys:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_FIREBASE')));
+/**
+ * Firebase client-side singleton
+ */
+class FirebaseClient {
+  private static instance: FirebaseClient;
+  private _app: FirebaseApp | null = null;
+  private _auth: Auth | null = null;
+  private _db: Firestore | null = null;
+  private _functions: Functions | null = null;
+  private _initialized: boolean = false;
 
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-const functions = getFunctions(app);
+  private constructor() {
+    // Private constructor prevents external instantiation
+  }
 
-export { app, auth, db, functions };
+  // Get the singleton instance
+  public static getInstance(): FirebaseClient {
+    if (!FirebaseClient.instance) {
+      FirebaseClient.instance = new FirebaseClient();
+    }
+    return FirebaseClient.instance;
+  }
+
+  // Initialize Firebase but only once and only in browser
+  private initialize(): void {
+    // Skip if already initialized or not in browser
+    if (this._initialized || typeof window === 'undefined') return;
+
+    // Use existing app or initialize once
+    this._app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    this._auth = getAuth(this._app);
+    this._db = getFirestore(this._app);
+    this._functions = getFunctions(this._app);
+    this._initialized = true;
+  }
+
+  // Getters that initialize on first access
+  get app(): FirebaseApp {
+    if (!this._initialized) this.initialize();
+    return this._app as FirebaseApp;
+  }
+
+  get auth(): Auth {
+    if (!this._initialized) this.initialize();
+    return this._auth as Auth;
+  }
+
+  get db(): Firestore {
+    if (!this._initialized) this.initialize();
+    return this._db as Firestore;
+  }
+  
+  get functions(): Functions {
+    if (!this._initialized) this.initialize();
+    return this._functions as Functions;
+  }
+}
+
+// Create our singleton instance
+const firebaseClient = FirebaseClient.getInstance();
+
+// Export only the initialized services
+export const auth = typeof window !== 'undefined' ? firebaseClient.auth : undefined as unknown as Auth;
+export const db = typeof window !== 'undefined' ? firebaseClient.db : undefined as unknown as Firestore;
+export const functions = typeof window !== 'undefined' ? firebaseClient.functions : undefined as unknown as Functions;
