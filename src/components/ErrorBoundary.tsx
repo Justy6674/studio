@@ -1,6 +1,6 @@
 'use client';
 
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode, memo } from 'react';
 import * as Sentry from '@sentry/nextjs';
 
 type ErrorBoundaryProps = {
@@ -14,6 +14,7 @@ type ErrorBoundaryState = {
   error: Error | null;
 };
 
+// The actual ErrorBoundary class component
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -62,4 +63,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-export default ErrorBoundary;
+// Create a memoized wrapper to prevent unnecessary re-renders
+const MemoizedErrorBoundary = memo(
+  ErrorBoundary, 
+  (prevProps, nextProps) => {
+    // Custom comparison function - only re-render when children change
+    return prevProps.children === nextProps.children;
+  }
+);
+
+// Default export the memoized version
+export default MemoizedErrorBoundary;
