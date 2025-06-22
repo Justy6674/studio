@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -26,8 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false);
 
-  // Check if user has active subscription
-  const hasActiveSubscription = (): boolean => {
+  // Check if user has active subscription - memoized with useCallback
+  const hasActiveSubscription = useCallback((): boolean => {
     if (!userProfile) return false;
     
     // Developer override for testing/admin accounts
@@ -46,13 +46,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const status = userProfile.subscriptionStatus;
     return status === 'active' || status === 'trialing';
-  };
+  }, [user?.email, userProfile]);
 
-  // Load user profile from Firestore
-  const loadUserProfile = async (userId: string) => {
+  // Track component mount status to prevent state updates after unmount
+  const isMounted = useRef<boolean>(true);
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // Load user profile from Firestore - memoized with useCallback to prevent unnecessary re-renders
+  const loadUserProfile = useCallback(async (userId: string) => {
+    // Skip if component is unmounted
+    if (!isMounted.current) return;
+    
     try {
       const docRef = doc(db, "users", userId);
       const docSnap = await getDoc(docRef);
+      
+      // Skip state update if component unmounted during async operation
+      if (!isMounted.current) return;
       
       if (docSnap.exists()) {
         const data = docSnap.data() as UserProfile;
@@ -72,15 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         
         await setDoc(docRef, defaultProfile);
+        
+        // Skip state update if component unmounted during async operation
+        if (!isMounted.current) return;
         setUserProfile(defaultProfile);
       }
     } catch (error) {
-      console.error("Error loading user profile:", error);
+      // Skip console logging in production to prevent render churn
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error loading user profile:", error);
+      }
     }
-  };
+  }, [user?.email]); // Only re-create when user email changes
 
-  // Update user profile
-  const updateUserProfileData = async (data: Partial<UserProfile>) => {
+  // Update user profile - memoized with useCallback
+  const updateUserProfileData = useCallback(async (data: Partial<UserProfile>) => {
     if (!user) throw new Error("No user logged in");
     
     try {
@@ -92,16 +114,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await updateDoc(docRef, updateData);
       
+      // Skip state update if component unmounted during async operation
+      if (!isMounted.current) return;
+      
       // Update local state
       setUserProfile(prev => prev ? { ...prev, ...updateData } : null);
     } catch (error) {
-      console.error("Error updating user profile:", error);
+      // Skip console logging in production to prevent render churn
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error updating user profile:", error);
+      }
       throw error;
     }
-  };
+  }, [user]);
 
-  // Sign in with optional persistence setting
-  const signIn = async (email: string, password: string, staySignedIn: boolean = true) => {
+  // Sign in with optional persistence setting - memoized with useCallback
+  const signIn = useCallback(async (email: string, password: string, staySignedIn: boolean = true) => {
     try {
       // Set persistence before signing in
       if (staySignedIn) {
@@ -112,13 +140,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: unknown) {
-      console.error("Sign in error:", error);
+      // Skip console logging in production to prevent render churn
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Sign in error:", error);
+      }
       throw error;
     }
-  };
+  }, []);
 
-  // Sign up
-  const signUp = async (email: string, password: string, name?: string) => {
+  // Sign up - memoized with useCallback
+  const signUp = useCallback(async (email: string, password: string, name?: string) => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
@@ -137,45 +168,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       
       await setDoc(doc(db, "users", result.user.uid), userProfile);
+      
+      // Skip state update if component unmounted during async operation
+      if (!isMounted.current) return;
       setUserProfile(userProfile);
     } catch (error: unknown) {
-      console.error("Sign up error:", error);
+      // Skip console logging in production to prevent render churn
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Sign up error:", error);
+      }
       throw error;
     }
-  };
+  }, []);
 
-  // Sign out
-  const logOut = async () => {
+  // Sign out - memoized with useCallback
+  const logOut = useCallback(async () => {
     try {
       await signOut(auth);
+      
+      // Skip state update if component unmounted during async operation
+      if (!isMounted.current) return;
       setUserProfile(null);
     } catch (error: unknown) {
-      console.error("Sign out error:", error);
+      // Skip console logging in production to prevent render churn
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Sign out error:", error);
+      }
       throw error;
     }
-  };
+  }, []);
 
-  // Auth state listener
+  // Auth state listener - with proper cleanup and unmount protection
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
+    // Skip if SSR
+    if (typeof window === 'undefined') return () => {};
+    
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      // Skip state updates if component unmounted
+      if (!isMounted.current) return;
       
-      if (user) {
+      setUser(currentUser);
+      
+      if (currentUser) {
         setIsSubscriptionLoading(true);
-        await loadUserProfile(user.uid);
+        await loadUserProfile(currentUser.uid);
+        
+        // Skip state updates if component unmounted during async operation
+        if (!isMounted.current) return;
         setIsSubscriptionLoading(false);
       } else {
+        // Skip state updates if component unmounted
+        if (!isMounted.current) return;
         setUserProfile(null);
         setIsSubscriptionLoading(false);
       }
       
+      // Skip state updates if component unmounted
+      if (!isMounted.current) return;
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [loadUserProfile]);
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => {
+    return {
+      user,
+      userProfile,
+      loading,
+      signIn,
+      signUp,
+      logOut,
+      updateUserProfileData,
+      hasActiveSubscription,
+      isSubscriptionLoading,
+    };
+  }, [
     user,
     userProfile,
     loading,
@@ -184,8 +255,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logOut,
     updateUserProfileData,
     hasActiveSubscription,
-    isSubscriptionLoading,
-  };
+    isSubscriptionLoading
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
