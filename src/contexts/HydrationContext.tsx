@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -41,11 +41,23 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hydrationGoal, setHydrationGoal] = useState(3000); // Default 3L goal
+  
+  // Track component mount status to prevent state updates after unmount
+  const isMounted = useRef<boolean>(true);
 
-  // Calculate hydration percentage
-  const hydrationPercentage = dailyHydration
-    ? Math.min(Math.round((dailyHydration.total / hydrationGoal) * 100), 100)
-    : 0;
+  // Calculate hydration percentage - memoized to prevent unnecessary re-renders
+  const hydrationPercentage = useMemo(() => {
+    return dailyHydration
+      ? Math.min(Math.round((dailyHydration.total / hydrationGoal) * 100), 100)
+      : 0;
+  }, [dailyHydration, hydrationGoal]);
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const getCurrentDateString = useCallback(() => {
     const now = new Date();
@@ -64,6 +76,10 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
 
   const loadHydrationData = useCallback(async () => {
     if (!user) return;
+    if (!isMounted.current) return;
+    
+    // Skip if SSR
+    if (typeof window === 'undefined') return;
 
     setIsLoading(true);
     setError(null);
@@ -83,6 +99,9 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
           return null;
         }).filter(Boolean) as HydrationRecord[];
         
+        // Skip state updates if component unmounted
+        if (!isMounted.current) return;
+        
         setDailyHydration({
           ...data,
           date: today,
@@ -100,7 +119,12 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
           lastUpdated: new Date()
         };
         await setDoc(docRef, newHydration);
+        
+        // Skip state updates if component unmounted
+        if (!isMounted.current) return;
+        
         setDailyHydration(newHydration);
+        setHydrationGoal(3000);
       }
     } catch (err) {
       console.error('Error loading hydration data:', err);
@@ -111,78 +135,88 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
   }, [user, getCurrentDateString, createHydrationRecord, toDate]);
 
   useEffect(() => {
+    // Skip if SSR
+    if (typeof window === 'undefined') return;
     loadHydrationData().catch(err => {
       console.error("Failed to load hydration data from useEffect:", err);
       setError('An unexpected error occurred while loading data.');
     });
-  }, [loadHydrationData]);
+  }, [user, loadHydrationData]);
 
   const logHydration = useCallback(async (amount: number) => {
-    if (!user || !dailyHydration) return;
-
+    if (!user) return;
+    if (!isMounted.current) return;
+    
     try {
-      setIsLoading(true);
-      setError(null);
-
       const today = getCurrentDateString();
       const docRef = doc(db, 'users', user.uid, 'hydration', today);
-
-      // Atomically update the document in Firestore
+      
+      // Create hydration record with current timestamp
+      const record = createHydrationRecord(amount);
+      const newTotal = (dailyHydration?.total || 0) + amount;
+      
+      // Update Firestore
       await updateDoc(docRef, {
-        total: dailyHydration.total + amount,
-        logs: arrayUnion({ amount, timestamp: serverTimestamp() }),
-        lastUpdated: serverTimestamp(),
+        total: newTotal,
+        logs: arrayUnion({
+          amount,
+          timestamp: serverTimestamp()
+        }),
+        lastUpdated: serverTimestamp()
       });
-
-      // Optimistically update the local state for a responsive UI
-      const newLogForState = createHydrationRecord(amount, new Date());
-      const updatedLogs = [...dailyHydration.logs, newLogForState];
-      const updatedHydration: DailyHydration = {
-        ...dailyHydration,
-        total: dailyHydration.total + amount,
-        logs: updatedLogs,
-        lastUpdated: new Date(),
-      };
-
-      setDailyHydration(updatedHydration);
-
-      // Check for hydration milestones
-      if (updatedHydration.total >= hydrationGoal) {
-        // 100% hydration - show celebration
-        // This will be handled by the UI component
-      } else if (
-        updatedHydration.total >= hydrationGoal * 0.5 &&
-        dailyHydration.total < hydrationGoal * 0.5
-      ) {
-        // Crossed 50% - show encouragement
-        // This will be handled by the UI component
+      
+      // Skip state updates if component unmounted
+      if (!isMounted.current) return;
+      
+      // Update local state
+      setDailyHydration(prev => {
+        if (!prev) return prev;
+        
+        const newLogs = [...prev.logs, record];
+        
+        return {
+          ...prev,
+          total: newTotal,
+          logs: newLogs,
+          lastUpdated: new Date()
+        };
+      });
+    } catch (error) {
+      // Skip console logging in production to prevent render churn
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to log hydration:', error);
       }
-    } catch (err) {
-      console.error('Error logging hydration:', err);
+      
+      // Skip state updates if component unmounted
+      if (!isMounted.current) return;
       setError('Failed to log hydration');
-      throw err;
-    } finally {
-      setIsLoading(false);
     }
-  }, [user, dailyHydration, getCurrentDateString, createHydrationRecord, hydrationGoal]);
+  }, [user, dailyHydration, getCurrentDateString, createHydrationRecord]);
 
   const updateHydrationGoal = useCallback(async (newGoal: number) => {
     if (!user || !dailyHydration) return;
-
+    if (!isMounted.current) return;
+    
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const docRef = doc(db, 'users', user.uid, 'hydration', dailyHydration.date);
-      await updateDoc(docRef, {
-        goal: newGoal
+      const today = getCurrentDateString();
+      const docRef = doc(db, 'users', user.uid, 'hydration', today);
+      
+      // Update Firestore
+      await updateDoc(docRef, { 
+        goal: newGoal,
+        lastUpdated: serverTimestamp()
       });
-
+      
+      // Skip state updates if component unmounted
+      if (!isMounted.current) return;
+      
+      // Update local state
+      setDailyHydration(prev => prev ? {
+        ...prev,
+        goal: newGoal,
+        lastUpdated: new Date()
+      } : null);
       setHydrationGoal(newGoal);
-      setDailyHydration({
-        ...dailyHydration,
-        goal: newGoal
-      });
     } catch (err) {
       console.error('Error updating hydration goal:', err);
       setError('Failed to update hydration goal');
@@ -190,23 +224,30 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, dailyHydration]);
+  }, [user, dailyHydration, getCurrentDateString]);
 
-  return (
-    <HydrationContext.Provider
-      value={{
-        dailyHydration,
-        hydrationGoal,
-        hydrationPercentage,
-        logHydration,
-        updateHydrationGoal,
-        isLoading,
-        error,
-      }}
-    >
-      {children}
-    </HydrationContext.Provider>
-  );
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => {
+    return {
+      dailyHydration,
+      hydrationGoal,
+      hydrationPercentage,
+      logHydration,
+      updateHydrationGoal,
+      isLoading,
+      error
+    };
+  }, [
+    dailyHydration,
+    hydrationGoal,
+    hydrationPercentage,
+    logHydration,
+    updateHydrationGoal,
+    isLoading,
+    error
+  ]);
+
+  return <HydrationContext.Provider value={value}>{children}</HydrationContext.Provider>;
 }
 
 export const useHydration = () => {
