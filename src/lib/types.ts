@@ -30,6 +30,7 @@ export interface UserProfile {
   subscriptionId?: string;
   subscriptionStatus?: 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete' | 'incomplete_expired' | null;
   subscriptionEndDate?: Date;
+  isClinicClient?: boolean; // New: To identify Downscale Clinic clients for discounts
   createdAt?: Date;
   updatedAt?: Date;
 }

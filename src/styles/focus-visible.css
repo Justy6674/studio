@@ -1,0 +1,66 @@
+/**
+ * Enhanced focus visible styles
+ * These styles apply only when an element is focused via keyboard,
+ * not when clicked with a mouse or tapped on touch devices
+ */
+
+:root {
+  --focus-ring-color: #5271ff;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+}
+
+/* Hide focus styles if they're not needed, for example,
+   when an element receives focus via mouse click */
+:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* Show a more prominent focus indicator for keyboard navigation */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: var(--focus-ring-offset) !important;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color) !important;
+  border-radius: 0.25rem;
+  transition: outline-offset 0.1s ease;
+  z-index: 1;
+}
+
+/* Specific adjustments for buttons */
+button:focus-visible,
+.button:focus-visible,
+[role="button"]:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: var(--focus-ring-offset) !important;
+}
+
+/* Adjust for form elements */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: var(--focus-ring-offset) !important;
+  border-color: var(--focus-ring-color) !important;
+}
+
+/* Focus styles for links */
+a:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: var(--focus-ring-offset) !important;
+  text-decoration: underline;
+}
+
+/* Enhanced focus for checkboxes, radios, and switches */
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+.switch:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: var(--focus-ring-offset) !important;
+}
+
+/* High contrast mode adjustments */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid CanvasText !important;
+  }
+}

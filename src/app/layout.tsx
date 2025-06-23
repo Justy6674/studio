@@ -48,15 +48,36 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        {/* Add theme color for mobile browsers */}
+        <meta name="theme-color" content="#5271ff" />
+      </head>
       <body className={`${inter.className} antialiased min-h-screen bg-background text-foreground pb-16`}>
+        {/* Skip to content link for keyboard users */}
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:outline focus:outline-2 focus:outline-primary"
+        >
+          Skip to content
+        </a>
+
         {/* Wrap the app content in a client component boundary to properly handle client/server separation */}
         <ClientErrorBoundaryWrapper>
           <Providers>
-            <div className="min-h-screen">
+            {/* Main app container with proper ARIA landmark */}
+            <main id="main-content" className="min-h-screen" tabIndex={-1}>
               {children}
-            </div>
+            </main>
+            
+            {/* Fixed action button - ensure it has proper accessibility */}
             <HydrationFAB />
-            <BottomNav />
+            
+            {/* Navigation landmark */}
+            <nav aria-label="Main navigation">
+              <BottomNav />
+            </nav>
+            
             <Suspense fallback={null}>
               <WebVitals />
             </Suspense>

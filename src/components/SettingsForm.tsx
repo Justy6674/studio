@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlidersHorizontal, Sparkles, BellRing } from "lucide-react";
+import { SlidersHorizontal, Sparkles, BellRing, FileText, Shield, LogOut } from "lucide-react";
+import Link from 'next/link';
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
 
 const availableTimes = [
@@ -44,6 +46,7 @@ interface ProfileSettingsProps {
 interface NotificationSettingsProps {
   settings: Settings;
   setSettings: React.Dispatch<React.SetStateAction<Settings>>;
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleTimeToggle: (time: string) => void;
   handleTestSMS: () => void;
   testingSMS: boolean;
@@ -83,7 +86,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ settings, handleInput
       </Card>
 );
 
-const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, setSettings, handleTimeToggle, handleTestSMS, testingSMS, notificationPermission, handleRequestNotificationPermission }) => (
+const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, setSettings, handleInputChange, handleTimeToggle, handleTestSMS, testingSMS, notificationPermission, handleRequestNotificationPermission }) => (
     <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><BellRing className="w-5 h-5" /> Notifications & Reminders</CardTitle>
@@ -102,7 +105,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, s
               id="pushNotifications"
               checked={settings.pushNotifications && notificationPermission === 'granted'}
               disabled={notificationPermission === 'denied'}
-              onCheckedChange={(checked) => {
+              onCheckedChange={(checked: boolean) => {
                 if (checked) {
                   if (notificationPermission === 'granted') {
                     setSettings(prev => ({ ...prev, pushNotifications: true }));
@@ -120,39 +123,56 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, s
           )}
 
           {/* SMS Notifications */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox id="smsEnabled" name="smsEnabled" checked={settings.smsEnabled} onCheckedChange={(checked) => setSettings(prev => ({ ...prev, smsEnabled: !!checked }))} />
-              <Label htmlFor="smsEnabled">Enable SMS Reminders</Label>
+          <div className="space-y-4 rounded-lg border p-4">
+            <h4 className="font-medium">SMS Reminders</h4>
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <Input
+                id="phoneNumber"
+                name="phoneNumber"
+                value={settings.phoneNumber || ''}
+                onChange={handleInputChange}
+                placeholder="e.g. +61412345678"
+                autoComplete="tel"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter your number with country code. We'll only use this for reminders.
+              </p>
             </div>
-            {settings.smsEnabled && (
-              <div className="space-y-4 pl-6 border-l-2">
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <div className="flex gap-2">
-                    <Input id="phoneNumber" name="phoneNumber" type="tel" value={settings.phoneNumber} onChange={(e) => setSettings(prev => ({ ...prev, phoneNumber: e.target.value }))} placeholder="+15551234567" />
-                    <Button variant="outline" onClick={handleTestSMS} disabled={testingSMS}>
-                      {testingSMS ? "Sending..." : "Test"}
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Reminder Times (Max 2)</Label>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                    {availableTimes.map(time => (
-                      <Button
-                        key={time}
-                        variant={settings.reminderTimes[time] ? "default" : "outline"}
-                        onClick={() => handleTimeToggle(time)}
-                        className="text-xs"
-                      >
-                        {time}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="flex items-center justify-between pt-2">
+              <Label htmlFor="smsEnabled" className="flex-grow cursor-pointer">Enable SMS Reminders</Label>
+              <Switch
+                id="smsEnabled"
+                checked={settings.smsEnabled}
+                onCheckedChange={(checked: boolean) => setSettings(prev => ({ ...prev, smsEnabled: checked }))}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleTestSMS}
+              disabled={testingSMS || !settings.smsEnabled || !settings.phoneNumber}
+              className="w-full"
+            >
+              {testingSMS ? 'Sending Test...' : 'Send Test SMS'}
+            </Button>
+          </div>
+
+          {/* Reminder Times - now separate from SMS logic */}
+          <div className="space-y-4 rounded-lg border p-4">
+            <h4 className="font-medium">Reminder Times</h4>
+            <p className="text-sm text-muted-foreground">Choose up to 2 times to receive reminders (via SMS or push).</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-2">
+              {availableTimes.map(time => (
+                <Button
+                  key={time}
+                  variant={settings.reminderTimes[time] ? "default" : "outline"}
+                  onClick={() => handleTimeToggle(time)}
+                  className="text-xs h-8"
+                >
+                  {time}
+                </Button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -213,7 +233,7 @@ const AppSettings: React.FC<AppSettingsProps> = ({ settings, setSettings }) => (
 );
 
 export function SettingsForm() {
-  const { user, userProfile, updateUserProfileData } = useAuth();
+  const { user, userProfile, updateUserProfileData, logOut } = useAuth();
   const { toast } = useToast();
   
   const [settings, setSettings] = useState<Settings>({
@@ -436,9 +456,10 @@ export function SettingsForm() {
     <form onSubmit={handleSubmit} className="space-y-8">
       <ProfileSettings settings={settings} handleInputChange={handleInputChange} />
       
-      <NotificationSettings
+            <NotificationSettings
         settings={settings}
         setSettings={setSettings}
+        handleInputChange={handleInputChange}
         handleTimeToggle={handleTimeToggle}
         handleTestSMS={handleTestSMS}
         testingSMS={testingSMS}
@@ -447,6 +468,27 @@ export function SettingsForm() {
       />
 
       <AppSettings settings={settings} setSettings={setSettings} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5" /> Legal & Support</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Link href="/legal/privacy" passHref>
+            <Button variant="outline" className="w-full justify-start gap-2">
+              <FileText className="w-4 h-4" /> Privacy Policy
+            </Button>
+          </Link>
+          <Link href="/legal/terms" passHref>
+            <Button variant="outline" className="w-full justify-start gap-2">
+              <FileText className="w-4 h-4" /> Terms of Service
+            </Button>
+          </Link>
+          <Button variant="destructive" onClick={logOut} className="w-full justify-start gap-2">
+            <LogOut className="w-4 h-4" /> Log Out
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={isLoading}>

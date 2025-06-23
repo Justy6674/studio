@@ -119,14 +119,20 @@ export async function GET(request: NextRequest) {
         stats.avg_waist_cm = parseFloat((bodyMetrics.reduce((sum, m) => sum + m.waist_cm, 0) / bodyMetrics.length).toFixed(1));
         
         // Calculate trend period in days
-        const daysDiff = Math.ceil((stats.latest.timestamp.getTime() - stats.earliest.timestamp.getTime()) / (1000 * 60 * 60 * 24));
-        stats.trend_period_days = daysDiff;
+        if (stats.latest && stats.earliest) {
+          const latestDate = new Date(stats.latest.timestamp);
+          const earliestDate = new Date(stats.earliest.timestamp);
+          const diffTime = Math.abs(latestDate.getTime() - earliestDate.getTime());
+          stats.trend_period_days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          if (stats.trend_period_days === 0) stats.trend_period_days = 1; // Same day entries
+        }
       }
-
+      
       return NextResponse.json({
         body_metrics: bodyMetrics,
-        stats: stats,
-        success: true
+        stats,
+        success: true,
+        message: 'Body metrics fetched successfully'
       });
 
     } catch (firestoreError) {
@@ -159,7 +165,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching body metrics:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch body metrics' },
+      { 
+        error: 'Failed to fetch body metrics',
+        details: error instanceof Error ? error.message : "An unknown error occurred"
+      },
       { status: 500 }
     );
   }

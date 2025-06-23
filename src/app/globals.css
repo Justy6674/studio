@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import focus visible styles */
+@import "../styles/focus-visible.css";
+
 /* Enhanced touch targets and feedback */
 @layer base {
   /* Ensure minimum touch target size for better mobile interaction */

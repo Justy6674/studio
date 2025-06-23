@@ -95,40 +95,46 @@ export async function getHydrationLogs(userId: string): Promise<HydrationLog[]> 
 
 
 export async function getAIMotivation(userId: string, hydrationGoal: number): Promise<string> {
-  if (!userId) {
-    return "Login to get personalised motivation.";
-  }
-
   try {
-    // Fetch recent hydration logs for the user (last 48 hours)
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    
+    // 1. Get user profile for tone and streak
+    const userDocRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      console.error("User not found for AI motivation");
+      return "Keep up the great work!";
+    }
+    const userData = userDoc.data() as UserProfile;
+    const tone = userData.motivationTone || 'default';
+    const current_streak = userData.dailyStreak || 0;
+
+    // 2. Calculate today's total hydration
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfToday = Timestamp.fromDate(today);
+
     const q = query(
       collection(db, "hydration_logs"),
       where("userId", "==", userId),
-      where("timestamp", ">=", Timestamp.fromDate(twoDaysAgo)),
-      orderBy("timestamp", "desc")
+      where("timestamp", ">=", startOfToday)
     );
     const querySnapshot = await getDocs(q);
-    const logs = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        amount: data.amount as number,
-        timestamp: (data.timestamp as Timestamp).toDate().toISOString(),
-      };
-    });
+    const ml_logged_today = querySnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
 
+    // 3. Prepare input for the AI function
     const input: GenerateMotivationalSmsInput = {
-      userId,
-      hydrationLogs: logs,
-      hydrationGoal,
+      tone,
+      ml_logged_today,
+      goal_ml: hydrationGoal,
+      current_streak,
     };
-    
+
+    // 4. Generate motivation
     const result = await generateMotivationalSms(input);
     return result.message;
+
   } catch (error) {
     console.error("Error generating AI motivation:", error);
-    return "Could not fetch motivation at this time. Keep hydrating!";
+    return "You're doing an amazing job! Keep hydrating.";
   }
 }

@@ -4,9 +4,11 @@ import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { HydrationProvider } from '@/contexts/HydrationContext';
+import { BodyMetricsProvider } from '@/contexts/BodyMetricsContext';
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { ThemeProvider } from './providers/ThemeProvider';
+import { KeyboardNavigationProvider } from '@/components/accessibility/KeyboardNavigationProvider';
 
 /**
  * Creating the QueryClient instance outside component
@@ -60,13 +62,17 @@ export function Providers({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <AuthProvider>
-            <HydrationProvider>
-              {children}
-              <ShadcnToaster />
-              <SonnerToaster position="top-right" richColors closeButton />
-            </HydrationProvider>
-          </AuthProvider>
+          <KeyboardNavigationProvider>
+            <AuthProvider>
+              <BodyMetricsProvider>
+                <HydrationProvider>
+                  {children}
+                  <ShadcnToaster />
+                  <SonnerToaster position="top-right" richColors closeButton />
+                </HydrationProvider>
+              </BodyMetricsProvider>
+            </AuthProvider>
+          </KeyboardNavigationProvider>
         </ThemeProvider>
       </QueryClientProvider>
     );

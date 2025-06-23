@@ -18,10 +18,11 @@ interface TestResult {
   error?: string;
   prompt?: string;
   response_time_ms?: number;
-  test_params?: unknown;
-  gemini_config?: unknown;
-  raw_response?: unknown;
+  test_params?: Record<string, any>;
+  gemini_config?: Record<string, any>;
+  raw_response?: Record<string, any>;
   timestamp?: string;
+  test_name?: string;
 }
 
 const TONE_OPTIONS = [

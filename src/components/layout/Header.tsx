@@ -15,6 +15,8 @@ export function Header() {
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/history", label: "History" },
+    { href: "/profile", label: "Profile" },
     { href: "/settings", label: "Settings" },
   ];
 

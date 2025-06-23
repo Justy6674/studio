@@ -20,8 +20,8 @@ export function HydrationProgressRing({
   const ringColor = progress >= 100 ? 'text-green-500' : 'text-blue-500';
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
+    <div className="relative flex items-center justify-center" style={{ width: `${size}px`, height: `${size}px` }}>
+      <svg className="transform -rotate-90 w-full h-full" viewBox={`0 0 ${size} ${size}`}>
         <circle
           cx={size / 2}
           cy={size / 2}

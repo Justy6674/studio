@@ -53,13 +53,11 @@ export function WaterGlass({
       {/* Glass Container with subtle shadow */}
       <div 
         className="relative drop-shadow-lg"
-        style={{ width: glassSize, height: glassSize }}
+        style={{ width: `${glassSize}px`, height: `${glassSize}px` }}
       >
         <svg
-          width={glassSize}
-          height={glassSize}
           viewBox={`0 0 ${glassSize} ${glassSize}`}
-          className="filter drop-shadow-md"
+          className="w-full h-full filter drop-shadow-md"
         >
           {/* Glass Definition */}
           <defs>
@@ -124,8 +122,8 @@ export function WaterGlass({
               <rect
                 x={glassSize * 0.25}
                 y={glassSize * (0.95 - (fillPercentage / 100) * 0.8)}
-                width={glassSize * 0.5}
-                height={glassSize * (fillPercentage / 100) * 0.8}
+                width={`${glassSize * 0.5}`}
+                height={`${glassSize * (fillPercentage / 100) * 0.8}`}
                 fill="url(#waterGradient)"
                 className={`transition-all duration-700 ease-out ${isAnimating ? 'animate-pulse' : ''}`}
                 mask="url(#glassMask)"

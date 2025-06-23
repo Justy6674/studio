@@ -3,9 +3,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import type { UserProfile } from '@/lib/types';
 import path from 'path';
 import fs from 'fs';
+import { format } from 'date-fns';
 
 interface HydrationLogExport {
   date: string;
@@ -76,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     // Build query for hydration logs without orderBy to avoid index issues
     let q = query(
-      collection(db, "hydration_logs"),
+      collection(db, `users/${userId}/hydration`),
       where("userId", "==", userId)
     );
 
@@ -85,7 +88,7 @@ export async function GET(request: NextRequest) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
       q = query(
-        collection(db, "hydration_logs"),
+        collection(db, `users/${userId}/hydration`),
         where("userId", "==", userId),
         where("timestamp", ">=", Timestamp.fromDate(start))
       );
@@ -98,7 +101,7 @@ export async function GET(request: NextRequest) {
       end.setHours(23, 59, 59, 999);
       
       q = query(
-        collection(db, "hydration_logs"),
+        collection(db, `users/${userId}/hydration`),
         where("userId", "==", userId),
         where("timestamp", ">=", Timestamp.fromDate(start)),
         where("timestamp", "<=", Timestamp.fromDate(end))
@@ -358,155 +361,90 @@ async function generatePDFExport(
   exportData: HydrationLogExport[],
   bodyMetricsData: BodyMetricsExport[]
 ): Promise<Buffer> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      // Use pdfkit for PDFDocument, pdfkit-table for table plugin
-      const PDFDocument = (await import('pdfkit')).default;
-      await import('pdfkit-table'); // just import, don't call
-      
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 50,
-        layout: 'portrait',
-        info: {
-          Title: `Water4WeightLoss Export - ${summaryStats.user_name}`,
-          Author: 'Water4WeightLoss by Downscale',
-          Subject: 'Hydration and Body Metrics Report',
-          Keywords: 'hydration, weight loss, health, export'
-        }
-      });
+  const doc = new jsPDF();
+  const autoTable = (doc as any).autoTable;
 
-      const stream = doc.pipe(new ((await import('stream')).PassThrough)());
-      const chunks: Buffer[] = [];
-      stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(chunks)));
-      stream.on('error', reject);
+  const brandColors = {
+    primary: '#3b82f6',
+    secondary: '#10b981',
+    text: '#1f2937',
+    lightText: '#6b7280',
+    white: '#ffffff',
+  };
 
-      const brandColors = {
-        primary: '#5271FF', // Hydration Blue
-        secondary: '#b68a71', // Earthy Brown
-        text: '#334155', // Slate Dark
-        lightText: '#64748b', // Slate Light
-        headerBg: '#f1f5f9', // Slate Extra Light
-        white: '#FFFFFF'
-      };
+  let yPos = 20;
 
-      doc.registerFont('default', 'Helvetica');
-      doc.registerFont('bold', 'Helvetica-Bold');
+  // --- PDF Header ---
+  doc.setFontSize(24);
+  doc.setTextColor(brandColors.text);
+  doc.text('Water4WeightLoss Health Report', doc.internal.pageSize.getWidth() / 2, yPos, { align: 'center' });
+  yPos += 15;
 
-      const addHeader = (text: string) => {
-        doc.font('bold').fontSize(16).fillColor(brandColors.primary).text(text, { underline: true });
-        doc.moveDown(0.5);
-      };
-
-      const logoPath = path.resolve('./public/logo.png');
-      if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, {
-          fit: [80, 80],
-          align: 'center',
-          valign: 'top'
-        }).moveDown(0.5);
-      }
-      doc.font('bold').fontSize(24).fillColor(brandColors.text).text('Water4WeightLoss Health Report', { align: 'center' });
-      doc.font('default').fontSize(12).fillColor(brandColors.lightText).text(`Report for: ${summaryStats.user_name}`, { align: 'center' });
-      doc.moveDown(2);
-
-      addHeader('Export Summary');
-      const summaryTable = {
-        headers: ['', ''],
-        rows: [
-          ['Report Date:', new Date(summaryStats.export_date).toLocaleDateString('en-AU')],
-          ['User:', summaryStats.user_name],
-          ['Date Range:', `${summaryStats.date_range.start} to ${summaryStats.date_range.end}`],
-          ['Total Days Tracked:', summaryStats.date_range.total_days],
-        ],
-      };
-      doc.table(summaryTable, {
-        prepareHeader: () => doc.font('bold').fillColor(brandColors.primary),
-        prepareRow: () => doc.font('default').fillColor(brandColors.text),
-        hideHeader: true,
-        divider: {
-          header: { disabled: true },
-          horizontal: { disabled: true },
-        },
-      });
-
-      addHeader('Hydration Statistics');
-      const hydrationStatsTable = {
-        headers: ['', ''],
-        rows: [
-          ['Daily Hydration Goal:', `${summaryStats.hydration_goal_ml} ml`],
-          ['Total Water Logged:', `${summaryStats.totals.total_water_logged_ml} ml`],
-          ['Average Daily Intake:', `${summaryStats.totals.average_daily_intake_ml} ml`],
-          ['Days Goal Achieved:', summaryStats.totals.days_goal_achieved],
-          ['Goal Achievement Rate:', `${summaryStats.totals.goal_achievement_rate_percent}%`],
-          ['Longest Streak:', `${summaryStats.totals.max_streak_days} days`],
-        ],
-      };
-      doc.table(hydrationStatsTable, {
-        prepareHeader: () => doc.font('bold').fillColor(brandColors.primary),
-        prepareRow: () => doc.font('default').fillColor(brandColors.text),
-        hideHeader: true,
-        divider: {
-          header: { disabled: true },
-          horizontal: { disabled: true },
-        },
-      });
-      doc.moveDown(2);
-
-      addHeader('Detailed Hydration Logs');
-      const hydrationLogsTable = {
-        headers: [
-          { label: 'Date', property: 'date', width: 100, renderer: null },
-          { label: 'Time', property: 'time', width: 60, renderer: null },
-          { label: 'Amount (ml)', property: 'amount_ml', width: 80, renderer: null },
-          { label: 'Daily Total (ml)', property: 'daily_total_ml', width: 100, renderer: null },
-          { label: '% of Goal', property: 'percentage_of_goal', width: 70, renderer: null },
-        ],
-        datas: exportData.map(log => ({ ...log, percentage_of_goal: `${log.percentage_of_goal}%` })),
-      };
-
-      doc.table(hydrationLogsTable, {
-        prepareHeader: () => doc.font('bold').fontSize(10).fillColor(brandColors.white),
-        prepareRow: () => doc.font('default').fontSize(9).fillColor(brandColors.text),
-        headers: hydrationLogsTable.headers.map(h => ({ ...h, headerColor: brandColors.primary, headerOpacity: 1 })),
-      });
-      doc.moveDown(2);
-
-      if (bodyMetricsData.length > 0) {
-        addHeader('Body Metrics');
-        const bodyMetricsTable = {
-          headers: [
-            { label: 'Date', property: 'date', width: 120, renderer: null },
-            { label: 'Weight (kg)', property: 'weight_kg', width: 80, renderer: null },
-            { label: 'Waist (cm)', property: 'waist_cm', width: 80, renderer: null },
-            { label: 'Notes', property: 'notes', width: 200, renderer: null },
-          ],
-          datas: bodyMetricsData,
-        };
-        doc.table(bodyMetricsTable, {
-          prepareHeader: () => doc.font('bold').fontSize(10).fillColor(brandColors.white),
-          prepareRow: () => doc.font('default').fontSize(9).fillColor(brandColors.text),
-          headers: bodyMetricsTable.headers.map(h => ({ ...h, headerColor: brandColors.secondary, headerOpacity: 1 })),
-        });
-        doc.moveDown(2);
-      }
-
-      const range = doc.bufferedPageRange();
-      for (let i = 0; i < range.count; i++) {
-        doc.switchToPage(i);
-        doc.font('default').fontSize(8).fillColor(brandColors.lightText)
-           .text('water4weightloss.com.au by Downscale', 50, doc.page.height - 30, { align: 'left' });
-        doc.font('default').fontSize(8).fillColor(brandColors.lightText)
-           .text(`Page ${i + 1} of ${range.count}`, doc.page.width - 100, doc.page.height - 30, { align: 'right' });
-      }
-
-      doc.end();
-    } catch (pdfGenError) {
-      console.error('PDF generation internal error:', pdfGenError);
-      reject(pdfGenError);
-    }
+  // --- Summary Tables ---
+  autoTable({
+    startY: yPos,
+    head: [['Export Summary']],
+    body: [
+      ['Report Date:', format(new Date(summaryStats.export_date), 'PP')],
+      ['User:', summaryStats.user_name],
+      ['Date Range:', `${format(new Date(summaryStats.date_range.start), 'PP')} to ${format(new Date(summaryStats.date_range.end), 'PP')}`],
+      ['Total Days Tracked:', String(summaryStats.date_range.total_days)],
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: brandColors.primary },
   });
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+
+  autoTable({
+    startY: yPos,
+    head: [['Hydration Statistics']],
+    body: [
+      ['Daily Hydration Goal:', `${summaryStats.hydration_goal_ml} ml`],
+      ['Total Water Logged:', `${String(summaryStats.totals.total_water_logged_ml)} ml`],
+      ['Average Daily Intake:', `${String(summaryStats.totals.average_daily_intake_ml)} ml`],
+      ['Days Goal Achieved:', String(summaryStats.totals.days_goal_achieved)],
+      ['Goal Achievement Rate:', `${String(summaryStats.totals.goal_achievement_rate_percent)}%`],
+      ['Longest Streak:', `${String(summaryStats.totals.max_streak_days)} days`],
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: brandColors.primary },
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+
+  // --- Detailed Logs ---
+  autoTable({
+    startY: yPos,
+    head: [['Date', 'Time', 'Amount (ml)', 'Daily Total (ml)', 'Goal (ml)', '% of Goal']],
+    body: exportData.map(log => [
+      log.date,
+      log.time,
+      String(log.amount_ml),
+      String(log.daily_total_ml),
+      String(log.goal_ml),
+      `${log.percentage_of_goal}%`,
+    ]),
+    theme: 'grid',
+    headStyles: { fillColor: brandColors.primary },
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+
+  // --- Body Metrics ---
+  if (bodyMetricsData.length > 0) {
+    autoTable({
+      startY: yPos,
+      head: [['Date', 'Weight (kg)', 'Waist (cm)', 'Notes']],
+      body: bodyMetricsData.map(metric => [
+        metric.date,
+        String(metric.weight_kg ?? ''),
+        String(metric.waist_cm ?? ''),
+        metric.notes ?? '',
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: brandColors.secondary },
+    });
+  }
+
+  return Buffer.from(doc.output('arraybuffer'));
 }
 
 function generateCSVExport(

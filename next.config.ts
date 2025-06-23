@@ -12,40 +12,40 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react']
   },
 
-  webpack: (config, { isServer }) => {
-    // suppress opentelemetry/sentry critical dependency warnings
-    config.ignoreWarnings = [
-      { message: /Critical dependency: the request of a dependency is an expression/ }
-    ];
+  // webpack: (config, { isServer }) => {
+  //   // suppress opentelemetry/sentry critical dependency warnings
+  //   config.ignoreWarnings = [
+  //     { message: /Critical dependency: the request of a dependency is an expression/ }
+  //   ];
 
-    // Handle font files
-    config.module.rules.push({
-      test: /\.(woff|woff2|eot|ttf|otf)$/i,
-      type: 'asset/resource',
-    });
+  //   // Handle font files
+  //   config.module.rules.push({
+  //     test: /\.(woff|woff2|eot|ttf|otf)$/i,
+  //     type: 'asset/resource',
+  //   });
 
-    // Only use Babel for test files in test environment
-    if (process.env.NODE_ENV === 'test') {
-      const originalEntry = config.entry;
-      config.entry = async () => {
-        const entries = await originalEntry();
-        if (entries['main.js']) {
-          entries['main.js'] = entries['main.js'].filter(
-            (file: string) => !file.includes('node_modules')
-          );
-        }
-        return entries;
-      };
-    }
+  //   // Only use Babel for test files in test environment
+  //   if (process.env.NODE_ENV === 'test') {
+  //     const originalEntry = config.entry;
+  //     config.entry = async () => {
+  //       const entries = await originalEntry();
+  //       if (entries['main.js']) {
+  //         entries['main.js'] = entries['main.js'].filter(
+  //           (file: string) => !file.includes('node_modules')
+  //         );
+  //       }
+  //       return entries;
+  //     };
+  //   }
 
-    return config;
-  },
+  //   return config;
+  // },
 
   // TypeScript configuration
   typescript: {
     // Temporarily ignoring TypeScript errors to unblock deployment
     // TODO: Re-enable once XO linting configuration is stabilized
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   
   // ESLint configuration

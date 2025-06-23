@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { X, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { DrinkType } from '@/lib/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface OtherDrinkModalProps {
   isOpen: boolean;
@@ -65,6 +66,11 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
   const [customName, setCustomName] = useState<string>('');
   const [customPercentage, setCustomPercentage] = useState<string>('100');
   const [showInfo, setShowInfo] = useState<string | null>(null);
+  
+  // Handle Dialog open state change
+  const handleOpenChange = (open: boolean) => {
+    if (!open) handleClose();
+  };
 
   const handleConfirm = () => {
     if (!selectedDrink || !amount) return;
@@ -114,24 +120,14 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
     return Math.round(parseInt(amount) * (getHydrationPercentage() / 100));
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md bg-slate-800 border-slate-700 max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-xl text-slate-100">Log Other Drink</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="text-slate-400 hover:text-slate-100"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="bg-slate-800 border-slate-700 max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl text-slate-100">Log Other Drink</DialogTitle>
+        </DialogHeader>
         
-        <CardContent className="space-y-6">
+        <div className="space-y-6 py-4">
           {/* Drink Type Selection */}
           <div className="space-y-3">
             <Label className="text-slate-200">Choose Drink Type</Label>
@@ -242,7 +238,7 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <DialogFooter className="flex gap-3 pt-4">
             <Button
               variant="outline"
               onClick={handleClose}
@@ -261,9 +257,9 @@ export default function OtherDrinkModal({ isOpen, onClose, onConfirm }: OtherDri
             >
               Log Drink
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 } 

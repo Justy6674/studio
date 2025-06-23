@@ -12,14 +12,10 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateMotivationalSmsInputSchema = z.object({
-  userId: z.string().describe('The ID of the user.'),
-  hydrationLogs: z.array(
-    z.object({
-      amount: z.number().describe('The amount of water logged in ml.'),
-      timestamp: z.string().describe('The timestamp of the hydration log entry.'),
-    })
-  ).describe('The user hydration logs from the past 24-48 hours.'),
-  hydrationGoal: z.number().describe('The user hydration goal in ml.'),
+  tone: z.string().describe('The tone of the message (e.g., funny, kind, crass).'),
+  ml_logged_today: z.number().describe("The total amount of water in ml the user has logged today."),
+  goal_ml: z.number().describe('The user daily hydration goal in ml.'),
+  current_streak: z.number().describe('The user current daily hydration streak in days.'),
 });
 export type GenerateMotivationalSmsInput = z.infer<typeof GenerateMotivationalSmsInputSchema>;
 
@@ -36,23 +32,16 @@ const prompt = ai.definePrompt({
   name: 'generateMotivationalSmsPrompt',
   input: {schema: GenerateMotivationalSmsInputSchema},
   output: {schema: GenerateMotivationalSmsOutputSchema},
-  system: `You are a motivational AI assistant that generates encouraging SMS messages based on the user's hydration data. The goal is to motivate the user to stay consistent with their hydration goals. Be friendly and supportive. Avoid shaming or negative language.
+  system: `You are a motivational AI assistant. Your goal is to generate an encouraging message for a user of a hydration tracking app.
 
-Keep messages under 160 characters for SMS compatibility.`,
-  prompt: `Based on this user's hydration log:
+The user has specified a preferred tone for messages: {{tone}}. You MUST strictly adhere to this tone.
 
-{{#if hydrationLogs}}
-Recent hydration activity:
-  {{#each hydrationLogs}}
-    - {{amount}}ml logged on {{timestamp}}
-  {{/each}}
-{{else}}
-  No hydration data available for the past 24-48 hours.
-{{/if}}
+Keep messages under 160 characters for SMS compatibility.`, 
+  prompt: `The user's daily hydration goal is {{goal_ml}}ml.
+They have logged {{ml_logged_today}}ml so far today.
+They are on a {{current_streak}}-day streak.
 
-Their daily hydration goal is {{hydrationGoal}}ml.
-
-Write a short, encouraging SMS message (under 160 chars) that motivates them to stay hydrated. Be specific to their data if available.`, 
+Write a short, encouraging message in a '{{tone}}' tone (under 160 chars) that motivates them to stay hydrated. Be specific to their data.`,  
 });
 
 const generateMotivationalSmsFlow = ai.defineFlow(

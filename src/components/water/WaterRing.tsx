@@ -15,10 +15,9 @@ export function WaterRing({ progress, size = 120, strokeWidth = 10, className, .
 
   return (
     <svg
-      width={size}
-      height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className={className}
+      className={`w-full h-full ${className || ''}`}
+      style={{ width: `${size}px`, height: `${size}px` }}
       {...props}
     >
       <circle

@@ -1,5 +1,5 @@
 import { getAnalytics, logEvent } from 'firebase/analytics';
-import { app } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 
 type Metric = {
   name: string;
@@ -11,7 +11,7 @@ type Metric = {
 };
 
 // Initialize Firebase Analytics
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+const analytics = typeof window !== 'undefined' && db ? getAnalytics(db.app) : null;
 
 // Send metrics to your analytics service
 type ReportHandler = (metric: Metric) => void;

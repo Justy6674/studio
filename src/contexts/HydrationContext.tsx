@@ -11,6 +11,8 @@ type MaybeTimestamp = Date | Timestamp;
 interface HydrationRecord {
   amount: number;
   timestamp: MaybeTimestamp;
+  drinkType?: string;
+  drinkName?: string;
   // Add a method to safely get the date
   getDate: () => Date;
 }
@@ -27,10 +29,12 @@ type HydrationContextType = {
   dailyHydration: DailyHydration | null;
   hydrationGoal: number;
   hydrationPercentage: number;
-  logHydration: (amount: number) => Promise<void>;
+  logHydration: (amount: number, drinkType?: string, drinkName?: string) => Promise<void>;
   updateHydrationGoal: (newGoal: number) => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  pendingUpdates: boolean;
+  retryPendingLogs: () => Promise<void>;
 };
 
 const HydrationContext = createContext<HydrationContextType | undefined>(undefined);
@@ -41,6 +45,8 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hydrationGoal, setHydrationGoal] = useState(3000); // Default 3L goal
+  const [pendingUpdates, setPendingUpdates] = useState(false);
+  const [pendingLogs, setPendingLogs] = useState<{amount: number, drinkType?: string, drinkName?: string, timestamp: Date}[]>([]);
   
   // Track component mount status to prevent state updates after unmount
   const isMounted = useRef<boolean>(true);
@@ -68,9 +74,11 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     return timestamp instanceof Date ? timestamp : timestamp?.toDate?.() || new Date();
   }, []);
 
-  const createHydrationRecord = useCallback((amount: number, timestamp: MaybeTimestamp = new Date()): HydrationRecord => ({
+  const createHydrationRecord = useCallback((amount: number, timestamp: MaybeTimestamp = new Date(), drinkType?: string, drinkName?: string): HydrationRecord => ({
     amount,
     timestamp,
+    drinkType,
+    drinkName,
     getDate: () => toDate(timestamp)
   }), [toDate]);
 
@@ -143,23 +151,45 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     });
   }, [user, loadHydrationData]);
 
-  const logHydration = useCallback(async (amount: number) => {
+  const logHydration = useCallback(async (amount: number, drinkType?: string, drinkName?: string) => {
     if (!user) return;
     if (!isMounted.current) return;
+    
+    // Create hydration record with current timestamp for optimistic update
+    const timestamp = new Date();
+    const record = createHydrationRecord(amount, timestamp, drinkType, drinkName);
+    const newTotal = (dailyHydration?.total || 0) + amount;
+    const pendingLog = { amount, drinkType, drinkName, timestamp };
+    
+    // Optimistically update UI immediately
+    setDailyHydration(prev => {
+      if (!prev) return prev;
+      
+      const newLogs = [...prev.logs, record];
+      
+      return {
+        ...prev,
+        total: newTotal,
+        logs: newLogs,
+        lastUpdated: timestamp
+      };
+    });
+    
+    // Track that we have pending updates
+    setPendingUpdates(true);
+    setPendingLogs(prev => [...prev, pendingLog]);
     
     try {
       const today = getCurrentDateString();
       const docRef = doc(db, 'users', user.uid, 'hydration', today);
-      
-      // Create hydration record with current timestamp
-      const record = createHydrationRecord(amount);
-      const newTotal = (dailyHydration?.total || 0) + amount;
       
       // Update Firestore
       await updateDoc(docRef, {
         total: newTotal,
         logs: arrayUnion({
           amount,
+          drinkType,
+          drinkName,
           timestamp: serverTimestamp()
         }),
         lastUpdated: serverTimestamp()
@@ -168,19 +198,11 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
       // Skip state updates if component unmounted
       if (!isMounted.current) return;
       
-      // Update local state
-      setDailyHydration(prev => {
-        if (!prev) return prev;
-        
-        const newLogs = [...prev.logs, record];
-        
-        return {
-          ...prev,
-          total: newTotal,
-          logs: newLogs,
-          lastUpdated: new Date()
-        };
-      });
+      // Success: Remove from pending logs
+      setPendingLogs(prev => prev.filter(log => log.timestamp !== timestamp));
+      if (pendingLogs.length <= 1) {
+        setPendingUpdates(false);
+      }
     } catch (error) {
       // Skip console logging in production to prevent render churn
       if (process.env.NODE_ENV === 'development') {
@@ -189,7 +211,28 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
       
       // Skip state updates if component unmounted
       if (!isMounted.current) return;
-      setError('Failed to log hydration');
+      
+      // Revert the optimistic update on error
+      setDailyHydration(prev => {
+        if (!prev) return prev;
+        
+        // Filter out the optimistically added log
+        const revertedLogs = prev.logs.filter(log => 
+          !(log.amount === amount && log.timestamp === timestamp)
+        );
+        
+        // Recalculate the total
+        const revertedTotal = prev.total - amount;
+        
+        return {
+          ...prev,
+          total: revertedTotal,
+          logs: revertedLogs,
+          lastUpdated: new Date()
+        };
+      });
+      
+      setError('Failed to log hydration. Your changes will be saved when you reconnect.');
     }
   }, [user, dailyHydration, getCurrentDateString, createHydrationRecord]);
 
@@ -226,6 +269,79 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     }
   }, [user, dailyHydration, getCurrentDateString]);
 
+  // Function to retry sending any pending logs that failed due to network issues
+  const retryPendingLogs = useCallback(async () => {
+    if (pendingLogs.length === 0 || !user) return;
+    
+    setPendingUpdates(true);
+    let success = true;
+    
+    try {
+      const today = getCurrentDateString();
+      const docRef = doc(db, 'users', user.uid, 'hydration', today);
+      
+      // Get current data first to ensure we have the right total
+      const docSnap = await getDoc(docRef);
+      let currentTotal = 0;
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        currentTotal = data.total || 0;
+      }
+      
+      // Process each pending log
+      for (const log of pendingLogs) {
+        try {
+          // Update Firestore with each log
+          await updateDoc(docRef, {
+            total: currentTotal + log.amount,
+            logs: arrayUnion({
+              amount: log.amount,
+              drinkType: log.drinkType,
+              drinkName: log.drinkName,
+              timestamp: serverTimestamp()
+            }),
+            lastUpdated: serverTimestamp()
+          });
+          
+          // Update running total for next iteration
+          currentTotal += log.amount;
+        } catch (error) {
+          console.error('Failed to sync log during retry:', error);
+          success = false;
+          break;
+        }
+      }
+      
+      if (success) {
+        // All logs synced successfully
+        setPendingLogs([]);
+        setPendingUpdates(false);
+        setError(null);
+      }
+    } catch (error) {
+      console.error('Failed to retry pending logs:', error);
+      setError('Failed to sync your hydration logs. Please try again later.');
+    }
+  }, [pendingLogs, user, getCurrentDateString]);
+  
+  // Retry pending logs when user reconnects
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') return;
+    
+    const handleOnline = () => {
+      if (pendingLogs.length > 0) {
+        retryPendingLogs();
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [pendingLogs.length, retryPendingLogs, user]);
+
   // Memoize the context value to prevent unnecessary re-renders
   const value = useMemo(() => {
     return {
@@ -235,7 +351,9 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
       logHydration,
       updateHydrationGoal,
       isLoading,
-      error
+      error,
+      pendingUpdates,
+      retryPendingLogs
     };
   }, [
     dailyHydration,
@@ -244,7 +362,9 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     logHydration,
     updateHydrationGoal,
     isLoading,
-    error
+    error,
+    pendingUpdates,
+    retryPendingLogs
   ]);
 
   return <HydrationContext.Provider value={value}>{children}</HydrationContext.Provider>;

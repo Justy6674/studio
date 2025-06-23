@@ -30,7 +30,7 @@ Follow instructions in plan.md **line by line** — no deviation.
 - Do not narrate what you’re doing.
 - Do not summarize what just happened.
 - Do not make decisions — act only on plan.md.
-
+- NO TEMPORARY RULES JUST TO PLEASE ME - A FULL STACK APP OR NOTHING
 ---
 
 ## ❌ BLOCKED BEHAVIOR
@@ -96,5 +96,5 @@ All reminders functional
 Confetti triggers correct  
 No skipped tasks  
 No summaries  
-
+XO for error checking - not ES Lint - Not ES lint
 <!-- END rules.md -->
