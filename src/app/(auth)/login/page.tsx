@@ -13,10 +13,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, user, hasActiveSubscription, isSubscriptionLoading } = useAuth();
+  const { signIn, user, hasActiveSubscription, isSubscriptionLoading, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
   const [email, setEmail] = useState("");
@@ -76,6 +77,50 @@ export default function LoginPage() {
         return "Login failed. Please check your credentials and try again.";
     }
   };
+
+  // Show skeleton loader while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-slate-800 border-slate-700 shadow-2xl">
+          <CardHeader className="space-y-4 text-center">
+            <div className="flex justify-center">
+              <Skeleton className="w-20 h-20 rounded-xl" />
+            </div>
+            <div>
+              <Skeleton className="h-8 w-40 mx-auto" />
+              <Skeleton className="h-5 w-56 mx-auto mt-2" />
+            </div>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+              
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Skeleton className="h-5 w-5 rounded" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+              
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex flex-col space-y-4">
+            <Skeleton className="h-5 w-48 mx-auto" />
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">

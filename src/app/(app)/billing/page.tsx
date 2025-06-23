@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   CreditCard, 
@@ -19,48 +17,23 @@ import {
   Settings
 } from "lucide-react";
 
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/fZu5kvexV0Mf3Qr3Dsf3a03";
+const STRIPE_DISCOUNTED_LINK = "https://buy.stripe.com/test_discounted_link"; // Replace with your actual discounted link
+const STRIPE_CUSTOMER_PORTAL = "https://billing.stripe.com/p/login/test_123"; // Replace with your actual portal link
+
 export default function BillingPage() {
   const { user, userProfile, hasActiveSubscription, isSubscriptionLoading, logOut } = useAuth();
   const router = useRouter();
-  const [isStripeBuyButtonLoaded, setIsStripeBuyButtonLoaded] = useState(false);
 
-  // Redirect if user has active subscription
+  // Redirect if user already has an active subscription
   useEffect(() => {
     if (user && !isSubscriptionLoading && hasActiveSubscription()) {
       router.push("/dashboard");
     }
   }, [user, hasActiveSubscription, isSubscriptionLoading, router]);
 
-  // Load Stripe Buy Button script
-  useEffect(() => {
-    const loadStripeScript = () => {
-      if (document.querySelector('script[src="https://js.stripe.com/v3/buy-button.js"]')) {
-        setIsStripeBuyButtonLoaded(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = "https://js.stripe.com/v3/buy-button.js";
-      script.async = true;
-      script.onload = () => setIsStripeBuyButtonLoaded(true);
-      script.onerror = () => {
-        console.error("Failed to load Stripe Buy Button script");
-        setIsStripeBuyButtonLoaded(false);
-      };
-      document.head.appendChild(script);
-    };
-
-    loadStripeScript();
-  }, []);
-
-  const openCustomerPortal = () => {
-    // In a real implementation, you'd call your backend to create a customer portal session
-    // For now, we'll just open the Stripe customer portal directly
-    window.open("https://billing.stripe.com/p/login/test_123", "_blank");
-  };
-
-  const openDirectLink = () => {
-    window.open("https://buy.stripe.com/fZu5kvexV0Mf3Qr3Dsf3a03", "_blank");
+  const openLink = (url: string) => {
+    window.open(url, "_blank");
   };
 
   if (!user) {
@@ -83,10 +56,75 @@ export default function BillingPage() {
 
   if (isSubscriptionLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-12 w-96 bg-slate-800" />
-          <Skeleton className="h-96 bg-slate-800 rounded-xl" />
+      <div className="min-h-screen bg-slate-900 text-slate-100">
+        <div className="max-w-4xl mx-auto p-6 space-y-8">
+          {/* Header Skeleton */}
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <Skeleton className="w-16 h-16 rounded-full" />
+            </div>
+            <Skeleton className="h-10 w-3/4 mx-auto" />
+            <Skeleton className="h-6 w-2/3 mx-auto" />
+          </div>
+
+          {/* Subscription Card Skeleton */}
+          <Card className="bg-slate-800 border-slate-700 shadow-lg">
+            <CardHeader className="text-center border-b border-slate-700 pb-4">
+              <div className="flex justify-center items-center gap-2">
+                <Skeleton className="h-8 w-64 mx-auto" />
+              </div>
+              <div className="mt-2">
+                <Skeleton className="h-10 w-40 mx-auto" />
+              </div>
+              <Skeleton className="h-5 w-48 mx-auto mt-2" />
+            </CardHeader>
+            
+            <CardContent className="pt-6 space-y-6">
+              {/* Features List Skeleton */}
+              <div className="grid gap-4">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <Skeleton className="h-5 w-5 rounded-full mt-0.5" />
+                    <div className="w-full">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-5 w-32" />
+                      </div>
+                      <Skeleton className="h-4 w-full mt-1" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Subscribe Button Skeleton */}
+              <div className="space-y-4 pt-4">
+                <Skeleton className="h-12 w-full rounded-md" />
+              </div>
+
+              {/* Manage Subscription Skeleton */}
+              <div className="border-t border-slate-700 pt-4">
+                <div className="text-center space-y-3">
+                  <Skeleton className="h-5 w-36 mx-auto" />
+                  <Skeleton className="h-10 w-48 mx-auto rounded-md" />
+                  <Skeleton className="h-4 w-64 mx-auto" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Additional Info Skeleton */}
+          <div className="text-center space-y-4">
+            <div className="flex justify-center gap-6">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+            
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-64 mx-auto" />
+              <Skeleton className="h-10 w-24 mx-auto rounded-md" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -118,41 +156,32 @@ export default function BillingPage() {
           </p>
         </div>
 
-        {/* Subscription Status Alert */}
-        {userProfile?.subscriptionStatus === 'canceled' && (
-          <Alert className="bg-red-900/20 border-red-700">
-            <Droplets className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-300">
-              Your subscription has been cancelled. Please subscribe to continue using Water4WeightLoss.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {!hasActiveSubscription() && (
-          <Alert className="bg-blue-900/20 border-blue-700">
-            <Droplets className="h-4 w-4 text-blue-400" />
-            <AlertDescription className="text-blue-300">
-              You need an active subscription to access the full Water4WeightLoss experience.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Pricing Card */}
-        <Card className="bg-slate-800 border-slate-700 shadow-2xl">
-          <CardHeader className="text-center pb-4">
-            <div className="flex justify-center items-center gap-2 mb-2">
-              <Badge className="bg-hydration-500 text-white">All Features</Badge>
+        {/* Subscription Card */}
+        <Card className="bg-slate-800 border-slate-700 shadow-lg">
+          <CardHeader className="text-center border-b border-slate-700 pb-4">
+            <div className="flex justify-center items-center gap-2">
+              <h2 className="text-2xl font-semibold text-white">Water4WeightLoss Premium</h2>
             </div>
-            <CardTitle className="text-2xl text-slate-100">Water4WeightLoss</CardTitle>
-            <CardDescription className="text-slate-400">
-              Complete hydration tracking with AI coaching
-            </CardDescription>
-            <div className="text-4xl font-bold text-hydration-400 mt-4">
-              $9.95 AUD<span className="text-lg text-slate-400">/month</span>
+            <div className="mt-2">
+              {userProfile?.isClinicClient ? (
+                <>
+                  <span className="text-4xl font-bold text-white">$4.98</span>
+                  <span className="text-slate-400 ml-1 line-through">$9.95</span>
+                  <span className="text-slate-400 ml-1">/ month (AUD)</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-4xl font-bold text-white">$9.95</span>
+                  <span className="text-slate-400 ml-1">/ month (AUD)</span>
+                </>
+              )}
             </div>
+            <p className="text-slate-400 mt-2">
+              One simple plan. All features included.
+            </p>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="pt-6 space-y-6">
             {/* Features List */}
             <div className="grid gap-4">
               {features.map((feature, index) => (
@@ -171,37 +200,15 @@ export default function BillingPage() {
 
             {/* Subscribe Button */}
             <div className="space-y-4 pt-4">
-              {isStripeBuyButtonLoaded ? (
-                <div className="flex justify-center">
-                  <stripe-buy-button
-                    buy-button-id="buy_btn_1RUbr801xl09Ntf40fasOqrK"
-                    publishable-key="pk_live_51Q8bcy01xl09Ntf4KyX7ax9zvGm8Rg4yXv0eluw1thBvHuW6NNU5eMXnkyxPfdMYkL2Nj8q51HlivCa6xxoC6TXY00CRxbXhKI"
-                  ></stripe-buy-button>
-                </div>
-              ) : (
-                <Button 
-                  onClick={openDirectLink}
-                  className="w-full bg-hydration-500 hover:bg-hydration-600 text-white text-lg py-3"
-                  size="lg"
-                >
-                  <CreditCard className="h-5 w-5 mr-2" />
-                  Subscribe Now - $9.95 AUD/month
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-              
-              {/* Fallback Direct Link */}
-              <div className="text-center">
-                <p className="text-sm text-slate-500 mb-2">Having trouble? Use our direct link:</p>
-                <Button 
-                  variant="outline" 
-                  onClick={openDirectLink}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Direct Checkout
-                </Button>
-              </div>
+              <Button 
+                onClick={() => openLink(userProfile?.isClinicClient ? STRIPE_DISCOUNTED_LINK : STRIPE_PAYMENT_LINK)}
+                className="w-full bg-hydration-500 hover:bg-hydration-600 text-white text-lg py-3"
+                size="lg"
+              >
+                <CreditCard className="h-5 w-5 mr-2" />
+                {userProfile?.isClinicClient ? 'Subscribe Now - $4.98 AUD/month (50% off)' : 'Subscribe Now - $9.95 AUD/month'}
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </Button>
             </div>
 
             {/* Manage Subscription for existing customers */}
@@ -211,7 +218,7 @@ export default function BillingPage() {
                   <p className="text-sm text-slate-400">Already a customer?</p>
                   <Button 
                     variant="outline" 
-                    onClick={openCustomerPortal}
+                    onClick={() => openLink(STRIPE_CUSTOMER_PORTAL)}
                     className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   >
                     <Settings className="h-4 w-4 mr-2" />
