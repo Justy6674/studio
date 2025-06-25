@@ -31,6 +31,11 @@ interface UserProfileData {
 import { createAuthenticatedFunction } from "./types/firebase";
 
 interface MotivationalMessageRequest {
+  tone?: 'funny' | 'kind' | 'motivational' | 'sarcastic' | 'strict' | 'supportive' | 'crass' | 'weightloss';
+  currentMl?: number;
+  dailyGoalMl?: number;
+  currentStreak?: number;
+  userName?: string;
   name?: string;
 }
 
@@ -48,13 +53,43 @@ export const generateMotivationalMessage = createAuthenticatedFunction<Motivatio
   }
 
   try {
+    // Get parameters from request or fetch from user profile
+    const { tone, currentMl, dailyGoalMl, currentStreak, userName: requestUserName } = data;
+    
     const userDoc = await db.collection('users').doc(userId).get();
     if (!userDoc.exists) {
       throw new functions.https.HttpsError('not-found', 'User profile not found.');
     }
     const userData = userDoc.data() as UserProfileData;
-    const hydrationGoal = userData.hydrationGoal || 2000; // Default if not set
-    const userName = userData.name || 'there';
+    
+    // Use request parameters or fallback to user profile/defaults
+    const hydrationGoal = dailyGoalMl || userData.hydrationGoal || 2000;
+    const userName = requestUserName || userData.name || 'there';
+    const userTone = tone || 'kind'; // Default to kind tone
+    
+    // Get current hydration if not provided
+    let currentHydration = currentMl;
+    if (currentHydration === undefined) {
+      // Calculate today's hydration
+      const today = startOfDay(new Date());
+      const todayLogsSnapshot = await db.collection('hydration_logs')
+        .where('userId', '==', userId)
+        .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(today))
+        .get();
+      
+      currentHydration = todayLogsSnapshot.docs.reduce((total, doc) => {
+        return total + (doc.data().amount || 0);
+      }, 0);
+    }
+    
+    // Get current streak if not provided
+    let streak = currentStreak;
+    if (streak === undefined) {
+      // Calculate streak (simplified version)
+      const userPrefsDoc = await db.collection('user_preferences').doc(userId).get();
+      const userPrefs = userPrefsDoc.exists ? userPrefsDoc.data() : null;
+      streak = userPrefs?.dailyStreak || 0;
+    }
 
     // Fetch logs from the past 48 hours
     const twoDaysAgo = startOfDay(subDays(new Date(), 2));
@@ -77,17 +112,22 @@ export const generateMotivationalMessage = createAuthenticatedFunction<Motivatio
       ? `Their recent logs: ${hydrationLogsFormatted.map(l => `${l.amount}ml at ${l.timestamp}`).join('; ')}.`
       : "They have no recent hydration logs in the last 48 hours.";
 
+    // EXACT PROMPT PATTERN AS REQUIRED
     const prompt = `
-      You are a friendly and supportive hydration coach named HydroHelper for the app Water4WeightLoss.
-      The user's name is ${userName}.
-      Their daily hydration goal is ${hydrationGoal}ml.
-      ${logSummary}
-      
-      Based on this information, write a short (around 1-2 sentences, max 160 characters for SMS compatibility), kind, and encouraging message 
-      to motivate the user about their hydration. Be positive and avoid shaming.
-      If they have logs, acknowledge their effort. If not, gently encourage them to log their intake.
-      Make the message feel personal, empathetic, and helpful. Address them by their name.
-      End with a water-related emoji.
+Generate a short, ${userTone}-toned push notification encouraging ${userName} to hydrate right now.
+User consumed: ${currentHydration}/${hydrationGoal} ml today.
+Current streak: ${streak} days.
+Ensure each message is unique, engaging, and NEVER repetitive.
+
+Additional context: ${logSummary}
+
+Requirements:
+- Maximum 160 characters for mobile notifications
+- Match the ${userTone} tone exactly
+- Be creative and unpredictable
+- Include relevant emoji
+- Address user as ${userName}
+- Focus on immediate hydration action
     `;
 
     const generationConfig = {

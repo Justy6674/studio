@@ -32,87 +32,321 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendHydrationReminder = void 0;
-/**
- * @fileOverview Firebase Function to send a hydration reminder SMS using Twilio.
- */
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-const twilio_1 = __importDefault(require("twilio"));
-let twilioClient = null;
-// Initialize Twilio client
-function initializeTwilioClient() {
-    if (!twilioClient) {
-        const TWILIO_ACCOUNT_SID = functions.config().twilio?.sid;
-        const TWILIO_AUTH_TOKEN = functions.config().twilio?.authtoken;
-        if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
-            console.error('Twilio credentials (SID or Auth Token) not configured. Set with `firebase functions:config:set twilio.sid="YOUR_SID" twilio.authtoken="YOUR_TOKEN"`');
-            return; // Client remains null, will be checked before use
-        }
-        twilioClient = (0, twilio_1.default)(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-    }
-}
-exports.sendHydrationReminder = functions.https.onCall(async (data, context) => {
-    initializeTwilioClient();
-    const { userId: specifiedUserId, message: customMessage } = data;
-    let targetUserId = specifiedUserId;
-    if (!targetUserId && context.auth) {
-        targetUserId = context.auth.uid;
-    }
-    if (!targetUserId) {
-        throw new functions.https.HttpsError('invalid-argument', 'User ID is required, either via authentication or as a parameter.');
-    }
-    const TWILIO_PHONE_NUMBER = functions.config().twilio?.phonenumber;
-    if (!TWILIO_PHONE_NUMBER) {
-        console.error('Twilio phone number not configured. Set with `firebase functions:config:set twilio.phonenumber="YOUR_TWILIO_NUMBER"`');
-        throw new functions.https.HttpsError('failed-precondition', 'SMS service (sender phone number) not configured.');
-    }
-    if (!twilioClient) {
-        throw new functions.https.HttpsError('failed-precondition', 'SMS service (Twilio client) not initialized, likely due to missing credentials.');
-    }
-    const db = admin.firestore();
+const firebase_1 = require("./types/firebase");
+const date_fns_1 = require("date-fns");
+const twilio = require('twilio');
+// Notification frequency intervals (in minutes)
+const FREQUENCY_INTERVALS = {
+    minimal: [240, 360, 480], // 4-8 hours
+    moderate: [120, 180, 240, 360], // 2-6 hours  
+    frequent: [60, 90, 120, 150, 180, 240] // 1-4 hours
+};
+exports.sendHydrationReminder = (0, firebase_1.createAuthenticatedFunction)(async (data, userId) => {
+    const { tone, forceMethod = 'auto', testMode = false } = data;
     try {
-        const userDoc = await db.collection('users').doc(targetUserId).get();
-        if (!userDoc.exists) {
-            throw new functions.https.HttpsError('not-found', `User profile for ${targetUserId} not found.`);
+        const db = admin.firestore();
+        // Get user preferences and profile
+        const [userPrefsDoc, userProfileDoc] = await Promise.all([
+            db.collection('user_preferences').doc(userId).get(),
+            db.collection('users').doc(userId).get()
+        ]);
+        if (!userPrefsDoc.exists || !userProfileDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'User profile or preferences not found');
         }
-        const userData = userDoc.data();
-        const toPhoneNumber = userData.phoneNumber;
-        const userName = userData.name || 'there';
-        if (!toPhoneNumber) {
-            console.log(`User ${targetUserId} does not have a phone number configured for SMS reminders.`);
-            return { success: false, message: 'User phone number not configured.' };
+        const userPrefs = userPrefsDoc.data();
+        const userProfile = userProfileDoc.data();
+        // Check if notifications are enabled
+        const fcmEnabled = userPrefs.fcmEnabled || false;
+        const smsEnabled = userPrefs.smsReminderOn || false;
+        const notificationFrequency = userPrefs.notificationFrequency || 'moderate';
+        if (!fcmEnabled && !smsEnabled && !testMode) {
+            return {
+                success: false,
+                method: 'none',
+                message: 'All notification methods disabled',
+                analytics: await buildAnalytics(userId, userProfile, userPrefs, 'none')
+            };
         }
-        // Basic E.164 validation (server-side check)
-        if (!/^\+[1-9]\d{1,14}$/.test(toPhoneNumber)) {
-            console.error(`Invalid phone number format for user ${targetUserId}: ${toPhoneNumber}`);
-            throw new functions.https.HttpsError('invalid-argument', `Invalid phone number format: ${toPhoneNumber}. Must be E.164 (e.g., +12345678900).`);
+        // Calculate current hydration status
+        const today = (0, date_fns_1.startOfDay)(new Date());
+        const todayLogsSnapshot = await db.collection('hydration_logs')
+            .where('userId', '==', userId)
+            .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(today))
+            .get();
+        const currentMl = todayLogsSnapshot.docs.reduce((total, doc) => {
+            return total + (doc.data().amount || 0);
+        }, 0);
+        const dailyGoalMl = userProfile.hydrationGoal || 2000;
+        const hydrationPercentage = (currentMl / dailyGoalMl) * 100;
+        // Get current streak
+        const currentStreak = userPrefs.dailyStreak || 0;
+        const userName = userProfile.name || 'there';
+        const selectedTone = tone || userPrefs.motivationTone || 'kind';
+        // Check if user should receive notification based on patterns
+        if (!testMode && !shouldSendNotification(userPrefs, notificationFrequency, hydrationPercentage)) {
+            return {
+                success: false,
+                method: 'none',
+                message: 'Notification skipped due to frequency rules',
+                analytics: await buildAnalytics(userId, userProfile, userPrefs, 'skipped')
+            };
         }
-        let messageToSend = customMessage;
-        if (!messageToSend) {
-            // For a simple default message. Could also call generateMotivationalMessage here if complex logic is needed.
-            messageToSend = `Hi ${userName}! Just a friendly reminder from Water4WeightLoss to stay hydrated today. Keep up the great work! 💧`;
+        // Generate AI-powered motivational message using a simple fallback approach
+        // Since we're inside a cloud function, we'll create the message directly
+        let messageText = `💧 Hey ${userName}! You're at ${currentMl}/${dailyGoalMl}ml today. Time to hydrate! 🚰`;
+        // Simple tone variations
+        const toneMessages = {
+            funny: `😂 ${userName}, your water bottle is starting to feel neglected! Show it some love? 💧`,
+            kind: `😊 Gentle reminder, ${userName}: a sip of water now will keep you feeling great! 💧`,
+            motivational: `💪 You've got this, ${userName}! ${currentMl}ml down, ${dailyGoalMl - currentMl}ml to go! 🚰`,
+            sarcastic: `🙄 Oh look, ${userName}, your hydration goal is still waiting... how surprising 💧`,
+            strict: `🧐 ${userName}, drink water. Now. Your body needs it. No excuses. 💧`,
+            supportive: `🤗 Hey ${userName}, just checking in - how about some water to keep you amazing? 💧`,
+            crass: `💥 Seriously ${userName}, your hydration game is weaker than decaf coffee! 💧`,
+            weightloss: `🏋️‍♀️ Water boosts metabolism, ${userName}! Drink up for those weight goals! 💧`
+        };
+        messageText = toneMessages[selectedTone] || toneMessages.kind;
+        // Determine delivery method
+        let deliveryMethod = 'fcm';
+        if (forceMethod !== 'auto') {
+            deliveryMethod = forceMethod;
         }
-        const twilioResponse = await twilioClient.messages.create({
-            body: messageToSend,
-            from: TWILIO_PHONE_NUMBER,
-            to: toPhoneNumber,
+        else if (fcmEnabled && smsEnabled) {
+            // Prefer FCM but fallback to SMS if needed
+            deliveryMethod = 'fcm';
+        }
+        else if (smsEnabled) {
+            deliveryMethod = 'sms';
+        }
+        // Send notification(s)
+        const results = await sendNotifications(userId, messageText, selectedTone, deliveryMethod, userPrefs, {
+            currentMl,
+            dailyGoalMl,
+            percentage: hydrationPercentage,
+            streak: currentStreak,
+            vibrationEnabled: userPrefs.vibrationEnabled || true
         });
-        console.log(`SMS reminder sent to user ${targetUserId} (phone: ${toPhoneNumber}). Message SID: ${twilioResponse.sid}`);
-        return { success: true, messageSid: twilioResponse.sid, message: "SMS reminder sent successfully." };
+        // Log analytics
+        await logReminderAnalytics(userId, {
+            selectedTone,
+            method: results.method,
+            success: results.success,
+            messageText,
+            hydrationStatus: {
+                currentMl,
+                goalMl: dailyGoalMl,
+                percentage: hydrationPercentage
+            },
+            streakDays: currentStreak,
+            testMode
+        });
+        return {
+            success: results.success,
+            method: results.method,
+            message: results.success ? 'Reminder sent successfully' : 'Failed to send reminder',
+            messageText,
+            error: results.error,
+            analytics: await buildAnalytics(userId, userProfile, userPrefs, results.method)
+        };
     }
     catch (error) {
-        console.error(`Error sending SMS reminder to user ${targetUserId}:`, error);
-        if (error.code && error.message && typeof error.code === 'number') { // Twilio errors often have code and message
-            throw new functions.https.HttpsError('internal', `Twilio error: ${error.message} (Code: ${error.code})`);
-        }
-        if (error instanceof functions.https.HttpsError)
-            throw error;
-        throw new functions.https.HttpsError('internal', 'Failed to send SMS reminder.', error.message);
+        console.error("Error sending hydration reminder:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return {
+            success: false,
+            method: 'none',
+            message: `Failed to send reminder: ${errorMessage}`,
+            error: errorMessage,
+            analytics: await buildAnalytics(userId, {}, {}, 'error')
+        };
     }
 });
+// Check if notification should be sent based on patterns and frequency
+function shouldSendNotification(userPrefs, frequency, hydrationPercentage) {
+    const lastNotificationTime = userPrefs.lastNotificationTime?.toDate();
+    const now = new Date();
+    if (!lastNotificationTime)
+        return true; // First notification
+    const minutesSinceLastNotification = (now.getTime() - lastNotificationTime.getTime()) / (1000 * 60);
+    const intervals = FREQUENCY_INTERVALS[frequency] || FREQUENCY_INTERVALS.moderate;
+    // Smart interval selection based on hydration status
+    let targetInterval;
+    if (hydrationPercentage < 25) {
+        targetInterval = Math.min(...intervals); // More frequent if severely behind
+    }
+    else if (hydrationPercentage < 50) {
+        targetInterval = intervals[Math.floor(intervals.length / 2)]; // Moderate if behind
+    }
+    else {
+        targetInterval = Math.max(...intervals); // Less frequent if on track
+    }
+    // Add randomness for unpredictability
+    const randomVariation = targetInterval * 0.2; // ±20% variation
+    const randomOffset = (Math.random() - 0.5) * 2 * randomVariation;
+    const finalInterval = targetInterval + randomOffset;
+    return minutesSinceLastNotification >= finalInterval;
+}
+// Send notifications via FCM and/or SMS
+async function sendNotifications(userId, messageText, tone, method, userPrefs, hydrationData) {
+    let fcmSuccess = false;
+    let smsSuccess = false;
+    let lastError = '';
+    // Send FCM notification
+    if (method === 'fcm' || method === 'both') {
+        try {
+            const fcmToken = userPrefs.fcmToken;
+            if (fcmToken) {
+                const toneEmojis = {
+                    funny: '😂', kind: '😊', motivational: '💪', sarcastic: '🙄',
+                    strict: '🧐', supportive: '🤗', crass: '💥', weightloss: '🏋️‍♀️'
+                };
+                const emoji = toneEmojis[tone] || '💧';
+                const vibrationPattern = hydrationData.vibrationEnabled ? '200,100,200,100,200' : '';
+                const fcmMessage = {
+                    token: fcmToken,
+                    notification: {
+                        title: `${emoji} Water4WeightLoss`,
+                        body: messageText
+                    },
+                    data: {
+                        tone,
+                        hydrationPercentage: hydrationData.percentage.toString(),
+                        currentMl: hydrationData.currentMl.toString(),
+                        goalMl: hydrationData.dailyGoalMl.toString(),
+                        streak: hydrationData.streak.toString(),
+                        vibrationPattern,
+                        action: 'hydration_reminder',
+                        url: '/dashboard?action=log-water'
+                    },
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            vibrationPattern: hydrationData.vibrationEnabled ? [200, 100, 200, 100, 200] : undefined,
+                            sound: 'default',
+                            channelId: 'hydration_reminders'
+                        }
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                                badge: 1
+                            }
+                        }
+                    }
+                };
+                await admin.messaging().send(fcmMessage);
+                fcmSuccess = true;
+                console.log(`FCM notification sent to user ${userId}`);
+            }
+        }
+        catch (error) {
+            console.error('FCM notification failed:', error);
+            lastError = `FCM failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+    }
+    // Send SMS notification (fallback or primary)
+    if ((method === 'sms' || method === 'both') || (!fcmSuccess && method === 'fcm')) {
+        try {
+            const phoneNumber = userPrefs.phoneNumber;
+            const twilioAccountSid = functions.config().twilio?.sid;
+            const twilioAuthToken = functions.config().twilio?.authtoken;
+            const twilioPhoneNumber = functions.config().twilio?.phonenumber;
+            if (phoneNumber && twilioAccountSid && twilioAuthToken && twilioPhoneNumber) {
+                const twilioClient = twilio(twilioAccountSid, twilioAuthToken);
+                await twilioClient.messages.create({
+                    body: messageText,
+                    from: twilioPhoneNumber,
+                    to: phoneNumber
+                });
+                smsSuccess = true;
+                console.log(`SMS notification sent to user ${userId}`);
+            }
+        }
+        catch (error) {
+            console.error('SMS notification failed:', error);
+            lastError += ` SMS failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+    }
+    // Update last notification time
+    if (fcmSuccess || smsSuccess) {
+        await admin.firestore().collection('user_preferences').doc(userId).update({
+            lastNotificationTime: admin.firestore.FieldValue.serverTimestamp()
+        });
+    }
+    // Determine final result
+    if (fcmSuccess && smsSuccess) {
+        return { success: true, method: 'both' };
+    }
+    else if (fcmSuccess) {
+        return { success: true, method: 'fcm' };
+    }
+    else if (smsSuccess) {
+        return { success: true, method: 'sms' };
+    }
+    else {
+        return { success: false, method: 'none', error: lastError };
+    }
+}
+// Log analytics for reminder
+async function logReminderAnalytics(userId, data) {
+    try {
+        await admin.firestore().collection('analytics_events').add({
+            userId,
+            type: 'hydration_reminder',
+            ...data,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            platform: 'firebase_function'
+        });
+    }
+    catch (error) {
+        console.error('Failed to log reminder analytics:', error);
+    }
+}
+// Build analytics object
+async function buildAnalytics(userId, userProfile, userPrefs, method) {
+    const today = (0, date_fns_1.startOfDay)(new Date());
+    const db = admin.firestore();
+    try {
+        const todayLogsSnapshot = await db.collection('hydration_logs')
+            .where('userId', '==', userId)
+            .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(today))
+            .get();
+        const currentMl = todayLogsSnapshot.docs.reduce((total, doc) => {
+            return total + (doc.data().amount || 0);
+        }, 0);
+        const goalMl = userProfile.hydrationGoal || 2000;
+        const lastLogin = userProfile.lastLogin?.toDate() || new Date();
+        const lastActiveHours = (new Date().getTime() - lastLogin.getTime()) / (1000 * 60 * 60);
+        return {
+            userId,
+            tone: userPrefs.motivationTone || 'kind',
+            deliveryMethod: method,
+            hydrationStatus: {
+                currentMl,
+                goalMl,
+                percentage: (currentMl / goalMl) * 100
+            },
+            streakDays: userPrefs.dailyStreak || 0,
+            lastActiveHours: Math.round(lastActiveHours),
+            timestamp: new Date().toISOString()
+        };
+    }
+    catch (error) {
+        console.error('Error building analytics:', error);
+        return {
+            userId,
+            tone: 'unknown',
+            deliveryMethod: method,
+            hydrationStatus: { currentMl: 0, goalMl: 2000, percentage: 0 },
+            streakDays: 0,
+            lastActiveHours: 0,
+            timestamp: new Date().toISOString()
+        };
+    }
+}
 //# sourceMappingURL=sendHydrationReminder.js.map

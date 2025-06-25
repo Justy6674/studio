@@ -1,9 +1,8 @@
 import * as admin from 'firebase-admin';
 
-// Detect build environment to completely bypass Firebase Admin during builds
-const isBuildTime = process.env.NODE_ENV !== 'production' || 
-                   process.env.VERCEL_ENV === 'preview' || 
-                   process.env.VERCEL_ENV === 'development';
+// Only use mock Firebase during actual Next.js build process, not development
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
+                   process.env.VERCEL_ENV === 'preview';
 
 // Create mock admin interfaces and implementations
 interface MockApp {
@@ -19,8 +18,22 @@ const mockAuth = {
 };
 
 const mockFirestore = {
-  collection: () => ({}),
-  doc: () => ({})
+  collection: (path: string) => ({
+    doc: (docId: string) => ({
+      get: async () => ({ exists: false, data: () => null }),
+      set: async () => ({}),
+      update: async () => ({}),
+      delete: async () => ({})
+    }),
+    add: async () => ({ id: 'mock-doc-id' }),
+    where: () => ({ get: async () => ({ docs: [] }) })
+  }),
+  doc: (path: string) => ({
+    get: async () => ({ exists: false, data: () => null }),
+    set: async () => ({}),
+    update: async () => ({}),
+    delete: async () => ({})
+  })
 };
 
 // Create mock admin app
@@ -44,9 +57,9 @@ if (isBuildTime) {
   auth = mockAuth as unknown as admin.auth.Auth;
   firestore = mockFirestore as unknown as admin.firestore.Firestore;
 } else {
-  // Only in production server context, try to initialize Firebase Admin
+  // Initialize Firebase Admin for real Firebase project
   const serviceAccountKey = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
-  const isServerContext = process.env.NODE_ENV === 'production' && typeof window === 'undefined';
+  const isServerContext = typeof window === 'undefined';
   let serviceAccountValid = false;
   
   // Function to validate JSON string before parsing
@@ -92,7 +105,7 @@ if (isBuildTime) {
           // Initialize with service account
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            // Additional config options can be added here if needed
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
           });
           
           console.log('Firebase Admin SDK initialized successfully.');
@@ -104,8 +117,11 @@ if (isBuildTime) {
         });
         console.log('Firebase Admin SDK initialized with placeholder during build.');
       } else {
-        // If in server context but no valid service account, initialize with app-specific credentials
-        throw new Error('Firebase Admin SDK initialization failed: Missing or invalid service account key');
+        // Fallback: Initialize with project ID for development
+        admin.initializeApp({
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'hydrateai-ayjow',
+        });
+        console.log('Firebase Admin SDK initialized with project ID fallback for development.');
       }
     } catch (error) {
       // Provide detailed error for troubleshooting but don't break the build
@@ -136,3 +152,6 @@ if (isBuildTime) {
 
 // Export the admin app and services
 export { app, auth, firestore };
+
+// Also export the admin namespace for direct access
+export { admin };

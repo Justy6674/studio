@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.availableTones = void 0;
-exports.availableTones = ["default", "funny", "crass", "rude", "sarcastic", "kind", "motivational", "clinical", "friendly", "professional", "encouraging"];
+exports.notificationFrequencies = exports.availableTones = void 0;
+exports.availableTones = ["funny", "kind", "motivational", "sarcastic", "strict", "supportive", "crass", "weightloss"];
+exports.notificationFrequencies = ["minimal", "moderate", "frequent"];
 //# sourceMappingURL=types.js.map

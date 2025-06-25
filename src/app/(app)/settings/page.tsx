@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { NotificationSettings } from "@/components/notifications/NotificationSettings";
+import { GamificationSystem } from "@/components/gamification/GamificationSystem";
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -24,7 +26,8 @@ import {
   Save,
   Check,
   AlertCircle,
-  Smartphone
+  Smartphone,
+  Trophy
 } from "lucide-react";
 
 interface SettingsData {
@@ -37,6 +40,12 @@ interface SettingsData {
   reminderTimes: Record<string, boolean>;
   pushNotifications: boolean;
   milestoneAnimations: boolean;
+  // New FCM notification settings
+  fcmEnabled?: boolean;
+  fcmToken?: string;
+  notificationFrequency?: 'minimal' | 'moderate' | 'frequent';
+  vibrationEnabled?: boolean;
+  smartwatchEnabled?: boolean;
 }
 
 const motivationTones = [
@@ -67,6 +76,11 @@ export default function SettingsPage() {
     reminderTimes: {},
     pushNotifications: false,
     milestoneAnimations: true,
+    fcmEnabled: false,
+    fcmToken: '',
+    notificationFrequency: 'moderate',
+    vibrationEnabled: true,
+    smartwatchEnabled: false,
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -75,21 +89,36 @@ export default function SettingsPage() {
 
   // Load user settings
   useEffect(() => {
-    if (userProfile) {
-      const newSettings = {
-        name: userProfile.name || '',
-        hydrationGoal: userProfile.hydrationGoal || 2000,
-        sipAmount: userProfile.sipAmount || 50,
-        phoneNumber: userProfile.phoneNumber || '',
-        smsEnabled: userProfile.smsEnabled || false,
-        motivationTone: userProfile.motivationTone || 'kind',
-        reminderTimes: userProfile.reminderTimes || { '08:00': true, '12:00': true },
-        pushNotifications: userProfile.pushNotifications || false,
-        milestoneAnimations: userProfile.milestoneAnimations !== false,
-      };
-      setSettings(newSettings);
-    }
-  }, [userProfile]);
+    const loadSettings = async () => {
+      if (userProfile && user) {
+        // Get user preferences for notification settings
+        const userPrefsRef = doc(db, 'user_preferences', user.uid);
+        const userPrefsSnap = await getDoc(userPrefsRef);
+        const userPrefs = userPrefsSnap.exists() ? userPrefsSnap.data() : {};
+
+        const newSettings = {
+          name: userProfile.name || '',
+          hydrationGoal: userProfile.hydrationGoal || 2000,
+          sipAmount: userProfile.sipAmount || 50,
+          phoneNumber: userProfile.phoneNumber || '',
+          smsEnabled: userProfile.smsEnabled || false,
+          motivationTone: userProfile.motivationTone || 'kind',
+          reminderTimes: userProfile.reminderTimes || { '08:00': true, '12:00': true },
+          pushNotifications: userProfile.pushNotifications || false,
+          milestoneAnimations: userProfile.milestoneAnimations !== false,
+          // Load FCM settings from user_preferences
+          fcmEnabled: userPrefs.fcmEnabled || false,
+          fcmToken: userPrefs.fcmToken || '',
+          notificationFrequency: userPrefs.notificationFrequency || 'moderate',
+          vibrationEnabled: userPrefs.vibrationEnabled !== false,
+          smartwatchEnabled: userPrefs.smartwatchEnabled || false,
+        };
+        setSettings(newSettings);
+      }
+    };
+
+    loadSettings();
+  }, [userProfile, user]);
 
   const updateSetting = (key: keyof SettingsData, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -228,7 +257,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile & Goals
@@ -236,6 +265,10 @@ export default function SettingsPage() {
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger value="gamification" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Gamification
           </TabsTrigger>
           <TabsTrigger value="preferences" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
@@ -312,19 +345,39 @@ export default function SettingsPage() {
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-6">
+          <NotificationSettings
+            initialSettings={{
+              fcmEnabled: settings.fcmEnabled,
+              motivationTone: settings.motivationTone as any,
+              notificationFrequency: settings.notificationFrequency,
+              vibrationEnabled: settings.vibrationEnabled,
+              smartwatchEnabled: settings.smartwatchEnabled,
+              fcmToken: settings.fcmToken
+            }}
+            onSettingsChange={(newSettings) => {
+              // Update local settings state
+              setSettings(prev => ({
+                ...prev,
+                ...newSettings
+              }));
+              setHasChanges(true);
+            }}
+          />
+
+          {/* Legacy SMS Settings - Keep for backwards compatibility */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Smartphone className="h-5 w-5" />
-                SMS Reminders
+                SMS Backup Reminders
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <Label>Enable SMS Reminders</Label>
+                  <Label>Enable SMS Backup</Label>
                   <p className="text-sm text-muted-foreground">
-                    Get text message reminders to stay hydrated
+                    Fallback to SMS if push notifications fail
                   </p>
                 </div>
                 <Switch
@@ -355,68 +408,60 @@ export default function SettingsPage() {
                       </Button>
                     </div>
                   </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>Reminder Times</Label>
-                      <Badge variant="secondary">
-                        {activeReminderCount}/2 selected
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {reminderTimeSlots.map((slot) => (
-                        <div
-                          key={slot.value}
-                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                            settings.reminderTimes[slot.value]
-                              ? 'bg-primary/10 border-primary'
-                              : 'bg-background border-border hover:bg-muted/50'
-                          }`}
-                          onClick={() => toggleReminderTime(slot.value)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium">{slot.label}</div>
-                              <div className="text-xs text-muted-foreground">{slot.description}</div>
-                            </div>
-                            <div className={`w-4 h-4 rounded-full border-2 ${
-                              settings.reminderTimes[slot.value]
-                                ? 'bg-primary border-primary'
-                                : 'border-muted-foreground'
-                            }`} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+        </TabsContent>
 
+        {/* Gamification Tab */}
+        <TabsContent value="gamification" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Push Notifications
+                <Trophy className="h-5 w-5" />
+                Achievement System
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label>Browser Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Get notifications in your browser
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Milestone Animations</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Show confetti and celebrations when you hit goals
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.milestoneAnimations}
+                    onCheckedChange={(checked) => updateSetting('milestoneAnimations', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Achievement Types</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <Badge variant="outline">🎯 Daily Goals</Badge>
+                    <Badge variant="outline">🔥 Streak Milestones</Badge>
+                    <Badge variant="outline">💧 Volume Achievements</Badge>
+                    <Badge variant="outline">⭐ Perfect Weeks</Badge>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Gamification Features:</strong> Earn badges, unlock achievements, and celebrate milestones with confetti animations. All achievements are logged to your analytics for progress tracking.
                   </p>
                 </div>
-                <Switch
-                  checked={settings.pushNotifications}
-                  onCheckedChange={(checked) => updateSetting('pushNotifications', checked)}
-                />
               </div>
             </CardContent>
           </Card>
+
+          {/* Gamification System Component */}
+          <GamificationSystem
+            enableAnimations={settings.milestoneAnimations}
+            enableVibration={settings.vibrationEnabled}
+          />
         </TabsContent>
 
         {/* Preferences Tab */}

@@ -1,9 +1,17 @@
-export type MotivationTone = "funny" | "crass" | "rude" | "sarcastic" | "kind" | "motivational" | "clinical" | "default" | "friendly" | "professional" | "encouraging";
+export type MotivationTone = "funny" | "kind" | "motivational" | "sarcastic" | "strict" | "supportive" | "crass" | "weightloss";
 
-export const availableTones: MotivationTone[] = ["default", "funny", "crass", "rude", "sarcastic", "kind", "motivational", "clinical", "friendly", "professional", "encouraging"];
+export const availableTones: MotivationTone[] = ["funny", "kind", "motivational", "sarcastic", "strict", "supportive", "crass", "weightloss"];
+
+export type NotificationFrequency = "minimal" | "moderate" | "frequent";
+
+export const notificationFrequencies: NotificationFrequency[] = ["minimal", "moderate", "frequent"];
 
 export interface UserPreferences {
   tone?: MotivationTone;
+  notificationFrequency?: NotificationFrequency;
+  fcmEnabled?: boolean;
+  vibrationEnabled?: boolean;
+  smartwatchEnabled?: boolean;
   // other preferences can go here
 }
 
@@ -16,9 +24,14 @@ export interface UserProfile {
   phoneNumber?: string;
   smsEnabled?: boolean;
   aiTone?: string;
-  motivationTone?: string; // New: AI motivation tone preference
-  motivationFrequency?: string; // New: How often to show motivational messages
-  pushNotifications?: boolean; // New: Enable device push notifications
+  motivationTone?: MotivationTone; // AI motivation tone preference
+  motivationFrequency?: string; // How often to show motivational messages
+  pushNotifications?: boolean; // Enable device push notifications
+  fcmEnabled?: boolean; // Firebase Cloud Messaging enabled
+  fcmToken?: string; // FCM registration token
+  notificationFrequency?: NotificationFrequency; // Notification frequency setting
+  vibrationEnabled?: boolean; // Device vibration enabled
+  smartwatchEnabled?: boolean; // Smartwatch notifications enabled
   reminderTimes?: Record<string, boolean>;
   customMilestones?: number[]; // New: Custom milestone percentages (e.g., [25, 50, 75, 100])
   milestoneAnimations?: boolean; // New: Enable/disable milestone animations
