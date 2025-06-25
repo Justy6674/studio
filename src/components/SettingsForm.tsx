@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { MotivationTone } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SlidersHorizontal, Sparkles, BellRing } from "lucide-react";
 import { requestNotificationPermission, isNotificationSupported, showMotivationNotification } from "@/lib/notifications";
@@ -28,7 +29,7 @@ interface Settings {
   sipAmount: number;
   phoneNumber: string;
   smsEnabled: boolean;
-  motivationTone: string;
+  motivationTone: MotivationTone;
   reminderPreset: string;
   reminderTimes: Record<string, boolean>;
   pushNotifications: boolean;
@@ -193,7 +194,7 @@ const AppSettings: React.FC<AppSettingsProps> = ({ settings, setSettings }) => (
             <Label htmlFor="motivationTone">Reminder Tone</Label>
             <Select 
               value={settings.motivationTone} 
-              onValueChange={(value) => setSettings(prev => ({ ...prev, motivationTone: value }))}
+              onValueChange={(value) => setSettings(prev => ({ ...prev, motivationTone: value as MotivationTone }))}
             >
               <SelectTrigger id="motivationTone">
                 <SelectValue placeholder="Select a reminder tone" />
@@ -222,7 +223,7 @@ export function SettingsForm() {
     sipAmount: 50,
     phoneNumber: '',
     smsEnabled: false,
-    motivationTone: 'Default',
+    motivationTone: 'motivational',
     reminderPreset: 'meals',
     reminderTimes: {} as Record<string, boolean>,
     pushNotifications: false,
@@ -248,7 +249,7 @@ export function SettingsForm() {
         sipAmount: userProfile.sipAmount || 50,
         phoneNumber: userProfile.phoneNumber || '',
         smsEnabled: userProfile.smsEnabled || false,
-        motivationTone: userProfile.motivationTone || 'Default',
+        motivationTone: userProfile.motivationTone || 'motivational',
         reminderPreset: 'custom', // Default to custom since we're loading existing times
         reminderTimes: userProfile.reminderTimes || { '08:00': true, '12:00': true, '18:00': true },
         pushNotifications: userProfile.pushNotifications || false,
@@ -386,7 +387,7 @@ export function SettingsForm() {
         sipAmount: settings.sipAmount,
         phoneNumber: settings.phoneNumber,
         smsEnabled: settings.smsEnabled,
-        motivationTone: settings.motivationTone,
+        motivationTone: settings.motivationTone as MotivationTone,
         reminderTimes: settings.reminderTimes,
         pushNotifications: settings.pushNotifications,
         milestoneAnimations: settings.milestoneAnimations,
@@ -399,7 +400,7 @@ export function SettingsForm() {
         sipAmount: settings.sipAmount,
         phoneNumber: settings.phoneNumber,
         smsEnabled: settings.smsEnabled,
-        motivationTone: settings.motivationTone,
+        motivationTone: settings.motivationTone as MotivationTone,
         reminderTimes: settings.reminderTimes,
         pushNotifications: settings.pushNotifications,
         milestoneAnimations: settings.milestoneAnimations,

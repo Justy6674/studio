@@ -200,7 +200,7 @@ class FCMService {
         tag: 'hydration-foreground',
         requireInteraction: false,
         silent: false,
-        vibrate: vibrationPattern || [200, 100, 200],
+        // vibrate: vibrationPattern || [200, 100, 200], // Not supported in standard NotificationOptions
         data: {
           ...data,
           tone,
@@ -255,7 +255,7 @@ class FCMService {
       return { success: true, token };
     } catch (error) {
       console.error('Test notification failed:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }

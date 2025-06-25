@@ -137,6 +137,12 @@ export function GamificationSystem({ onAchievement, enableAnimations = true, ena
       origin: { y: 0.5 },
       colors: ['#3B82F6', '#1D4ED8', '#60A5FA']
     },
+    first_log: {
+      particleCount: 60,
+      spread: 50,
+      origin: { y: 0.6 },
+      colors: ['#10B981', '#059669', '#047857']
+    },
     perfect_week: {
       particleCount: 300,
       spread: 160,
@@ -199,6 +205,7 @@ export function GamificationSystem({ onAchievement, enableAnimations = true, ena
       daily_goal: [200, 100, 200],
       streak_milestone: [300, 100, 300, 100, 300],
       hydration_milestone: [150, 50, 150, 50, 150, 50, 150],
+      first_log: [100, 50, 100],
       perfect_week: [400, 200, 400, 200, 400],
       volume_milestone: [250, 150, 250]
     };
@@ -333,11 +340,6 @@ export function GamificationSystem({ onAchievement, enableAnimations = true, ena
     processAchievement(event);
   };
 
-  // Export the trigger function
-  React.useImperativeHandle(onAchievement, () => ({
-    triggerAchievement
-  }));
-
   const getRarityColor = (rarity: BadgeDefinition['rarity']) => {
     switch (rarity) {
       case 'common': return 'border-gray-300 bg-gray-50';
@@ -438,23 +440,32 @@ export function GamificationSystem({ onAchievement, enableAnimations = true, ena
   );
 }
 
-// Convenience hook for using gamification
-export function useGamification() {
-  const gamificationRef = React.useRef<{ triggerAchievement: (event: AchievementEvent) => void }>();
+// Forward ref for external trigger access
+export const GamificationSystemRef = React.forwardRef<
+  { triggerAchievement: (event: AchievementEvent) => void },
+  GamificationProps
+>((props, ref) => {
+  const internalRef = React.useRef<{ triggerAchievement: (event: AchievementEvent) => void } | null>(null);
 
-  const triggerAchievement = (event: AchievementEvent) => {
-    if (gamificationRef.current) {
-      gamificationRef.current.triggerAchievement(event);
+  React.useImperativeHandle(ref, () => ({
+    triggerAchievement: (event: AchievementEvent) => {
+      if (internalRef.current) {
+        internalRef.current.triggerAchievement(event);
+      }
     }
-  };
+  }));
 
-  return {
-    triggerAchievement,
-    GamificationComponent: (props: GamificationProps) => (
-      <GamificationSystem 
-        {...props} 
-        onAchievement={(ref) => { gamificationRef.current = ref; }} 
-      />
-    )
-  };
-} 
+  return (
+    <GamificationSystem 
+      {...props} 
+      onAchievement={(event) => {
+        // Store the trigger function when component mounts
+        if (props.onAchievement) {
+          props.onAchievement(event);
+        }
+      }} 
+    />
+  );
+});
+
+GamificationSystemRef.displayName = 'GamificationSystemRef'; 
