@@ -6,24 +6,42 @@
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-// Firebase configuration - values injected at build time from Vercel environment variables
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
+// Firebase configuration - loaded from API endpoint
+let firebaseConfig = null;
+let messaging = null;
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Load Firebase config and initialize
+async function initializeFirebase() {
+  try {
+    const response = await fetch('/api/firebase-config');
+    firebaseConfig = await response.json();
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    
+    // Initialize Firebase Cloud Messaging
+    messaging = firebase.messaging();
+    
+    console.log('[firebase-messaging-sw.js] Firebase initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('[firebase-messaging-sw.js] Failed to initialize Firebase:', error);
+    return false;
+  }
+}
 
-// Initialize Firebase Cloud Messaging
-const messaging = firebase.messaging();
+// Initialize Firebase when service worker loads
+initializeFirebase();
 
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
+// Handle background messages (setup after Firebase is initialized)
+async function setupBackgroundMessageHandler() {
+  const initialized = await initializeFirebase();
+  if (!initialized || !messaging) {
+    console.error('[firebase-messaging-sw.js] Cannot setup background message handler - Firebase not initialized');
+    return;
+  }
+
+  messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
   const notificationTitle = payload.notification?.title || 'Water4WeightLoss';
@@ -60,7 +78,11 @@ messaging.onBackgroundMessage((payload) => {
   }
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
-});
+  });
+}
+
+// Setup background message handler
+setupBackgroundMessageHandler();
 
 // Handle notification click events
 self.addEventListener('notificationclick', (event) => {
