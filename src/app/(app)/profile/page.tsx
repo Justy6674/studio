@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getHydrationLogs } from "@/lib/hydration";
 import type { HydrationLog } from "@/lib/types";
 import { format, subDays, differenceInDays } from "date-fns";
+import { AuthStateDebugger } from "@/components/debug/AuthStateDebugger";
 import { 
   User, 
   Droplets, 
@@ -26,7 +27,7 @@ import {
 } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const [stats, setStats] = useState({
     totalDays: 0,
     totalIntake: 0,
@@ -46,6 +47,14 @@ export default function ProfilePage() {
     progress?: number;
     total?: number;
   }>>([]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      window.location.href = '/login';
+      return;
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (user) {
@@ -202,12 +211,13 @@ export default function ProfilePage() {
     ? format(new Date(user.metadata.creationTime), 'MMMM yyyy')
     : 'Recently';
 
-  if (loading) {
+  // Show loading if auth is still loading
+  if (authLoading) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Profile</h1>
-          <p className="text-muted-foreground">Your hydration journey and achievements</p>
+          <p className="text-muted-foreground">Loading your profile...</p>
         </div>
         
         <div className="grid gap-4">
@@ -219,8 +229,27 @@ export default function ProfilePage() {
     );
   }
 
+  // Show login prompt if no user
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <User className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Authentication Required</h1>
+          <p className="text-muted-foreground mb-6">Please log in to view your profile</p>
+          <Button onClick={() => window.location.href = '/login'} className="bg-primary">
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Debug Info - Development Only */}
+      <AuthStateDebugger />
+      
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -246,6 +275,19 @@ export default function ProfilePage() {
                 <h2 className="text-2xl font-bold">
                   {userProfile?.name || user?.email?.split('@')[0] || 'User'}
                 </h2>
+                
+                {/* DEBUG INFO - Remove after fixing */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-2 p-2 bg-yellow-100 border border-yellow-400 rounded text-xs text-black">
+                    <strong>🐛 DEBUG INFO:</strong><br/>
+                    User Email: {user?.email || 'None'}<br/>
+                    User Display Name: {user?.displayName || 'None'}<br/>
+                    Profile Name: {userProfile?.name || 'None'}<br/>
+                    Profile Loaded: {userProfile ? 'Yes' : 'No'}<br/>
+                    Auth Loading: {loading ? 'Yes' : 'No'}
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4" />
                   <span>{user?.email}</span>
