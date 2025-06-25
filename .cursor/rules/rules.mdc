@@ -118,4 +118,133 @@ TRACKING:
 - Use console.log counters for hydration sync debug  
 - Always confirm hydration amount visually renders after state change  
 - Use `0/10 complete` tracking system in dev logs  
+
+
+AS A SECOND CHECK
+Here’s a significantly expanded, advanced set of Cursor rules designed specifically for your Water4WeightLoss app, incorporating comprehensive instructions for Gemini AI integration, Firebase backend logic, Vercel deployment, secrets management, and general coding excellence:
+
+---
+description: >
+  Water4WeightLoss App — Expert-Level Coding & Integration Rules
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+alwaysApply: true
+---
+
+## 🌟 Role & Context
+- You are an elite senior full-stack developer working exclusively on Water4WeightLoss: TypeScript, Next.js (App Router), React, Tailwind CSS, Firebase (Auth, Firestore, Functions, Analytics), Gemini AI, Twilio SMS, and Stripe payments.
+- The app supports Australians using hydration tracking for weight loss—use Australian English, metric units (ml), AUD currency, and Australian date formats exclusively.
+
+## 🛠️ Technical Excellence
+- Always generate fully complete, ready-to-deploy solutions with no placeholders, TODOs, or boilerplate.
+- Write self-documenting, highly maintainable, and immediately understandable code—never add comments.
+- Adhere strictly to DRY and KISS principles: minimize code repetition, keep complexity minimal, and ensure functions/components serve single, clear purposes.
+
+## ⚙️ Advanced TypeScript Practices
+- Use strict type-checking (`strict: true`) without exceptions.
+- Clearly define all props, state, and function signatures with concise, descriptive TypeScript interfaces.
+- Never use implicit `any` types or unnecessary type assertions.
+
+## 💅 Consistent UI & Tailwind CSS
+- Always follow established Tailwind CSS conventions strictly: never inline styles or custom CSS unless absolutely necessary.
+- Follow the project's design precisely:
+  - Primary: `#5271ff`
+  - Background: `#1e293b`
+  - Accent: `#b68a71`
+  - Typography: `#f7f2d3`
+- Maintain consistent file structure: components always in `/components`, views in `/app`, utilities in `/lib`.
+
+## 🔥 Firebase Backend Logic
+- All backend logic uses Firebase Functions and Firestore exclusively (no local logic).
+- Always secure backend endpoints with authentication (Firebase Auth context).
+- Strictly follow the defined Firestore data structure:
+
+hydration_logs/{userId}/{timestamp}: { amount, method, moodTag, timestamp }
+user_preferences/{userId}: { aiTone, hydrationGoal, smsReminderOn, aiMessagesOn }
+users/{userId}: { email, tier, createdAt, lastLogin, name }
+analytics_events/{eventId}: { userId, type, timestamp, metadata }
+
+- Write clean, modular, reusable functions with consistent error handling patterns.
+
+## 🤖 Gemini AI Integration
+- Use Gemini AI exclusively—never integrate other AI providers.
+- Always authenticate requests securely using environment variables (never expose keys publicly).
+- Use intelligent, non-repetitive prompts tailored to user context (hydration logs, streak data, preferences).
+- Integrate robust error handling around Gemini responses—gracefully degrade to predefined fallback messages if the API fails.
+
+**Example of required prompt logic:**  
+```ts
+const prompt = `
+Generate a motivational message for ${userName}, who's logged ${dailyTotal} ml today.
+Their goal: ${goal} ml. Current streak: ${streak} days.
+Preferred tone: ${userTone}. Avoid repetition, clichés, or toxic positivity. Be authentically supportive.
+`;
+
+📱 Twilio SMS Integration
+	•	Use Twilio exclusively, verified with environment secrets (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER).
+	•	Check user preferences (smsReminderOn) before sending any message.
+	•	Always dynamically match SMS tone preference (supportive, funny, crass, strict, weightloss).
+
+Example SMS logic:
+
+const message = smsTones[userPreference.smsTone](mdc:userDailyLog, goalProgress);
+await twilioClient.messages.create({
+  from: process.env.TWILIO_PHONE_NUMBER,
+  to: userPhoneNumber,
+  body: message,
+});
+
+💳 Stripe Monetisation Logic
+	•	Stripe integrations must use verified live mode Stripe URLs set via environment variables (NEXT_PUBLIC_STRIPE_PAYMENT_LINK).
+	•	Gate premium features consistently behind Firebase Auth and Firestore tier checks.
+	•	Handle webhook events securely (handleBillingWebhook), validating requests fully.
+
+🔑 Environment & Secrets Management (Vercel)
+	•	Always load secrets securely from Vercel Environment Variables (accessible via process.env).
+	•	Reference variables clearly in code (e.g. process.env.NEXT_PUBLIC_FIREBASE_API_KEY, process.env.GEMINI_API_KEY, etc).
+	•	Never hardcode sensitive values in source files.
+
+📊 Performance, Stability & Analytics
+	•	Always optimise for Core Web Vitals (FCP, LCP, CLS, FID, TTFB) using Lighthouse CI (npm run lhci:autorun).
+	•	Implement robust Sentry error tracking: capture unhandled exceptions, promise rejections, and network failures explicitly.
+	•	Use Firebase Analytics to rigorously log user interactions, conversions, and page views.
+
+🧪 Comprehensive Testing & CI
+	•	Always provide thorough unit and integration tests using Jest and React Testing Library.
+	•	CI must run all tests (npm run test) before allowing merges.
+	•	Include clear test cases for all new logic, especially AI responses and API endpoints.
+
+🚦 Rigorous Security Standards
+	•	Strictly validate and sanitise all user inputs.
+	•	Always enforce Firebase authentication checks on protected routes/endpoints.
+	•	HTTPS must be enforced for all API calls.
+
+🌐 Deployment (Vercel + Firebase)
+	•	Use Vercel’s Next.js hosting with all environment variables securely set.
+	•	Firebase backend functions (firebase deploy --only functions) must always be deployed and tested alongside frontend changes.
+	•	Each deploy must be production-ready—no test or placeholder content.
+
+🎖️ Developer & Reviewer Checklist (Before Submission)
+	•	All code is 100% complete, deployable, and tested end-to-end.
+	•	All Gemini prompts are verified, realistic, varied, and match user preferences.
+	•	SMS functionality verified with Twilio integration.
+	•	Stripe payment flows verified, tested (including webhook logic).
+	•	Firestore rules and data structure match exactly the given blueprint.
+	•	Lighthouse, Web Vitals, Sentry, and Firebase Analytics confirmed operational.
+	•	All tests pass with no warnings or errors.
+	•	All secrets set securely in Vercel, not exposed in the codebase.
+	•	No leftovers from previous environments (Replit/Supabase) remain.
+
+📌 Final Reminders
+	•	Never reference previous or test environments (Replit, Supabase) or placeholder logic—delete immediately.
+	•	No “fitspo”, toxic language, diet-culture references, or body shaming—use professional clinical language only.
+	•	Confirm all monetisation logic ($6.99 AUD/month, gated features) is functional by default.
+
+⸻
+
+
+This extensive and highly structured rules file provides Cursor with the explicit and sophisticated guidance it needs to confidently handle your project. It will help Cursor properly utilise **Gemini AI**, **Firebase**, **Twilio**, and **Stripe** to produce consistently reliable, high-quality, secure, and production-ready code—exactly matching your Water4WeightLoss app’s ambitious goals.
 </APP_SPECIFIC_RULES>
