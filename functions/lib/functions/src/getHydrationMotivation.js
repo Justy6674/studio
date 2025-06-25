@@ -41,6 +41,7 @@ exports.getHydrationMotivation = void 0;
 const functions = __importStar(require("firebase-functions"));
 const generative_ai_1 = require("@google/generative-ai");
 const date_fns_1 = require("date-fns");
+const firebase_1 = require("./types/firebase");
 let genAI = null;
 let model = null;
 // Initialize Gemini AI client
@@ -55,11 +56,7 @@ function initializeGenAI() {
         model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     }
 }
-exports.getHydrationMotivation = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-    }
-    // const userId = context.auth.uid; // Not strictly needed for this function if all data is passed
+exports.getHydrationMotivation = (0, firebase_1.createAuthenticatedFunction)(async (data, userId) => {
     initializeGenAI();
     if (!model) {
         throw new functions.https.HttpsError('failed-precondition', 'AI model not initialized. Check API key configuration.');
@@ -113,7 +110,7 @@ exports.getHydrationMotivation = functions.https.onCall(async (data, context) =>
             }
             throw new functions.https.HttpsError('internal', 'AI service did not return a valid response text.');
         }
-        return { message: responseText.trim() };
+        return { message: responseText.trim(), tone };
     }
     catch (error) {
         console.error('Error generating hydration motivation:', error);

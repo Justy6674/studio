@@ -40,11 +40,8 @@ exports.updateUserSettings = void 0;
  */
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-exports.updateUserSettings = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-    }
-    const userId = context.auth.uid;
+const firebase_1 = require("./types/firebase");
+exports.updateUserSettings = (0, firebase_1.createAuthenticatedFunction)(async (data, userId) => {
     const { name, hydrationGoal, reminderTimes, phoneNumber, preferences } = data;
     const db = admin.firestore();
     const settingsToUpdate = {};
@@ -79,14 +76,8 @@ exports.updateUserSettings = functions.https.onCall(async (data, context) => {
         }
     }
     if (phoneNumber !== undefined) {
-        if (phoneNumber === null || phoneNumber === "") {
-            settingsToUpdate.phoneNumber = null;
-        }
-        else if (typeof phoneNumber === 'string') {
-            if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-                throw new functions.https.HttpsError('invalid-argument', 'Phone number format is invalid. Expected E.164 format e.g. +12345678900.');
-            }
-            settingsToUpdate.phoneNumber = phoneNumber;
+        if (typeof phoneNumber === 'string' || phoneNumber === null) {
+            settingsToUpdate.phoneNumber = phoneNumber === null ? undefined : phoneNumber;
         }
         else {
             throw new functions.https.HttpsError('invalid-argument', 'Phone number must be a string or null.');

@@ -41,11 +41,8 @@ exports.getWeeklyChartData = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const date_fns_1 = require("date-fns");
-exports.getWeeklyChartData = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-    }
-    const userId = context.auth.uid;
+const firebase_1 = require("./types/firebase");
+exports.getWeeklyChartData = (0, firebase_1.createAuthenticatedFunction)(async (data, userId) => {
     const db = admin.firestore();
     try {
         const today = (0, date_fns_1.startOfDay)(new Date()); // Current date, time set to 00:00:00

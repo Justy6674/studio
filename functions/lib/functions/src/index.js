@@ -32,10 +32,42 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logHydration = void 0;
+exports.generateHydrationGoalInsight = exports.handleBillingWebhook = exports.getDailyHydrationSummary = exports.getWeeklyChartData = exports.getStreaks = exports.getStreakData = exports.getHydrationMotivation = exports.getUserSettings = exports.updateUserSettings = exports.sendSMSReminder = exports.generateMotivationalMessage = exports.getHydrationLogs = exports.logHydration = void 0;
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const app = (0, express_1.default)();
+app.use((0, cors_1.default)({ origin: [/http:\/\/localhost:\d+/, /https:\/\/.*\.replit\.dev/] }));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
+// Import all functions
 const logHydration_1 = require("./logHydration");
 Object.defineProperty(exports, "logHydration", { enumerable: true, get: function () { return logHydration_1.logHydration; } });
+const getHydrationLogs_1 = require("./getHydrationLogs");
+Object.defineProperty(exports, "getHydrationLogs", { enumerable: true, get: function () { return getHydrationLogs_1.getHydrationLogs; } });
+const generateMotivationalMessage_1 = require("./generateMotivationalMessage");
+Object.defineProperty(exports, "generateMotivationalMessage", { enumerable: true, get: function () { return generateMotivationalMessage_1.generateMotivationalMessage; } });
+const sendSMSReminder_1 = require("./sendSMSReminder");
+Object.defineProperty(exports, "sendSMSReminder", { enumerable: true, get: function () { return sendSMSReminder_1.sendSMSReminder; } });
+const updateUserSettings_1 = require("./updateUserSettings");
+Object.defineProperty(exports, "updateUserSettings", { enumerable: true, get: function () { return updateUserSettings_1.updateUserSettings; } });
+const getUserSettings_1 = require("./getUserSettings");
+Object.defineProperty(exports, "getUserSettings", { enumerable: true, get: function () { return getUserSettings_1.getUserSettings; } });
+const getHydrationMotivation_1 = require("./getHydrationMotivation");
+Object.defineProperty(exports, "getHydrationMotivation", { enumerable: true, get: function () { return getHydrationMotivation_1.getHydrationMotivation; } });
+const getStreakData_1 = require("./getStreakData");
+Object.defineProperty(exports, "getStreakData", { enumerable: true, get: function () { return getStreakData_1.getStreakData; } });
+const getStreaks_1 = require("./getStreaks");
+Object.defineProperty(exports, "getStreaks", { enumerable: true, get: function () { return getStreaks_1.getStreaks; } });
+const getWeeklyChartData_1 = require("./getWeeklyChartData");
+Object.defineProperty(exports, "getWeeklyChartData", { enumerable: true, get: function () { return getWeeklyChartData_1.getWeeklyChartData; } });
+const getDailyHydrationSummary_1 = require("./getDailyHydrationSummary");
+Object.defineProperty(exports, "getDailyHydrationSummary", { enumerable: true, get: function () { return getDailyHydrationSummary_1.getDailyHydrationSummary; } });
+const handleBillingWebhook_1 = require("./handleBillingWebhook");
+Object.defineProperty(exports, "handleBillingWebhook", { enumerable: true, get: function () { return handleBillingWebhook_1.handleBillingWebhook; } });
+const generateHydrationGoalInsight_1 = require("./generateHydrationGoalInsight");
+Object.defineProperty(exports, "generateHydrationGoalInsight", { enumerable: true, get: function () { return generateHydrationGoalInsight_1.generateHydrationGoalInsight; } });
 //# sourceMappingURL=index.js.map

@@ -332,14 +332,14 @@ export function AIMotivationTester() {
                     </div>
                   )}
                   
-                  {result.test_params && (
+                  {result.test_params && typeof result.test_params === 'object' ? (
                     <div>
                       <Label className="text-sm text-slate-400">Test Parameters:</Label>
                       <pre className="text-xs bg-slate-600 p-2 rounded mt-1 overflow-x-auto">
                         {JSON.stringify(result.test_params, null, 2)}
                       </pre>
                     </div>
-                  )}
+                  ) : null}
                   
                   {result.prompt && (
                     <details className="text-sm">

@@ -33,44 +33,51 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getHydrationLogs = void 0;
+exports.getUserSettings = void 0;
 /**
- * @fileOverview Firebase Function to fetch hydration logs for the
- * authenticated user, typically for the last 7 days.
+ * @fileOverview Firebase Function to fetch user settings.
  */
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-const date_fns_1 = require("date-fns");
 const firebase_1 = require("./types/firebase");
-exports.getHydrationLogs = (0, firebase_1.createAuthenticatedFunction)(async (data, userId) => {
-    const daysToFetch = (typeof data?.daysToFetch === 'number' && data.daysToFetch > 0) ? data.daysToFetch : 7;
+exports.getUserSettings = (0, firebase_1.createAuthenticatedFunction)(async (data, userId) => {
     const db = admin.firestore();
-    const today = new Date();
-    const startDate = (0, date_fns_1.startOfDay)((0, date_fns_1.subDays)(today, daysToFetch - 1)); // -6 for 7 days inclusive of today
-    const endDate = (0, date_fns_1.endOfDay)(today); // Ensure we cover all of today
+    // Get auth token data from user record in Firebase Auth
+    const userRecord = await admin.auth().getUser(userId);
+    const userName = userRecord.displayName || userRecord.email?.split('@')[0] || 'User';
+    const userEmail = userRecord.email || null;
     try {
-        const snapshot = await db.collection('hydration_logs')
-            .where('userId', '==', userId)
-            .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startDate))
-            .where('timestamp', '<=', admin.firestore.Timestamp.fromDate(endDate))
-            .orderBy('timestamp', 'desc')
-            .get();
-        const logs = snapshot.docs.map(doc => {
-            const docData = doc.data();
-            return {
-                id: doc.id,
-                userId: docData.userId,
-                amount: docData.amount,
-                timestamp: docData.timestamp.toDate().toISOString(),
+        const userDocRef = db.collection('users').doc(userId);
+        const userDoc = await userDocRef.get();
+        if (!userDoc.exists) {
+            console.warn(`User profile for ${userId} not found. Returning default settings or an indication.`);
+            const defaultSettings = {
+                name: userName,
+                hydrationGoal: 2000,
+                phoneNumber: null,
+                reminderTimes: { '08:00': false, '12:00': true, '16:00': false },
+                email: userEmail,
+                preferences: { tone: 'default' },
             };
-        });
-        return { logs };
+            return { settings: defaultSettings, profileExists: false };
+        }
+        ;
+        const userData = userDoc.data();
+        const settings = {
+            name: userData?.name,
+            hydrationGoal: userData?.hydrationGoal,
+            phoneNumber: userData?.phoneNumber,
+            reminderTimes: userData?.reminderTimes,
+            email: userData?.email || userEmail,
+            preferences: userData?.preferences || { tone: 'default' },
+        };
+        return { settings, profileExists: true };
     }
     catch (error) {
-        console.error('Error fetching hydration logs for user', userId, ':', error);
+        console.error('Error fetching user settings for user', userId, ':', error);
         if (error instanceof functions.https.HttpsError)
             throw error;
-        throw new functions.https.HttpsError('internal', 'Failed to fetch hydration logs.', error.message);
+        throw new functions.https.HttpsError('internal', 'Failed to fetch user settings.', error.message);
     }
 });
-//# sourceMappingURL=getHydrationLogs.js.map
+//# sourceMappingURL=getUserSettings.js.map

@@ -78,3 +78,4 @@ const firebaseClient = FirebaseClient.getInstance();
 export const auth = typeof window !== 'undefined' ? firebaseClient.auth : undefined as unknown as Auth;
 export const db = typeof window !== 'undefined' ? firebaseClient.db : undefined as unknown as Firestore;
 export const functions = typeof window !== 'undefined' ? firebaseClient.functions : undefined as unknown as Functions;
+export const app = typeof window !== 'undefined' ? firebaseClient.app : undefined as unknown as FirebaseApp;

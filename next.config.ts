@@ -43,16 +43,14 @@ const nextConfig: NextConfig = {
 
   // TypeScript configuration
   typescript: {
-    // Temporarily ignoring TypeScript errors to unblock deployment
-    // TODO: Re-enable once XO linting configuration is stabilized
-    ignoreBuildErrors: true,
+    // Enable TypeScript error checking during builds
+    ignoreBuildErrors: false,
   },
   
   // ESLint configuration
   eslint: {
-    // Temporarily ignoring ESLint errors to unblock deployment
-    // TODO: Re-enable once XO linting configuration is stabilized
-    ignoreDuringBuilds: true,
+    // Enable ESLint checking during builds
+    ignoreDuringBuilds: false,
   },
 
   images: {

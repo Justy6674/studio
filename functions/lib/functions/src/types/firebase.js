@@ -33,40 +33,24 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logHydration = void 0;
+exports.createAuthenticatedFunction = createAuthenticatedFunction;
 const functions = __importStar(require("firebase-functions"));
-const admin = __importStar(require("firebase-admin"));
-const firebase_1 = require("./types/firebase");
-if (!admin.apps.length) {
-    admin.initializeApp();
+/**
+ * Helper function to create properly typed Firebase callable functions
+ * Works with both Firebase Functions v1 and v2
+ *
+ * @param handler Function implementation with guaranteed non-null uid
+ * @returns Firebase callable function with proper typing and auth verification
+ */
+function createAuthenticatedFunction(handler) {
+    // @ts-expect-error - Deliberately ignoring type issues to support both v1 and v2
+    return functions.https.onCall(async (data, context) => {
+        // Runtime check that works with both v1 and v2
+        if (!context || !context.auth) {
+            throw new functions.https.HttpsError("unauthenticated", "User must be authenticated to call this function");
+        }
+        // We've verified auth exists and has uid
+        return handler(data, context.auth.uid);
+    });
 }
-exports.logHydration = (0, firebase_1.createAuthenticatedFunction)(async (data, userId) => {
-    // Get user information from Firestore instead of context
-    // This is a more robust approach anyway
-    const userDoc = await admin.firestore().collection("users").doc(userId).get();
-    const userData = userDoc.data() || {};
-    const userEmail = userData.email || null;
-    const userName = userData.name || "User";
-    const logEntry = {
-        amount: data.amount,
-        time: data.time,
-        unit: data.unit,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        userId,
-        email: userEmail,
-        name: userName,
-    };
-    try {
-        const docRef = await admin.firestore().collection("hydration_logs").add(logEntry);
-        return {
-            success: true,
-            logId: docRef.id,
-            message: "Hydration logged successfully",
-        };
-    }
-    catch (error) {
-        console.error("Failed to log hydration:", error);
-        throw new functions.https.HttpsError("internal", "Failed to log hydration");
-    }
-});
-//# sourceMappingURL=logHydration.js.map
+//# sourceMappingURL=firebase.js.map
