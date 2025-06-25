@@ -1,105 +1,66 @@
 // Firebase Cloud Messaging Service Worker
 // Handles background push notifications and vibrations
+// Environment variables are injected at build time
 
 // Import Firebase scripts
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-// Firebase configuration - loaded dynamically to avoid exposing secrets
-let firebaseConfig = null;
+// Firebase configuration - values injected at build time from Vercel environment variables
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
 
-// Function to get Firebase config from main app
-async function getFirebaseConfig() {
-  if (firebaseConfig) return firebaseConfig;
-  
-  try {
-    // Get config from main app's window object or fetch from API
-    const response = await fetch('/api/firebase-config');
-    if (response.ok) {
-      firebaseConfig = await response.json();
-    } else {
-      // Fallback - this should be set by the main app
-      firebaseConfig = self.FIREBASE_CONFIG || {
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-      };
-    }
-  } catch (error) {
-    console.error('Failed to load Firebase config:', error);
-    // Use minimal config for service worker
-    firebaseConfig = {
-      apiKey: "PLACEHOLDER_API_KEY",
-      authDomain: "PLACEHOLDER_AUTH_DOMAIN",
-      projectId: "PLACEHOLDER_PROJECT_ID",
-      storageBucket: "PLACEHOLDER_STORAGE_BUCKET",
-      messagingSenderId: "PLACEHOLDER_SENDER_ID",
-      appId: "PLACEHOLDER_APP_ID"
-    };
-  }
-  
-  return firebaseConfig;
-}
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
 
-// Initialize Firebase when config is available
-let messaging = null;
+// Initialize Firebase Cloud Messaging
+const messaging = firebase.messaging();
 
-async function initializeFirebase() {
-  const config = await getFirebaseConfig();
-  firebase.initializeApp(config);
-  messaging = firebase.messaging();
-  setupMessageHandlers();
-}
+// Handle background messages
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-function setupMessageHandlers() {
-  if (!messaging) return;
-
-  // Handle background messages
-  messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message:', payload);
-
-    const notificationTitle = payload.notification?.title || 'Water4WeightLoss';
-    const notificationOptions = {
-      body: payload.notification?.body || 'Time to hydrate!',
-      icon: '/logo-128.png',
-      badge: '/logo-128.png',
-      tag: 'hydration-reminder',
-      requireInteraction: false,
-      silent: false,
-      vibrate: [200, 100, 200, 100, 200], // Vibration pattern
-      data: {
-        ...payload.data,
-        timestamp: Date.now(),
-        url: payload.data?.url || '/dashboard'
+  const notificationTitle = payload.notification?.title || 'Water4WeightLoss';
+  const notificationOptions = {
+    body: payload.notification?.body || 'Time to hydrate!',
+    icon: '/logo-128.png',
+    badge: '/logo-128.png',
+    tag: 'hydration-reminder',
+    requireInteraction: false,
+    silent: false,
+    vibrate: [200, 100, 200, 100, 200], // Vibration pattern
+    data: {
+      ...payload.data,
+      timestamp: Date.now(),
+      url: payload.data?.url || '/dashboard'
+    },
+    actions: [
+      {
+        action: 'log-water',
+        title: '💧 Log Water',
+        icon: '/logo-128.png'
       },
-      actions: [
-        {
-          action: 'log-water',
-          title: '💧 Log Water',
-          icon: '/logo-128.png'
-        },
-        {
-          action: 'snooze',
-          title: '⏰ Snooze 30min',
-          icon: '/logo-128.png'
-        }
-      ]
-    };
+      {
+        action: 'snooze',
+        title: '⏰ Snooze 30min',
+        icon: '/logo-128.png'
+      }
+    ]
+  };
 
-    // Trigger device vibration for mobile and smartwatch
-    if ('vibrate' in navigator) {
-      navigator.vibrate([200, 100, 200, 100, 200]);
-    }
+  // Trigger device vibration for mobile and smartwatch
+  if ('vibrate' in navigator) {
+    navigator.vibrate([200, 100, 200, 100, 200]);
+  }
 
-    return self.registration.showNotification(notificationTitle, notificationOptions);
-  });
-}
-
-// Initialize Firebase on service worker startup
-initializeFirebase().catch(console.error);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+});
 
 // Handle notification click events
 self.addEventListener('notificationclick', (event) => {

@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react']
   },
 
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     // suppress opentelemetry/sentry critical dependency warnings
     config.ignoreWarnings = [
       { message: /Critical dependency: the request of a dependency is an expression/ }
@@ -23,6 +23,20 @@ const nextConfig: NextConfig = {
       test: /\.(woff|woff2|eot|ttf|otf)$/i,
       type: 'asset/resource',
     });
+
+    // Inject environment variables into service worker
+    if (!isServer) {
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'process.env.NEXT_PUBLIC_FIREBASE_API_KEY': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_API_KEY),
+          'process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN),
+          'process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID),
+          'process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET),
+          'process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID),
+          'process.env.NEXT_PUBLIC_FIREBASE_APP_ID': JSON.stringify(process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
+        })
+      );
+    }
 
     // Only use Babel for test files in test environment
     if (process.env.NODE_ENV === 'test') {

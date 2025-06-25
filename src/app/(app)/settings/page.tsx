@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { MotivationTone } from "@/lib/types";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 import { GamificationSystem } from "@/components/gamification/GamificationSystem";
 import { 
@@ -36,7 +37,7 @@ interface SettingsData {
   sipAmount: number;
   phoneNumber: string;
   smsEnabled: boolean;
-  motivationTone: string;
+  motivationTone: MotivationTone;
   reminderTimes: Record<string, boolean>;
   pushNotifications: boolean;
   milestoneAnimations: boolean;
@@ -72,7 +73,7 @@ export default function SettingsPage() {
     sipAmount: 50,
     phoneNumber: '',
     smsEnabled: false,
-    motivationTone: 'kind',
+    motivationTone: 'kind' as MotivationTone,
     reminderTimes: {},
     pushNotifications: false,
     milestoneAnimations: true,
@@ -102,7 +103,7 @@ export default function SettingsPage() {
           sipAmount: userProfile.sipAmount || 50,
           phoneNumber: userProfile.phoneNumber || '',
           smsEnabled: userProfile.smsEnabled || false,
-          motivationTone: userProfile.motivationTone || 'kind',
+          motivationTone: (userProfile.motivationTone as MotivationTone) || 'kind',
           reminderTimes: userProfile.reminderTimes || { '08:00': true, '12:00': true },
           pushNotifications: userProfile.pushNotifications || false,
           milestoneAnimations: userProfile.milestoneAnimations !== false,
