@@ -181,7 +181,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const entryData = entryDoc.data();
-    if (entryData.userId !== userId) {
+    if (!entryData || entryData.userId !== userId) {
       return NextResponse.json({ error: 'Unauthorized to delete this entry' }, { status: 403 });
     }
 
@@ -228,7 +228,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const entryData = entryDoc.data();
-    if (entryData.userId !== userId) {
+    if (!entryData || entryData.userId !== userId) {
       return NextResponse.json({ error: 'Unauthorized to update this entry' }, { status: 403 });
     }
 
