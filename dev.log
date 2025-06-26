@@ -1355,3 +1355,66 @@ Firebase Admin SDK already initialized.
  GET /settings 200 in 96ms
  ✓ Compiled in 436ms (6346 modules)
  GET /settings 200 in 91ms
+ ✓ Compiled in 1260ms (6346 modules)
+ GET /settings 200 in 93ms
+ ✓ Compiled in 436ms (6346 modules)
+ GET /settings 200 in 92ms
+ ✓ Compiled in 1332ms (6355 modules)
+ GET /settings 200 in 96ms
+ ○ Compiling /api/body-metrics ...
+ ✓ Compiled /api/body-metrics in 1276ms (6372 modules)
+Firebase Admin SDK already initialized.
+📊 Body metrics API - attempting to fetch data
+📊 Body metrics API - attempting to fetch data
+📊 Found 1 body metrics entries
+ GET /api/body-metrics?userId=CyNwVfklX0QTiRPLgWOSZkAVyki2 200 in 1340ms
+📖 Settings retrieved from Firebase for user: test-user
+ GET /api/user-settings 200 in 1342ms
+📖 Settings retrieved from Firebase for user: test-user
+ GET /api/user-settings 200 in 1325ms
+📊 Found 1 body metrics entries
+ GET /api/body-metrics?userId=CyNwVfklX0QTiRPLgWOSZkAVyki2 200 in 1334ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: false,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:43:06.925Z'
+}
+ POST /api/user-settings 200 in 1346ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: false,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:43:06.925Z'
+}
+ POST /api/user-settings 200 in 1203ms
+📊 Body metrics API - attempting to fetch data
+ GET /settings 200 in 110ms
+📊 Found 1 body metrics entries
+ GET /api/body-metrics?userId=CyNwVfklX0QTiRPLgWOSZkAVyki2 200 in 158ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'motivational',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: true,
+  smsMaxPerDay: 2,
+  updatedAt: '2025-06-26T08:43:07.302Z'
+}
+ POST /api/user-settings 200 in 69ms
+ ✓ Compiled in 1049ms (6386 modules)
+ GET /settings 200 in 125ms
+ ✓ Compiled in 469ms (6355 modules)
+ GET /settings 200 in 128ms

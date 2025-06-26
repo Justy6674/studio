@@ -9,8 +9,10 @@ import {
   Vibrate, 
   MessageSquare,
   Settings as SettingsIcon,
-  Check
+  Check,
+  Scale
 } from "lucide-react";
+import { BodyMetricsTracker } from '@/components/metrics/BodyMetricsTracker';
 
 // PERFECT iOS PILL TOGGLE - EXACT PILL SHAPE
 // PROPER iOS PILL TOGGLE - FORCED WITH EXACT DIMENSIONS
@@ -368,23 +370,26 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-lg font-bold mb-3 block text-foreground">Max per day</Label>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center justify-center gap-8">
                       <Button
                         variant="outline"
                         size="lg"
                         onClick={() => setSmsMaxPerDay(Math.max(1, smsMaxPerDay - 1))}
                         disabled={smsMaxPerDay <= 1}
-                        className="h-12 w-12 p-0"
+                        className="h-16 w-16 p-0 text-2xl font-bold rounded-xl"
                       >
                         -
                       </Button>
-                      <span className="mx-4 font-bold text-2xl text-foreground">{smsMaxPerDay}</span>
+                      <div className="flex flex-col items-center">
+                        <span className="font-bold text-3xl text-foreground">{smsMaxPerDay}</span>
+                        <span className="text-sm text-muted-foreground">per day</span>
+                      </div>
                       <Button
                         variant="outline"
                         size="lg"
                         onClick={() => setSmsMaxPerDay(Math.min(2, smsMaxPerDay + 1))}
                         disabled={smsMaxPerDay >= 2}
-                        className="h-12 w-12 p-0"
+                        className="h-16 w-16 p-0 text-2xl font-bold rounded-xl"
                       >
                         +
                       </Button>
@@ -407,6 +412,19 @@ export default function SettingsPage() {
             <p className="text-lg">Enable push notifications to access all settings</p>
           </div>
         )}
+
+        {/* Body Metrics & Weight Tracking */}
+        <Card className="glass-effect border-accent/30">
+          <CardHeader className="border-b border-accent/20">
+            <CardTitle className="flex items-center gap-2 text-foreground text-xl">
+              <Scale className="h-6 w-6" />
+              Body Metrics & Weight Tracking
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <BodyMetricsTracker />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
