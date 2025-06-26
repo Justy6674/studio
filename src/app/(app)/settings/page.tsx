@@ -93,7 +93,14 @@ export default function SettingsPage() {
     smartwatchEnabled: false,
     // Enhanced notification defaults
     enabledNotificationTypes: ['glass', 'drink', 'milestone'],
-    customNotificationIntervals: {},
+    customNotificationIntervals: {
+      sip: 15,
+      glass: 60,
+      walk: 90,
+      drink: 45,
+      herbal_tea: 120,
+      milestone: 0
+    },
     daySplitConfig: {
       enabled: true,
       splits: defaultDaySplits
