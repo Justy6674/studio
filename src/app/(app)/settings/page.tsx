@@ -209,23 +209,23 @@ export default function SettingsPage() {
               <CardTitle className="text-foreground text-xl">Notification Tone</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
                 {Object.entries(tones).map(([tone, config]) => (
                   <button
                     key={tone}
                     onClick={() => setMotivationTone(tone)}
-                    className={`p-4 rounded-xl border text-left transition-all duration-200 ${
+                    className={`w-full p-6 rounded-xl border text-left transition-all duration-200 min-h-[80px] ${
                       motivationTone === tone
                         ? 'bg-primary/20 border-primary text-foreground shadow-lg shadow-primary/20 transform scale-105'
                         : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-2xl">{config.emoji}</span>
-                      <span className="font-bold text-lg">{config.label}</span>
-                      {motivationTone === tone && <Check className="h-5 w-5 text-primary ml-auto" />}
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-3xl">{config.emoji}</span>
+                      <span className="font-bold text-xl">{config.label}</span>
+                      {motivationTone === tone && <Check className="h-6 w-6 text-primary ml-auto" />}
                     </div>
-                    <p className="text-sm text-muted-foreground">{config.description}</p>
+                    <p className="text-base text-muted-foreground leading-relaxed">{config.description}</p>
                   </button>
                 ))}
               </div>
@@ -243,20 +243,24 @@ export default function SettingsPage() {
               {/* Frequency Radio Group */}
               <div>
                 <Label className="text-lg font-bold mb-3 block text-foreground">Frequency</Label>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-3">
                   {Object.entries(frequencies).map(([freq, config]) => (
                     <button
                       key={freq}
                       onClick={() => setNotificationFrequency(freq)}
-                      className={`p-4 rounded-xl border text-center transition-all duration-200 ${
+                      className={`w-full p-5 rounded-xl border text-left transition-all duration-200 min-h-[70px] ${
                         notificationFrequency === freq
                           ? 'bg-primary/20 border-primary text-foreground shadow-lg shadow-primary/20 transform scale-105'
                           : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
                       }`}
                     >
-                      <div className="font-bold text-lg">{config.label}</div>
-                      <div className="text-sm text-muted-foreground mt-1">{config.description}</div>
-                      {notificationFrequency === freq && <Check className="h-5 w-5 text-primary mx-auto mt-2" />}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-bold text-lg">{config.label}</div>
+                          <div className="text-sm text-muted-foreground mt-1">{config.description}</div>
+                        </div>
+                        {notificationFrequency === freq && <Check className="h-6 w-6 text-primary" />}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -265,12 +269,12 @@ export default function SettingsPage() {
               {/* Time Windows */}
               <div>
                 <Label className="text-lg font-bold mb-3 block text-foreground">Time Windows</Label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
                   {timeWindowOptions.map((window) => (
                     <button
                       key={window.id}
                       onClick={() => toggleTimeWindow(window.id)}
-                      className={`p-4 rounded-xl border text-left transition-all duration-200 ${
+                      className={`w-full p-5 rounded-xl border text-left transition-all duration-200 min-h-[70px] ${
                         timeWindows.includes(window.id)
                           ? 'bg-accent/20 border-accent text-foreground shadow-lg shadow-accent/20 transform scale-105'
                           : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
@@ -279,7 +283,7 @@ export default function SettingsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-bold text-lg">{window.label}</div>
-                          <div className="text-sm text-muted-foreground">{window.time}</div>
+                          <div className="text-base text-muted-foreground">{window.time}</div>
                         </div>
                         {timeWindows.includes(window.id) && (
                           <Check className="h-6 w-6 text-accent" />
@@ -316,19 +320,21 @@ export default function SettingsPage() {
               {vibrationEnabled && (
                 <div>
                   <Label className="text-lg font-bold mb-3 block text-foreground">Intensity</Label>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-3">
                     {(['light', 'medium', 'heavy'] as const).map((intensity) => (
                       <button
                         key={intensity}
                         onClick={() => setVibrationIntensity(intensity)}
-                        className={`p-4 rounded-xl border text-center transition-all duration-200 capitalize ${
+                        className={`w-full p-5 rounded-xl border text-left transition-all duration-200 capitalize min-h-[60px] ${
                           vibrationIntensity === intensity
                             ? 'bg-primary/20 border-primary text-foreground shadow-lg shadow-primary/20 transform scale-105'
                             : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
                         }`}
                       >
-                        <div className="font-bold text-lg">{intensity}</div>
-                        {vibrationIntensity === intensity && <Check className="h-5 w-5 text-primary mx-auto mt-2" />}
+                        <div className="flex items-center justify-between">
+                          <div className="font-bold text-lg">{intensity}</div>
+                          {vibrationIntensity === intensity && <Check className="h-6 w-6 text-primary" />}
+                        </div>
                       </button>
                     ))}
                   </div>

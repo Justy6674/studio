@@ -1093,3 +1093,265 @@ Firebase Admin SDK already initialized.
  GET /settings 200 in 128ms
  ✓ Compiled in 543ms (5682 modules)
  GET /settings 200 in 121ms
+ ○ Compiling /api/user-settings ...
+ ✓ Compiled /api/user-settings in 749ms (3686 modules)
+Firebase Admin SDK already initialized.
+📖 Settings retrieved from Firebase for user: test-user
+ GET /api/user-settings 200 in 1088ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'heavy',
+  motivationTone: 'sarcastic',
+  notificationFrequency: 'frequent',
+  timeWindows: [ 'morning', 'midday', 'evening' ],
+  smsEnabled: true,
+  smsMaxPerDay: 2,
+  updatedAt: '2025-06-26T08:09:24.281Z'
+}
+ POST /api/user-settings 200 in 83ms
+ ○ Compiling /api/test-notifications ...
+ ✓ Compiled /api/test-notifications in 585ms (5690 modules)
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for sarcastic tone with drink context
+ POST /api/test-notifications 200 in 634ms
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for funny tone with sip context
+ POST /api/test-notifications 200 in 4ms
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for kind tone with sip context
+ POST /api/test-notifications 200 in 4ms
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for motivational tone with sip context
+ POST /api/test-notifications 200 in 4ms
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for strict tone with sip context
+ POST /api/test-notifications 200 in 3ms
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for supportive tone with sip context
+ POST /api/test-notifications 200 in 5ms
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for crass tone with sip context
+ POST /api/test-notifications 200 in 4ms
+🧪 FCM Test Mode - Testing notification system
+✅ Testing Gemini AI for weightloss tone with sip context
+ POST /api/test-notifications 200 in 17ms
+Firebase Admin SDK already initialized.
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'light',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:09:49.123Z'
+}
+ POST /api/user-settings 200 in 83ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:09:49.217Z'
+}
+ POST /api/user-settings 200 in 80ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'heavy',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:09:49.309Z'
+}
+ POST /api/user-settings 200 in 77ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'funny',
+  notificationFrequency: 'minimal',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:09:56.113Z'
+}
+ POST /api/user-settings 200 in 66ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'funny',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:09:56.191Z'
+}
+ POST /api/user-settings 200 in 81ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'funny',
+  notificationFrequency: 'frequent',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:09:56.285Z'
+}
+ POST /api/user-settings 200 in 78ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:10:04.335Z'
+}
+ POST /api/user-settings 200 in 74ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'midday', 'afternoon', 'evening' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:10:04.420Z'
+}
+ POST /api/user-settings 200 in 65ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:10:13.809Z'
+}
+ POST /api/user-settings 200 in 70ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: true,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:10:13.892Z'
+}
+ POST /api/user-settings 200 in 78ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: true,
+  smsMaxPerDay: 2,
+  updatedAt: '2025-06-26T08:10:13.981Z'
+}
+ POST /api/user-settings 200 in 69ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: false,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning', 'afternoon' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:10:22.167Z'
+}
+ POST /api/user-settings 200 in 67ms
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'heavy',
+  motivationTone: 'sarcastic',
+  notificationFrequency: 'frequent',
+  timeWindows: [ 'morning', 'midday', 'afternoon', 'evening' ],
+  smsEnabled: true,
+  smsMaxPerDay: 2,
+  updatedAt: '2025-06-26T08:10:22.245Z'
+}
+ POST /api/user-settings 200 in 68ms
+🧪 FCM Test Mode - Testing notification system
+🔔 Testing FCM Push Notifications...
+✅ Testing Gemini AI for motivational tone with milestone context
+🎮 Testing Gamification System...
+🎯 Testing Day-Splitting Logic...
+ POST /api/test-notifications 200 in 6ms
+ GET /settings 200 in 723ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1909ms (5689 modules)
+ GET / 200 in 2716ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 4.7s (6988 modules)
+ GET /dashboard 200 in 5623ms
+ ○ Compiling /api/user-settings ...
+ ✓ Compiled /api/user-settings in 659ms (4349 modules)
+Firebase Admin SDK already initialized.
+🔥 Settings saved to Firebase for user: test-user {
+  fcmEnabled: true,
+  vibrationEnabled: true,
+  vibrationIntensity: 'medium',
+  motivationTone: 'kind',
+  notificationFrequency: 'moderate',
+  timeWindows: [ 'morning' ],
+  smsEnabled: false,
+  smsMaxPerDay: 1,
+  updatedAt: '2025-06-26T08:17:39.763Z'
+}
+ POST /api/user-settings 200 in 1012ms
+ ✓ Compiled /api/test-notifications in 359ms (4351 modules)
+🧪 FCM Test Mode - Testing notification system
+🔔 Testing FCM Push Notifications...
+✅ Testing Gemini AI for kind tone with drink context
+🎮 Testing Gamification System...
+🎯 Testing Day-Splitting Logic...
+ POST /api/test-notifications 200 in 391ms
+ GET /profile 200 in 777ms
+ ○ Compiling /history ...
+ ✓ Compiled /history in 964ms (7027 modules)
+ GET /history 200 in 1646ms
+ ○ Compiling /api/export/water-logs ...
+ ✓ Compiled /api/export/water-logs in 1766ms (7037 modules)
+Firebase Admin SDK already initialized.
+ POST /api/export/water-logs 405 in 1834ms
+ GET /settings 200 in 372ms
+ GET /settings 200 in 70ms
+🧪 FCM Test Mode - Testing notification system
+ POST /api/test-notifications 200 in 11ms
+ GET /settings 200 in 46ms
+ ✓ Compiled in 2.2s (6346 modules)
+ GET /settings 200 in 203ms
+ ✓ Compiled in 468ms (6346 modules)
+ GET /settings 200 in 178ms
+ ✓ Compiled in 564ms (6346 modules)
+ GET /settings 200 in 94ms
+ ✓ Compiled in 476ms (6346 modules)
+ GET /settings 200 in 98ms
+ ✓ Compiled in 560ms (6346 modules)
+ GET /settings 200 in 92ms
+ ✓ Compiled in 712ms (6346 modules)
+ GET /settings 200 in 96ms
+ ✓ Compiled in 436ms (6346 modules)
+ GET /settings 200 in 91ms
