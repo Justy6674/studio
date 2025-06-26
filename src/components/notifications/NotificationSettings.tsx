@@ -32,15 +32,16 @@ interface NotificationSettingsProps {
 
 export function NotificationSettings({ initialSettings, onSettingsChange }: NotificationSettingsProps) {
   const { user } = useAuth();
-  const [fcmEnabled, setFcmEnabled] = useState(initialSettings?.fcmEnabled ?? false);
+  const [fcmEnabled, setFcmEnabled] = useState(initialSettings?.fcmEnabled || false);
   const [motivationTone, setMotivationTone] = useState<MotivationTone>(initialSettings?.motivationTone ?? 'kind');
   const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(initialSettings?.notificationFrequency ?? 'moderate');
   const [vibrationEnabled, setVibrationEnabled] = useState(initialSettings?.vibrationEnabled ?? true);
   const [smartwatchEnabled, setSmartWatchEnabled] = useState(initialSettings?.smartwatchEnabled ?? false);
-  const [fcmToken, setFcmToken] = useState(initialSettings?.fcmToken ?? null);
+  const [fcmToken, setFcmToken] = useState<string | null>(initialSettings?.fcmToken || null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
+  const [vapidKeyMissing, setVapidKeyMissing] = useState(false);
   
   // New state for enhanced notifications
   const [enabledNotificationTypes, setEnabledNotificationTypes] = useState<NotificationType[]>(
@@ -150,9 +151,19 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     }
 
     setIsInitializing(true);
+    setVapidKeyMissing(false);
     
     try {
       if (enabled) {
+        // Check if VAPID key is available
+        const configResponse = await fetch('/api/firebase-config');
+        const config = await configResponse.json();
+        
+        if (!config.vapidKey) {
+          setVapidKeyMissing(true);
+          throw new Error('VAPID key not configured');
+        }
+
         // Initialize FCM and get token
         const token = await initializeFCM(user.uid);
         if (token) {
@@ -180,11 +191,20 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
       await saveSettings();
     } catch (error) {
       console.error('FCM toggle error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Notification Setup Failed',
-        description: 'Please check browser permissions and try again'
-      });
+      
+      if (error instanceof Error && error.message === 'VAPID key not configured') {
+        toast({
+          variant: 'destructive',
+          title: 'Setup Required',
+          description: 'Push notifications need to be configured. See instructions below.'
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Notification Setup Failed',
+          description: 'Please check browser permissions and try again'
+        });
+      }
     } finally {
       setIsInitializing(false);
     }
@@ -340,6 +360,54 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
                 <li>• 8 AI personality tones with custom vibration patterns</li>
                 <li>• Smartwatch integration and device synchronization</li>
               </ul>
+            </div>
+          )}
+
+          {isInitializing && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Setting up push notifications...</strong>
+              </p>
+              <p className="text-sm text-blue-700 mt-1">
+                This may take a moment. Please allow notifications when prompted by your browser.
+              </p>
+            </div>
+          )}
+
+          {!fcmEnabled && permissionStatus === 'denied' && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                <strong>Push notifications are blocked</strong>
+              </p>
+              <p className="text-sm text-red-700 mt-1">
+                To enable notifications: Click the lock icon in your browser's address bar → Allow notifications → Refresh this page.
+              </p>
+            </div>
+          )}
+
+          {vapidKeyMissing && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-sm text-orange-800 font-semibold mb-2">
+                🔧 Push Notifications Setup Required
+              </p>
+              <p className="text-sm text-orange-700 mb-3">
+                To enable push notifications, you need to configure a VAPID key in your environment variables.
+              </p>
+              <div className="bg-orange-100 p-3 rounded text-xs font-mono text-orange-800 mb-3">
+                <p className="font-semibold mb-1">Add to Vercel Environment Variables:</p>
+                <p>NEXT_PUBLIC_FIREBASE_VAPID_KEY=your_vapid_key</p>
+              </div>
+              <div className="text-sm text-orange-700 space-y-1">
+                <p><strong>How to get your VAPID key:</strong></p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="underline">Firebase Console</a></li>
+                  <li>Select your project → Project Settings</li>
+                  <li>Go to Cloud Messaging tab</li>
+                  <li>In "Web configuration" section, click "Generate key pair"</li>
+                  <li>Copy the key and add it to Vercel environment variables</li>
+                  <li>Redeploy your app or restart development server</li>
+                </ol>
+              </div>
             </div>
           )}
 

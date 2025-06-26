@@ -5,63 +5,90 @@
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-// Firebase configuration - environment variables injected at build time
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
+let messaging = null;
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Load Firebase configuration dynamically
+async function initializeFirebase() {
+  try {
+    const response = await fetch('/api/firebase-config');
+    const firebaseConfig = await response.json();
+    
+    console.log('[firebase-messaging-sw.js] Firebase config loaded successfully');
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    
+    // Initialize Firebase Cloud Messaging
+    messaging = firebase.messaging();
+    
+    console.log('[firebase-messaging-sw.js] Firebase initialized successfully');
+    
+    return true;
+  } catch (error) {
+    console.error('[firebase-messaging-sw.js] Failed to initialize Firebase:', error);
+    return false;
+  }
+}
 
-// Initialize Firebase Cloud Messaging
-const messaging = firebase.messaging();
-
-console.log('[firebase-messaging-sw.js] Firebase initialized successfully');
+// Initialize Firebase when service worker loads
+initializeFirebase();
 
 // Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message:', payload);
-
-  const notificationTitle = payload.notification?.title || 'Water4WeightLoss';
-  const notificationOptions = {
-    body: payload.notification?.body || 'Time to hydrate!',
-    icon: '/logo-128.png',
-    badge: '/logo-128.png',
-    tag: 'hydration-reminder',
-    requireInteraction: false,
-    silent: false,
-    vibrate: [200, 100, 200, 100, 200], // Vibration pattern
-    data: {
-      ...payload.data,
-      timestamp: Date.now(),
-      url: payload.data?.url || '/dashboard'
-    },
-    actions: [
-      {
-        action: 'log-water',
-        title: '💧 Log Water',
-        icon: '/logo-128.png'
-      },
-      {
-        action: 'snooze',
-        title: '⏰ Snooze 30min',
-        icon: '/logo-128.png'
-      }
-    ]
-  };
-
-  // Trigger device vibration for mobile and smartwatch
-  if ('vibrate' in navigator) {
-    navigator.vibrate([200, 100, 200, 100, 200]);
+self.addEventListener('message', async (event) => {
+  if (event.data && event.data.type === 'FIREBASE_MESSAGING_BACKGROUND_MESSAGE') {
+    if (!messaging) {
+      await initializeFirebase();
+    }
   }
-
-  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
+// Set up background message handler after initialization
+setTimeout(async () => {
+  if (!messaging) {
+    await initializeFirebase();
+  }
+  
+  if (messaging) {
+    messaging.onBackgroundMessage((payload) => {
+      console.log('[firebase-messaging-sw.js] Received background message:', payload);
+
+      const notificationTitle = payload.notification?.title || 'Water4WeightLoss';
+      const notificationOptions = {
+        body: payload.notification?.body || 'Time to hydrate!',
+        icon: '/logo-128.png',
+        badge: '/logo-128.png',
+        tag: 'hydration-reminder',
+        requireInteraction: false,
+        silent: false,
+        vibrate: [200, 100, 200, 100, 200], // Vibration pattern
+        data: {
+          ...payload.data,
+          timestamp: Date.now(),
+          url: payload.data?.url || '/dashboard'
+        },
+        actions: [
+          {
+            action: 'log-water',
+            title: '💧 Log Water',
+            icon: '/logo-128.png'
+          },
+          {
+            action: 'snooze',
+            title: '⏰ Snooze 30min',
+            icon: '/logo-128.png'
+          }
+        ]
+      };
+
+      // Trigger device vibration for mobile and smartwatch
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
+
+      return self.registration.showNotification(notificationTitle, notificationOptions);
+    });
+  }
+}, 1000);
 
 // Handle notification click events
 self.addEventListener('notificationclick', (event) => {

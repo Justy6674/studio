@@ -4,8 +4,6 @@ import { getMessaging, getToken, onMessage, MessagePayload } from 'firebase/mess
 import { app } from '@/lib/firebase';
 import { doc, setDoc, getFirestore } from 'firebase/firestore';
 
-const VAPID_KEY = 'BF8YANm0BqhZBxT3mJLGN8GxbfOGQGK1234567890abcdefghijklmnopqrstuvwxyzABCDEF'; // You'll need to generate this
-
 export interface FCMNotificationOptions {
   title: string;
   body: string;
@@ -19,6 +17,7 @@ class FCMService {
   private messaging: any = null;
   private currentToken: string | null = null;
   private initialized = false;
+  private vapidKey: string | null = null;
 
   private constructor() {
     this.initializeMessaging();
@@ -31,6 +30,17 @@ class FCMService {
     return FCMService.instance;
   }
 
+  private async loadFirebaseConfig(): Promise<void> {
+    try {
+      const response = await fetch('/api/firebase-config');
+      const config = await response.json();
+      this.vapidKey = config.vapidKey;
+      console.log('FCM: VAPID key loaded successfully');
+    } catch (error) {
+      console.error('FCM: Failed to load Firebase config:', error);
+    }
+  }
+
   private async initializeMessaging() {
     if (typeof window === 'undefined') {
       console.warn('FCM: Window not available, skipping initialization');
@@ -38,6 +48,9 @@ class FCMService {
     }
 
     try {
+      // Load Firebase config first
+      await this.loadFirebaseConfig();
+
       // Register service worker
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
@@ -109,6 +122,11 @@ class FCMService {
       return null;
     }
 
+    if (!this.vapidKey) {
+      console.error('FCM: VAPID key not available');
+      return null;
+    }
+
     try {
       const permission = await this.requestPermission();
       if (permission !== 'granted') {
@@ -116,7 +134,7 @@ class FCMService {
         return null;
       }
 
-      const token = await getToken(this.messaging, { vapidKey: VAPID_KEY });
+      const token = await getToken(this.messaging, { vapidKey: this.vapidKey });
       
       if (token) {
         console.log('FCM registration token:', token);

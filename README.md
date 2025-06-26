@@ -11,6 +11,11 @@ A comprehensive hydration tracking application built for Australians, focusing o
 - **Streak Tracking**: Daily and longest streak monitoring
 - **Progress Visualisation**: Interactive water glass and progress charts
 - **Dashboard Analytics**: Weekly intake charts and recent activity logs
+- **Push Notifications**: FCM-powered notifications with 8 AI personality tones
+- **Day Splitting**: Break your day into hydration milestones with confetti celebrations
+- **Gamification**: Earn badges and achievements with analytics tracking
+- **AI Motivation**: Gemini-powered personalized hydration coaching
+- **Smartwatch Support**: Device synchronization and vibration patterns
 
 ## 🎨 Design System
 
@@ -98,6 +103,7 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-bucket.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=your-vapid-key
 
 # Twilio (if not already configured)
 TWILIO_ACCOUNT_SID=your-account-sid
@@ -303,3 +309,70 @@ If you need context, read this README top-to-bottom before you do anything else.
 ---
 
 *Water4WeightLoss — Australian clinical hydration app, not a tech experiment.*
+
+## Setup Instructions
+
+### 1. Firebase Configuration
+
+Add these environment variables to your Vercel deployment:
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=your_vapid_key
+```
+
+### 2. Generate VAPID Key for Push Notifications
+
+**CRITICAL**: You need to generate a VAPID key for push notifications to work.
+
+1. Go to your Firebase Console
+2. Navigate to Project Settings → Cloud Messaging
+3. In the "Web configuration" section, click "Generate key pair"
+4. Copy the generated key and add it as `NEXT_PUBLIC_FIREBASE_VAPID_KEY` in Vercel
+
+**OR** generate one using the Firebase CLI:
+```bash
+npx firebase-admin generate-vapid-keys
+```
+
+### 3. Firebase Functions Setup
+
+```bash
+cd functions
+npm install
+firebase deploy --only functions
+```
+
+### 4. Firestore Security Rules
+
+Deploy the security rules:
+```bash
+firebase deploy --only firestore:rules
+```
+
+## Push Notification Features
+
+- **6 Notification Types**: Sip, Glass, Walk, Drink, Herbal Tea, Milestones
+- **8 AI Personality Tones**: Funny, Kind, Motivational, Sarcastic, Strict, Supportive, Crass, Weight Loss
+- **Custom Intervals**: 5-480 minutes per notification type
+- **Day Splitting**: Confetti celebrations at 10am (1L), 3pm (2L), 8pm (3L)
+- **Device Vibration**: Custom patterns per personality tone
+- **Smartwatch Integration**: Notifications forwarded to wearables
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+## Deployment
+
+Deploy to Vercel with proper environment variables configured.
+
+**IMPORTANT**: Make sure to add the VAPID key to Vercel environment variables for push notifications to work!
