@@ -139,6 +139,7 @@ export interface UserProfile {
   milestoneAnimations?: boolean; // New: Enable/disable milestone animations
   dailyStreak?: number;
   longestStreak?: number;
+  totalHydration?: number; // Total hydration logged in ml
   lastLogDate?: string; // YYYY-MM-DD format
   // Stripe subscription fields
   stripeCustomerId?: string;

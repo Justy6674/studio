@@ -26,6 +26,10 @@ interface NotificationSettingsProps {
     smsMaxPerDay?: number;
     smsTone?: MotivationTone;
     fcmToken?: string;
+    smartwatchEnabled?: boolean;
+    enabledNotificationTypes?: any[];
+    customNotificationIntervals?: Record<string, number>;
+    daySplitConfig?: any;
   };
   onSettingsChange?: (settings: any) => void;
 }
