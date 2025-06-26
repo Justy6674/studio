@@ -196,19 +196,22 @@ async function generateNotificationMessage(notification) {
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
         const progressPercent = Math.round((notification.currentMl / notification.goalMl) * 100);
-        const prompt = `Generate a short, ${notification.tone}-toned hydration reminder notification.
+        const prompt = `Generate a short, ${notification.tone}-toned hydration reminder notification using Australian English.
     
 Current progress: ${notification.currentMl}ml / ${notification.goalMl}ml (${progressPercent}%)
 Type: ${notification.type}
-Time: ${new Date().toLocaleString()}
+Time: ${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}
 
 Requirements:
 - Maximum 120 characters for mobile notifications
 - Match the ${notification.tone} tone exactly
+- Use Australian English spelling (colour, centre, realise, etc.)
+- Include Australian slang where appropriate (mate, brilliant, ripper, good on ya)
 - Be encouraging and motivating
 - Include relevant emoji
 - Focus on immediate hydration action
 - Be unique and engaging
+- Use metric units (ml, litres)
 
 Generate ONE motivational message now:`;
         const result = await model.generateContent({
@@ -241,44 +244,52 @@ function getFallbackMessage(notification) {
     const progressPercent = Math.round((notification.currentMl / notification.goalMl) * 100);
     const messages = {
         funny: [
-            `Your water bottle is feeling neglected! ${notification.currentMl}ml down, keep going! 💧😄`,
-            `H2-Oh no! Time for more water! You're at ${progressPercent}% 🚰`,
-            `Your cells are sending thirsty texts! Hydrate now! 💦📱`,
+            `Your water bottle's feeling neglected, mate! ${notification.currentMl}ml down, keep going! 💧😄`,
+            `H2-Oh crikey! Time for more water! You're at ${progressPercent}% 🚰`,
+            `Your cells are sending thirsty texts! Have a drink now! 💦📱`,
+            `Fair dinkum, your hydration game needs work! ${progressPercent}% done 😅`,
         ],
         kind: [
-            `Gentle reminder to hydrate! You're doing great at ${progressPercent}% 💙`,
+            `Gentle reminder to have a drink, mate! You're doing brilliantly at ${progressPercent}% 💙`,
             `Your body will thank you for another glass of water 🌟`,
-            `Every sip counts! Keep up the good work 💧`,
+            `Every sip counts! Good on ya for the effort 💧`,
+            `You're doing great! Time for a lovely drink 🤗`,
         ],
         motivational: [
-            `Power up with H2O! You're ${progressPercent}% to your goal! 💪`,
-            `Champions hydrate! Keep pushing forward! 🏆`,
+            `Power up with H2O, champion! You're ${progressPercent}% to your goal! 💪`,
+            `Legends hydrate! Keep pushing forward, mate! 🏆`,
             `Fuel your success with water! You've got this! 🚀`,
+            `Ripper effort! Let's smash that hydration goal! 🔥`,
         ],
         sarcastic: [
-            `Oh look, your water goal is still waiting... ${progressPercent}% done 🙄`,
+            `Oh look, your water goal is still waiting... ${progressPercent}% done, mate 🙄`,
             `Shocking news: your body still needs water! Who knew? 💧`,
             `Your hydration game could use some work... just saying 😏`,
+            `Brilliant! Another excuse to avoid drinking water 🤷‍♂️`,
         ],
         strict: [
-            `Drink water. Now. No excuses. ${progressPercent}% completed. 🧐`,
+            `Drink water. Now. No excuses, mate. ${progressPercent}% completed. 🧐`,
             `Hydration is not optional. Get back to it! 💪`,
             `Your goal won't reach itself. Drink up! 🚰`,
+            `Stop mucking about and have a drink! 😤`,
         ],
         supportive: [
-            `You're doing amazing! Time for some self-care hydration 🤗`,
+            `You're doing brilliantly! Time for some self-care hydration, mate 🤗`,
             `I believe in you! Another glass will get you closer 💕`,
             `You've got this! Your health journey continues with water 🌈`,
+            `Good on ya for taking care of yourself! 🌟`,
         ],
         crass: [
-            `Seriously, drink some bloody water! ${progressPercent}% ain't enough! 💥`,
-            `Your hydration game is weak! Step it up! 🔥`,
-            `Stop making excuses and chug that H2O! 💪`,
+            `Seriously, drink some bloody water, mate! ${progressPercent}% ain't enough! 💥`,
+            `Your hydration game is weak as piss! Step it up! 🔥`,
+            `Stop making excuses and chug that H2O, you drongo! 💪`,
+            `Fair dinkum, get some water into ya! 🚰`,
         ],
         weightloss: [
-            `Water boosts metabolism! Drink up for those weight goals! 🏋️‍♀️`,
-            `Every glass burns calories and flushes toxins! Keep going! 🔥`,
-            `Hydration = weight loss success! You're ${progressPercent}% there! 💪`,
+            `Water boosts metabolism, mate! Drink up for those weight goals! 🏋️‍♀️`,
+            `Every glass burns kilojoules and flushes toxins! Keep going! 🔥`,
+            `Hydration = weight loss success! You're ${progressPercent}% there, legend! 💪`,
+            `Brilliant choice for your health! Water's your best mate! 🌟`,
         ],
     };
     const toneMessages = messages[notification.tone] || messages.kind;
