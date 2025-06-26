@@ -17,16 +17,14 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
   const [amount, setAmount] = useState("");
   const [isLogging, setIsLogging] = useState(false);
 
-  // Quick-add drink options with proper emoji icons and consistent colors
+  // Quick-add drink options optimized for mobile standards
   const drinkOptions = [
-    { name: "Quick Sip", amount: 50, emoji: "💧", color: "from-purple-500 to-purple-600" },
-    { name: "Small Glass", amount: 150, emoji: "🥛", color: "from-blue-400 to-blue-500" },
-    { name: "Tall Glass", amount: 250, emoji: "🥛", color: "from-cyan-400 to-cyan-500" },
-    { name: "Water Bottle", amount: 450, emoji: "🧴", color: "from-teal-400 to-teal-500" },
-    { name: "Water Bottle", amount: 500, emoji: "🧴", color: "from-blue-500 to-blue-600" },
-    { name: "Water Bottle", amount: 600, emoji: "🧴", color: "from-indigo-500 to-indigo-600" },
-    { name: "Large Bottle", amount: 750, emoji: "🧴", color: "from-blue-600 to-blue-700" },
-    { name: "Jumbo Bottle", amount: 1000, emoji: "🧴", color: "from-slate-600 to-slate-700" },
+    { name: "Quick Sip", amount: 50, emoji: "💧", color: "bg-purple-600 hover:bg-purple-700" },
+    { name: "Small Glass", amount: 150, emoji: "🥛", color: "bg-blue-600 hover:bg-blue-700" },
+    { name: "Tall Glass", amount: 250, emoji: "🥛", color: "bg-cyan-600 hover:bg-cyan-700" },
+    { name: "Water Bottle", amount: 450, emoji: "🧴", color: "bg-teal-600 hover:bg-teal-700" },
+    { name: "Large Bottle", amount: 500, emoji: "🧴", color: "bg-blue-700 hover:bg-blue-800" },
+    { name: "XL Bottle", amount: 600, emoji: "🧴", color: "bg-indigo-600 hover:bg-indigo-700" },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +61,7 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
 
   return (
     <div className="space-y-6">
-      {/* Quick Add Buttons */}
+      {/* Quick Add Buttons - Modern Mobile Standards */}
       <Card className="bg-gradient-to-br from-hydration-500/20 to-hydration-600/10 border-hydration-400/30">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
@@ -72,44 +70,100 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* MOBILE OPTIMIZED GRID - Vertical layout for easy tapping */}
+          {/* MOBILE OPTIMIZED - Vertical stack for 48px+ touch targets */}
           <div className="space-y-3">
             {drinkOptions.map((drink) => (
-              <Button
+              <button
                 key={`${drink.name}-${drink.amount}`}
                 onClick={() => handleQuickAdd(drink.amount)}
                 disabled={isLogging}
-                className={`bg-gradient-to-r ${drink.color} hover:scale-105 text-white py-6 px-4 text-base font-semibold shadow-lg transition-all duration-200 hover:shadow-lg w-full min-h-[72px] flex items-center justify-start gap-4`}
+                className={`
+                  ${drink.color}
+                  w-full 
+                  min-h-[64px] 
+                  px-6 py-4
+                  rounded-lg
+                  text-white
+                  font-semibold
+                  shadow-md
+                  transition-all duration-200
+                  hover:shadow-lg
+                  active:scale-95
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
+                  flex items-center
+                  text-left
+                  border-0
+                  outline-none
+                  focus:ring-2 focus:ring-hydration-400 focus:ring-offset-2
+                `}
+                type="button"
               >
                 {isLogging ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    <span className="text-base">Adding...</span>
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent flex-shrink-0"></div>
+                    <span className="text-base font-medium">Adding...</span>
                   </div>
                 ) : (
-                  <>
-                    <span className="text-3xl">{drink.emoji}</span>
-                    <div className="text-left">
-                      <div className="text-lg font-bold">{drink.name}</div>
-                      <div className="text-sm opacity-90">({drink.amount}ml)</div>
+                  <div className="flex items-center gap-4 w-full">
+                    <span className="text-2xl flex-shrink-0" role="img" aria-hidden="true">
+                      {drink.emoji}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-bold text-white">
+                        {drink.name}
+                      </div>
+                      <div className="text-sm text-white/80">
+                        {drink.amount}ml
+                      </div>
                     </div>
-                  </>
+                  </div>
                 )}
-              </Button>
+              </button>
             ))}
           </div>
 
           {/* Other Drink Button */}
           {onOtherDrink && (
-            <div className="border-t border-slate-600 pt-3">
-              <Button
+            <div className="border-t border-slate-600 pt-4">
+              <button
                 onClick={onOtherDrink}
                 disabled={isLogging}
-                className="w-full bg-transparent border-2 border-[#b68a71] text-[#b68a71] hover:bg-[#b68a71]/10 hover:border-[#b68a71] py-6 px-4 text-base font-semibold transition-all duration-200 min-h-[72px] flex items-center justify-start gap-4"
+                className="
+                  w-full 
+                  min-h-[64px] 
+                  px-6 py-4
+                  rounded-lg
+                  bg-transparent
+                  border-2 border-[#b68a71]
+                  text-[#b68a71]
+                  font-semibold
+                  transition-all duration-200
+                  hover:bg-[#b68a71] hover:text-white
+                  active:scale-95
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
+                  flex items-center
+                  text-left
+                  outline-none
+                  focus:ring-2 focus:ring-[#b68a71] focus:ring-offset-2
+                "
+                type="button"
               >
-                <span className="text-3xl">🍹</span>
-                <span className="text-lg font-bold">Other Drink</span>
-              </Button>
+                <div className="flex items-center gap-4 w-full">
+                  <span className="text-2xl flex-shrink-0" role="img" aria-hidden="true">
+                    🍹
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-base font-bold">
+                      Other Drink
+                    </div>
+                    <div className="text-sm opacity-80">
+                      Juice, coffee, etc.
+                    </div>
+                  </div>
+                </div>
+              </button>
             </div>
           )}
         </CardContent>
@@ -126,7 +180,7 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="amount" className="text-slate-300 text-sm">
+              <Label htmlFor="amount" className="text-slate-300 text-base font-medium">
                 Amount (ml)
               </Label>
               <Input
@@ -137,14 +191,14 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
                 placeholder="Enter amount in ml"
                 min="1"
                 max="2000"
-                className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 mt-1"
+                className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 mt-2 h-12 text-base"
                 disabled={isLogging}
               />
             </div>
             <Button
               type="submit"
               disabled={!amount || isLogging}
-              className="w-full bg-slate-600 hover:bg-slate-500 text-white min-h-[44px]"
+              className="w-full bg-slate-600 hover:bg-slate-500 text-white min-h-[48px] text-base font-medium"
             >
               {isLogging ? (
                 <div className="flex items-center gap-2">
