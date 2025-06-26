@@ -113,6 +113,17 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     }
   };
 
+  const toneLabels: Record<MotivationTone, string> = {
+    funny: 'Funny',
+    kind: 'Kind',
+    motivational: 'Motivational',
+    sarcastic: 'Sarcastic',
+    strict: 'Strict',
+    supportive: 'Supportive',
+    crass: 'Crass',
+    weightloss: 'Weight Loss'
+  };
+
   const frequencyDescriptions: Record<NotificationFrequency, { description: string; interval: string }> = {
     minimal: {
       description: 'Essential reminders only',
@@ -536,10 +547,10 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
               </SelectTrigger>
               <SelectContent>
                 {availableTones.map((tone) => (
-                  <SelectItem key={tone.value} value={tone.value}>
+                  <SelectItem key={tone} value={tone}>
                     <div className="flex items-center gap-2">
-                      <span>{toneDescriptions[tone.value].emoji}</span>
-                      <span>{tone.label}</span>
+                      <span>{toneDescriptions[tone].emoji}</span>
+                      <span>{toneLabels[tone]}</span>
                     </div>
                   </SelectItem>
                 ))}
@@ -550,12 +561,12 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
           {/* Always show tone preview */}
           <div className={`p-4 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{toneDescriptions[motivationTone].emoji}</span>
-                <span className="font-medium">
-                  {availableTones.find(t => t.value === motivationTone)?.label}
-                </span>
-              </div>
+                             <div className="flex items-center gap-2">
+                 <span className="text-lg">{toneDescriptions[motivationTone].emoji}</span>
+                 <span className="font-medium">
+                   {toneLabels[motivationTone]}
+                 </span>
+               </div>
               <p className="text-sm text-muted-foreground">
                 {toneDescriptions[motivationTone].description}
               </p>
