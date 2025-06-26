@@ -291,7 +291,7 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
 
   return (
     <div className="space-y-6">
-      {/* Main FCM Toggle */}
+      {/* FCM Push Notifications */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -317,11 +317,18 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
             />
           </div>
 
-          {permissionStatus !== 'granted' && (
+          {permissionStatus !== 'granted' && !fcmEnabled && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                Browser notifications are {permissionStatus}. Enable push notifications to receive reminders.
+                <strong>Enable push notifications to unlock:</strong>
               </p>
+              <ul className="text-sm text-yellow-700 mt-2 space-y-1">
+                <li>• 6 granular notification types (sip, glass, walk, drink, herbal tea, milestones)</li>
+                <li>• Custom reminder intervals (5-480 minutes)</li>
+                <li>• Day-splitting targets with confetti celebrations</li>
+                <li>• 8 AI personality tones with custom vibration patterns</li>
+                <li>• Smartwatch integration and device synchronization</li>
+              </ul>
             </div>
           )}
 
@@ -346,282 +353,280 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
         </CardContent>
       </Card>
 
-      {/* Notification Types Selection */}
-      {fcmEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notification Types
-            </CardTitle>
-            <CardDescription>
-              Choose which types of hydration reminders you want to receive
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {notificationTypes.filter(nt => nt.type !== 'milestone').map((notifType) => (
-              <div key={notifType.type} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{notifType.emoji}</span>
-                  <div>
-                    <h4 className="font-medium">{notifType.label}</h4>
-                    <p className="text-sm text-muted-foreground">{notifType.description}</p>
+      {/* Notification Types Preview/Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notification Types
+            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
+          </CardTitle>
+          <CardDescription>
+            {fcmEnabled 
+              ? "Choose which types of hydration reminders you want to receive"
+              : "Available notification types when push notifications are enabled"
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {notificationTypes.filter(nt => nt.type !== 'milestone').map((notifType) => (
+            <div key={notifType.type} className={`flex items-center justify-between p-4 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{notifType.emoji}</span>
+                <div>
+                  <h4 className="font-medium">{notifType.label}</h4>
+                  <p className="text-sm text-muted-foreground">{notifType.description}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                {(fcmEnabled && enabledNotificationTypes.includes(notifType.type)) && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Every</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="480"
+                      value={customIntervals[notifType.type]}
+                      onChange={(e) => handleIntervalChange(notifType.type, parseInt(e.target.value))}
+                      className="w-16 px-2 py-1 text-sm border rounded"
+                    />
+                    <span className="text-sm text-muted-foreground">min</span>
+                  </div>
+                )}
+                {!fcmEnabled && (
+                  <Badge variant="outline" className="text-xs">
+                    {notifType.type === 'sip' ? '15min' : 
+                     notifType.type === 'glass' ? '60min' :
+                     notifType.type === 'walk' ? '90min' :
+                     notifType.type === 'drink' ? '45min' :
+                     notifType.type === 'herbal_tea' ? '120min' : '30min'}
+                  </Badge>
+                )}
+                <Switch
+                  checked={fcmEnabled && enabledNotificationTypes.includes(notifType.type)}
+                  onCheckedChange={(checked) => fcmEnabled && handleNotificationTypeToggle(notifType.type, checked)}
+                  disabled={!fcmEnabled}
+                />
+              </div>
+            </div>
+          ))}
+          
+          {!fcmEnabled && (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">
+                Enable push notifications above to customize these settings
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Day Splitting Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="text-2xl">🎯</div>
+            Day Splitting Targets
+            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
+          </CardTitle>
+          <CardDescription>
+            Break your day into hydration milestones with confetti celebrations
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className={`flex items-center justify-between p-4 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
+            <div>
+              <h4 className="font-medium">Enable Day Splitting</h4>
+              <p className="text-sm text-muted-foreground">
+                Get milestone alerts with confetti when you hit targets throughout the day
+              </p>
+            </div>
+            <Switch
+              checked={fcmEnabled && daySplitConfig.enabled}
+              onCheckedChange={(enabled) => fcmEnabled && handleDaySplitToggle(enabled)}
+              disabled={!fcmEnabled}
+            />
+          </div>
+
+          {/* Always show preview of day splits */}
+          <div className="space-y-4">
+            <h5 className="font-medium flex items-center gap-2">
+              Milestone Targets
+              {!fcmEnabled && <span className="text-xs text-muted-foreground">(Preview)</span>}
+            </h5>
+            {(fcmEnabled ? daySplitConfig.splits : defaultDaySplits).map((split, index) => (
+              <div key={index} className={`p-4 border rounded-lg space-y-3 ${!fcmEnabled ? 'opacity-60' : ''}`}>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium">Time</label>
+                    <input
+                      type="time"
+                      value={split.time}
+                      onChange={(e) => fcmEnabled && handleSplitTargetChange(index, 'time', e.target.value)}
+                      className="w-full mt-1 px-3 py-2 border rounded"
+                      disabled={!fcmEnabled}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-sm font-medium">Target (ml)</label>
+                    <input
+                      type="number"
+                      min="250"
+                      max="5000"
+                      step="250"
+                      value={split.targetMl}
+                      onChange={(e) => fcmEnabled && handleSplitTargetChange(index, 'targetMl', parseInt(e.target.value))}
+                      className="w-full mt-1 px-3 py-2 border rounded"
+                      disabled={!fcmEnabled}
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  {enabledNotificationTypes.includes(notifType.type) && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm">Every</label>
-                      <input
-                        type="number"
-                        min="5"
-                        max="480"
-                        value={customIntervals[notifType.type]}
-                        onChange={(e) => handleIntervalChange(notifType.type, parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 text-sm border rounded"
-                      />
-                      <span className="text-sm text-muted-foreground">min</span>
-                    </div>
-                  )}
-                  <Switch
-                    checked={enabledNotificationTypes.includes(notifType.type)}
-                    onCheckedChange={(checked) => handleNotificationTypeToggle(notifType.type, checked)}
-                  />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium">Label</label>
+                    <input
+                      type="text"
+                      value={split.label}
+                      onChange={(e) => fcmEnabled && handleSplitTargetChange(index, 'label', e.target.value)}
+                      className="w-full mt-1 px-3 py-2 border rounded"
+                      placeholder="e.g., Morning Target"
+                      disabled={!fcmEnabled}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={fcmEnabled && split.confettiEnabled}
+                      onCheckedChange={(checked) => fcmEnabled && handleSplitTargetChange(index, 'confettiEnabled', checked)}
+                      disabled={!fcmEnabled}
+                    />
+                    <label className="text-sm">Confetti</label>
+                  </div>
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Day Splitting Configuration */}
-      {fcmEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div className="text-2xl">🎯</div>
-              Day Splitting Targets
-            </CardTitle>
-            <CardDescription>
-              Break your day into hydration milestones with confetti celebrations
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <h4 className="font-medium">Enable Day Splitting</h4>
-                <p className="text-sm text-muted-foreground">
-                  Get milestone alerts with confetti when you hit targets throughout the day
-                </p>
-              </div>
-              <Switch
-                checked={daySplitConfig.enabled}
-                onCheckedChange={handleDaySplitToggle}
-              />
+            <div className="text-sm text-muted-foreground p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <strong>Example:</strong> Set 10:00 AM for 1L, 3:00 PM for 2L, and 8:00 PM for 3L to break your day into thirds with celebration confetti!
             </div>
-
-            {daySplitConfig.enabled && (
-              <div className="space-y-4">
-                <h5 className="font-medium">Milestone Targets</h5>
-                {daySplitConfig.splits.map((split, index) => (
-                  <div key={index} className="p-4 border rounded-lg space-y-3">
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <label className="text-sm font-medium">Time</label>
-                        <input
-                          type="time"
-                          value={split.time}
-                          onChange={(e) => handleSplitTargetChange(index, 'time', e.target.value)}
-                          className="w-full mt-1 px-3 py-2 border rounded"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-sm font-medium">Target (ml)</label>
-                        <input
-                          type="number"
-                          min="250"
-                          max="5000"
-                          step="250"
-                          value={split.targetMl}
-                          onChange={(e) => handleSplitTargetChange(index, 'targetMl', parseInt(e.target.value))}
-                          className="w-full mt-1 px-3 py-2 border rounded"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <label className="text-sm font-medium">Label</label>
-                        <input
-                          type="text"
-                          value={split.label}
-                          onChange={(e) => handleSplitTargetChange(index, 'label', e.target.value)}
-                          className="w-full mt-1 px-3 py-2 border rounded"
-                          placeholder="e.g., Morning Target"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={split.confettiEnabled}
-                          onCheckedChange={(checked) => handleSplitTargetChange(index, 'confettiEnabled', checked)}
-                        />
-                        <label className="text-sm">Confetti</label>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div className="text-sm text-muted-foreground p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <strong>Example:</strong> Set 10:00 AM for 1L, 3:00 PM for 2L, and 8:00 PM for 3L to break your day into thirds with celebration confetti!
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tone Selection */}
-      {fcmEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Volume2 className="h-5 w-5" />
-              Notification Tone
-            </CardTitle>
-            <CardDescription>
-              Choose the AI personality style for your hydration reminders
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Volume2 className="h-5 w-5" />
+            AI Notification Tone
+            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
+          </CardTitle>
+          <CardDescription>
+            Choose the AI personality style for your hydration reminders
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Motivation Style</label>
+            <Select 
+              value={motivationTone} 
+              onValueChange={(value: MotivationTone) => setMotivationTone(value)}
+              disabled={!fcmEnabled}
+            >
+              <SelectTrigger className={!fcmEnabled ? 'opacity-60' : ''}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTones.map((tone) => (
+                  <SelectItem key={tone.value} value={tone.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{toneDescriptions[tone.value].emoji}</span>
+                      <span>{tone.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Always show tone preview */}
+          <div className={`p-4 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Motivation Style</label>
-              <Select value={motivationTone} onValueChange={(value: MotivationTone) => setMotivationTone(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTones.map((tone) => (
-                    <SelectItem key={tone} value={tone}>
-                      <div className="flex items-center gap-2">
-                        <span>{toneDescriptions[tone].emoji}</span>
-                        <span className="capitalize">{tone}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {motivationTone && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm font-medium text-blue-900 mb-1">
-                  {toneDescriptions[motivationTone].description}
-                </p>
-                <p className="text-sm text-blue-700 italic">
-                  Example: {toneDescriptions[motivationTone].example}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Frequency Settings */}
-      {fcmEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Notification Frequency</CardTitle>
-            <CardDescription>
-              Control how often you receive hydration reminders
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Reminder Frequency</label>
-              <Select value={notificationFrequency} onValueChange={(value: NotificationFrequency) => setNotificationFrequency(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {notificationFrequencies.map((frequency) => (
-                    <SelectItem key={frequency} value={frequency}>
-                      <div className="flex flex-col">
-                        <span className="capitalize">{frequency}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {frequencyDescriptions[frequency].interval}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {notificationFrequency && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800">
-                  <strong>Frequency:</strong> {frequencyDescriptions[notificationFrequency].description}
-                  <br />
-                  <strong>Schedule:</strong> {frequencyDescriptions[notificationFrequency].interval}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Device Settings */}
-      {fcmEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Device Settings</CardTitle>
-            <CardDescription>
-              Configure device-specific notification features
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Vibrate className="h-4 w-4" />
-                <div className="space-y-1">
-                  <p className="font-medium">Vibration</p>
-                  <p className="text-sm text-muted-foreground">
-                    Vibrate device when notification arrives
-                  </p>
-                </div>
+                <span className="text-lg">{toneDescriptions[motivationTone].emoji}</span>
+                <span className="font-medium">
+                  {availableTones.find(t => t.value === motivationTone)?.label}
+                </span>
               </div>
-              <Switch
-                checked={vibrationEnabled}
-                onCheckedChange={setVibrationEnabled}
-              />
+              <p className="text-sm text-muted-foreground">
+                {toneDescriptions[motivationTone].description}
+              </p>
+              <div className="text-sm italic text-blue-600 bg-blue-50 p-2 rounded">
+                {toneDescriptions[motivationTone].example}
+              </div>
             </div>
+          </div>
 
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Watch className="h-4 w-4" />
-                <div className="space-y-1">
-                  <p className="font-medium">Smartwatch Support</p>
-                  <p className="text-sm text-muted-foreground">
-                    Send notifications to Apple Watch / WearOS
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={smartwatchEnabled}
-                onCheckedChange={setSmartWatchEnabled}
-              />
+          {!fcmEnabled && (
+            <div className="text-center py-2">
+              <p className="text-sm text-muted-foreground">
+                Enable push notifications to activate AI tone customization
+              </p>
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {smartwatchEnabled && (
-              <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <p className="text-sm text-purple-800">
-                  <strong>Smartwatch enabled:</strong> Notifications will be delivered to your paired Apple Watch or WearOS device with haptic feedback.
-                </p>
+      {/* Device Features */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Vibrate className="h-5 w-5" />
+            Device Features
+            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
+          </CardTitle>
+          <CardDescription>
+            Enhance notifications with vibration and smartwatch support
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className={`flex items-center justify-between p-3 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
+            <div className="flex items-center gap-3">
+              <Vibrate className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Vibration Patterns</p>
+                <p className="text-sm text-muted-foreground">Custom vibration for each tone</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </div>
+            <Switch
+              checked={fcmEnabled && vibrationEnabled}
+              onCheckedChange={setVibrationEnabled}
+              disabled={!fcmEnabled}
+            />
+          </div>
+
+          <div className={`flex items-center justify-between p-3 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
+            <div className="flex items-center gap-3">
+              <Watch className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Smartwatch Integration</p>
+                <p className="text-sm text-muted-foreground">Forward notifications to wearables</p>
+              </div>
+            </div>
+            <Switch
+              checked={fcmEnabled && smartwatchEnabled}
+              onCheckedChange={setSmartWatchEnabled}
+              disabled={!fcmEnabled}
+            />
+          </div>
+
+          {!fcmEnabled && (
+            <div className="text-center py-2">
+              <p className="text-sm text-muted-foreground">
+                Enable push notifications to access device features
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 } 
