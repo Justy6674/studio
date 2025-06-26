@@ -1418,3 +1418,13 @@ Firebase Admin SDK already initialized.
  GET /settings 200 in 125ms
  ✓ Compiled in 469ms (6355 modules)
  GET /settings 200 in 128ms
+ ✓ Compiled in 536ms (2680 modules)
+ GET /settings 200 in 13ms
+ ✓ Compiled in 238ms (2680 modules)
+ GET /settings 200 in 8ms
+ ✓ Compiled in 224ms (2680 modules)
+ GET /settings 200 in 8ms
+ ✓ Compiled in 270ms (2680 modules)
+ GET /settings 200 in 30ms
+ ✓ Compiled in 260ms (2680 modules)
+ GET /settings 200 in 8ms

@@ -72,24 +72,28 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* All quick-add buttons - responsive grid for 7 buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {/* MOBILE OPTIMIZED GRID - Vertical layout for easy tapping */}
+          <div className="space-y-3">
             {drinkOptions.map((drink) => (
               <Button
                 key={`${drink.name}-${drink.amount}`}
                 onClick={() => handleQuickAdd(drink.amount)}
                 disabled={isLogging}
-                className={`bg-gradient-to-r ${drink.color} hover:scale-105 text-white py-3 px-2 text-xs font-semibold shadow-lg transition-all duration-200 hover:shadow-lg w-full min-h-[45px] flex items-center justify-center`}
+                className={`bg-gradient-to-r ${drink.color} hover:scale-105 text-white py-6 px-4 text-base font-semibold shadow-lg transition-all duration-200 hover:shadow-lg w-full min-h-[72px] flex items-center justify-start gap-4`}
               >
                 {isLogging ? (
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    <span className="text-xs">Adding...</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    <span className="text-base">Adding...</span>
                   </div>
                 ) : (
-                  <span className="text-xs font-medium text-center leading-tight">
-                    {drink.emoji} {drink.name}<br/>({drink.amount}ml)
-                  </span>
+                  <>
+                    <span className="text-3xl">{drink.emoji}</span>
+                    <div className="text-left">
+                      <div className="text-lg font-bold">{drink.name}</div>
+                      <div className="text-sm opacity-90">({drink.amount}ml)</div>
+                    </div>
+                  </>
                 )}
               </Button>
             ))}
@@ -101,10 +105,10 @@ export function LogWaterForm({ onLogWater, onOtherDrink }: LogWaterFormProps) {
               <Button
                 onClick={onOtherDrink}
                 disabled={isLogging}
-                className="w-full bg-transparent border border-[#b68a71] text-[#b68a71] hover:bg-[#b68a71]/10 hover:border-[#b68a71] py-4 px-4 text-sm font-semibold transition-all duration-200 min-h-[50px] flex items-center justify-center gap-2"
+                className="w-full bg-transparent border-2 border-[#b68a71] text-[#b68a71] hover:bg-[#b68a71]/10 hover:border-[#b68a71] py-6 px-4 text-base font-semibold transition-all duration-200 min-h-[72px] flex items-center justify-start gap-4"
               >
-                <span className="text-lg">🍹</span>
-                <span className="text-sm font-medium">Other Drink</span>
+                <span className="text-3xl">🍹</span>
+                <span className="text-lg font-bold">Other Drink</span>
               </Button>
             </div>
           )}
