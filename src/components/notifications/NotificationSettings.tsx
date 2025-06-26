@@ -5,19 +5,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Bell, Check } from 'lucide-react';
+import { Bell, Check, Vibrate, Clock, Target, Settings2 } from 'lucide-react';
 import { fcmService, initializeFCM, testFCMNotification } from '@/lib/fcm';
 import { useAuth } from '@/hooks/useAuth';
-import { MotivationTone, NotificationFrequency } from '@/lib/types';
+import { 
+  MotivationTone, 
+  NotificationFrequency, 
+  NotificationType,
+  notificationTypes,
+  DaySplitConfig,
+  DaySplitTarget,
+  defaultDaySplits,
+  UserPreferences
+} from '@/lib/types';
 import { doc, setDoc, getFirestore } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 
 interface NotificationSettingsProps {
   initialSettings?: {
     fcmEnabled?: boolean;
+    vibrationEnabled?: boolean;
+    smartwatchEnabled?: boolean;
     motivationTone?: MotivationTone;
     notificationFrequency?: NotificationFrequency;
+    enabledNotificationTypes?: NotificationType[];
+    customNotificationIntervals?: Record<NotificationType, number>;
+    daySplitConfig?: DaySplitConfig;
     fcmToken?: string;
   };
   onSettingsChange?: (settings: any) => void;
@@ -28,9 +45,27 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
   
   // Core state
   const [fcmEnabled, setFcmEnabled] = useState(initialSettings?.fcmEnabled || false);
+  const [vibrationEnabled, setVibrationEnabled] = useState(initialSettings?.vibrationEnabled !== false);
+  const [smartwatchEnabled, setSmartWatchEnabled] = useState(initialSettings?.smartwatchEnabled !== false);
   const [motivationTone, setMotivationTone] = useState<MotivationTone>(initialSettings?.motivationTone ?? 'kind');
   const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(initialSettings?.notificationFrequency ?? 'moderate');
   const [fcmToken, setFcmToken] = useState<string | null>(initialSettings?.fcmToken || null);
+  
+  // Granular notification settings
+  const [enabledNotificationTypes, setEnabledNotificationTypes] = useState<NotificationType[]>(
+    initialSettings?.enabledNotificationTypes || ['glass', 'drink', 'milestone']
+  );
+  const [customIntervals, setCustomIntervals] = useState<Record<NotificationType, number>>(
+    initialSettings?.customNotificationIntervals || {} as Record<NotificationType, number>
+  );
+  
+  // Day-splitting configuration
+  const [daySplitConfig, setDaySplitConfig] = useState<DaySplitConfig>(
+    initialSettings?.daySplitConfig || {
+      enabled: true,
+      splits: defaultDaySplits
+    }
+  );
   
   // UI state
   const [isInitializing, setIsInitializing] = useState(false);
@@ -109,8 +144,13 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
       
       const settings = {
         fcmEnabled,
+        vibrationEnabled,
+        smartwatchEnabled,
         motivationTone,
         notificationFrequency,
+        enabledNotificationTypes,
+        customNotificationIntervals: customIntervals,
+        daySplitConfig,
         fcmToken,
         updatedAt: new Date()
       };
@@ -126,6 +166,11 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     } catch (error) {
       console.error('Error saving notification settings:', error);
       setSaveStatus('idle');
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save notification settings'
+      });
     }
   };
 
@@ -134,7 +179,7 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     if (user && saveStatus === 'idle') {
       autoSave();
     }
-  }, [fcmEnabled, motivationTone, notificationFrequency]);
+  }, [fcmEnabled, vibrationEnabled, smartwatchEnabled, motivationTone, notificationFrequency, enabledNotificationTypes, customIntervals, daySplitConfig]);
 
   const handleMasterToggle = async (enabled: boolean) => {
     if (!user) {
@@ -257,6 +302,32 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     }
   };
 
+  const toggleNotificationType = (type: NotificationType) => {
+    const newTypes = enabledNotificationTypes.includes(type)
+      ? enabledNotificationTypes.filter(t => t !== type)
+      : [...enabledNotificationTypes, type];
+    setEnabledNotificationTypes(newTypes);
+  };
+
+  const updateCustomInterval = (type: NotificationType, minutes: number) => {
+    setCustomIntervals(prev => ({
+      ...prev,
+      [type]: minutes
+    }));
+  };
+
+  const getIntervalForType = (type: NotificationType): number => {
+    if (customIntervals[type]) return customIntervals[type];
+    const config = notificationTypes.find(nt => nt.type === type);
+    return config?.defaultInterval || 60;
+  };
+
+  const updateDaySplit = (index: number, field: keyof DaySplitTarget, value: any) => {
+    const newSplits = [...daySplitConfig.splits];
+    newSplits[index] = { ...newSplits[index], [field]: value };
+    setDaySplitConfig(prev => ({ ...prev, splits: newSplits }));
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Master Switch */}
@@ -269,6 +340,11 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
               <Badge variant="outline" className="text-green-600 ml-auto">
                 <Check className="h-3 w-3 mr-1" />
                 Saved
+              </Badge>
+            )}
+            {saveStatus === 'saving' && (
+              <Badge variant="outline" className="text-blue-600 ml-auto">
+                Saving...
               </Badge>
             )}
           </CardTitle>
@@ -314,55 +390,174 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
                 <p className="font-semibold mb-1">Add to Vercel Environment Variables:</p>
                 <p>NEXT_PUBLIC_FIREBASE_VAPID_KEY=your_vapid_key</p>
               </div>
-              <div className="text-sm text-orange-700 space-y-1">
-                <p><strong>How to get your VAPID key:</strong></p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="underline">Firebase Console</a></li>
-                  <li>Select your project → Project Settings</li>
-                  <li>Go to Cloud Messaging tab</li>
-                  <li>In "Web configuration" section, click "Generate key pair"</li>
-                  <li>Copy the key and add it to Vercel environment variables</li>
-                  <li>Redeploy your app</li>
-                </ol>
-              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 2. Frequency - Only show if master is enabled */}
+      {/* 2. Device Settings - Only show if master is enabled */}
       {fcmEnabled && (
         <Card>
           <CardHeader>
-            <CardTitle>Frequency</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Vibrate className="h-5 w-5" />
+              Device Settings
+            </CardTitle>
             <CardDescription>
-              How often you want to receive reminders
+              Configure device-specific notification features
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-2">
-              {(Object.keys(frequencies) as NotificationFrequency[]).map((freq) => (
-                <button
-                  key={freq}
-                  onClick={() => setNotificationFrequency(freq)}
-                  className={`p-3 rounded-lg border text-center transition-colors ${
-                    notificationFrequency === freq
-                      ? 'bg-blue-50 border-blue-200 text-blue-800'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="font-medium">{frequencies[freq].label}</div>
-                </button>
-              ))}
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Device Vibration</p>
+                <p className="text-sm text-muted-foreground">
+                  Custom vibration patterns for each notification tone
+                </p>
+              </div>
+              <Switch
+                checked={vibrationEnabled}
+                onCheckedChange={setVibrationEnabled}
+              />
             </div>
-            <p className="text-sm text-muted-foreground mt-3">
-              {frequencies[notificationFrequency].description}
-            </p>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Smartwatch Sync</p>
+                <p className="text-sm text-muted-foreground">
+                  Forward notifications to connected smartwatch
+                </p>
+              </div>
+              <Switch
+                checked={smartwatchEnabled}
+                onCheckedChange={setSmartWatchEnabled}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* 3. Tone Selection - Only show if master is enabled */}
+      {/* 3. Notification Types - Only show if master is enabled */}
+      {fcmEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              Notification Types
+            </CardTitle>
+            <CardDescription>
+              Choose which types of reminders you want to receive
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {notificationTypes.map((type) => (
+              <div key={type.type} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{type.emoji}</span>
+                    <div>
+                      <p className="font-medium">{type.label}</p>
+                      <p className="text-sm text-muted-foreground">{type.description}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={enabledNotificationTypes.includes(type.type)}
+                    onCheckedChange={() => toggleNotificationType(type.type)}
+                  />
+                </div>
+                
+                {enabledNotificationTypes.includes(type.type) && type.type !== 'milestone' && (
+                  <div className="ml-11 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Label className="text-sm">Interval: {getIntervalForType(type.type)} minutes</Label>
+                    </div>
+                    <Slider
+                      value={[getIntervalForType(type.type)]}
+                      onValueChange={([value]) => updateCustomInterval(type.type, value)}
+                      min={5}
+                      max={480}
+                      step={5}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>5 min</span>
+                      <span>8 hours</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 4. Day-Splitting Configuration - Only show if master is enabled and milestone is enabled */}
+      {fcmEnabled && enabledNotificationTypes.includes('milestone') && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Day-Splitting Targets
+            </CardTitle>
+            <CardDescription>
+              Break your day into thirds with confetti celebrations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Enable Day-Splitting</p>
+                <p className="text-sm text-muted-foreground">
+                  Get milestone alerts at 10am (1L), 3pm (2L), and 8pm (3L)
+                </p>
+              </div>
+              <Switch
+                checked={daySplitConfig.enabled}
+                onCheckedChange={(enabled) => setDaySplitConfig(prev => ({ ...prev, enabled }))}
+              />
+            </div>
+
+            {daySplitConfig.enabled && (
+              <div className="space-y-3">
+                {daySplitConfig.splits.map((split, index) => (
+                  <div key={index} className="grid grid-cols-3 gap-3 items-center p-3 border rounded-lg">
+                    <div>
+                      <Label className="text-sm">Time</Label>
+                      <Input
+                        type="time"
+                        value={split.time}
+                        onChange={(e) => updateDaySplit(index, 'time', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Target (ml)</Label>
+                      <Input
+                        type="number"
+                        value={split.targetMl}
+                        onChange={(e) => updateDaySplit(index, 'targetMl', parseInt(e.target.value) || 0)}
+                        className="mt-1"
+                        min="0"
+                        step="100"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={split.confettiEnabled}
+                        onCheckedChange={(enabled) => updateDaySplit(index, 'confettiEnabled', enabled)}
+                      />
+                      <Label className="text-sm">🎉 Confetti</Label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 5. AI Personality Tone - Only show if master is enabled */}
       {fcmEnabled && (
         <Card>
           <CardHeader>
@@ -403,7 +598,7 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
         </Card>
       )}
 
-      {/* 4. Permission & Test - Only show if master is enabled */}
+      {/* 6. Permission & Test - Only show if master is enabled */}
       {fcmEnabled && (
         <Card>
           <CardHeader>
