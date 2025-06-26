@@ -1,116 +1,209 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuth } from 'firebase-admin/auth';
+import { getFunctions } from 'firebase-admin/functions';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+// Initialize Firebase Admin if not already initialized
+if (!getApps().length) {
+  const serviceAccountKey = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
+  
+  if (!serviceAccountKey) {
+    console.log('FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY environment variable is missing. This must be set in Vercel environment variables with the complete service account JSON.');
+    console.log('Firebase Admin SDK initialized with project ID fallback for development.');
+    
+    initializeApp({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'hydrateai-ayjow'
+    });
+  } else {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountKey);
+      initializeApp({
+        credential: cert(serviceAccount),
+        projectId: serviceAccount.project_id
+      });
+    } catch (error) {
+      console.error('Failed to parse service account key:', error);
+      initializeApp({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'hydrateai-ayjow'
+      });
+    }
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { testType, tone } = await request.json();
-
-    // Demo mode - bypass auth for testing
     console.log('🧪 FCM Test Mode - Testing notification system');
+    
+    const body = await request.json();
+    const { 
+      testType = 'all', 
+      tone = 'funny', 
+      userId = 'test-user', 
+      notificationType = 'drink' 
+    } = body;
+    
+    // Mock test data for development
+    const mockResults = {
+      fcm: {
+        success: true,
+        message: `✅ Testing ${notificationType} notification with ${tone} tone`,
+        details: {
+          notificationType,
+          tone,
+          emoji: getEmojiForType(notificationType),
+          sampleMessage: getSampleMessage(tone, notificationType)
+        }
+      },
+      gemini: {
+        success: true,
+        message: `✅ Testing Gemini AI for ${tone} tone with ${notificationType} context`,
+        prompt: `Generate a ${tone}-toned ${notificationType} reminder for hydration`,
+        sampleResponse: getSampleMessage(tone, notificationType)
+      },
+      gamification: {
+        success: true,
+        message: '🎮 Testing Gamification System...',
+        confetti: notificationType === 'milestone',
+        badges: ['hydration_hero', 'streak_master'],
+        celebration: notificationType === 'milestone' ? 'Milestone celebration triggered!' : 'Standard gamification active'
+      },
+      daySplit: {
+        success: true,
+        message: '🎯 Testing Day-Splitting Logic...',
+        milestones: [
+          { time: '10:00', target: 1000, label: 'Morning Target', confetti: true },
+          { time: '15:00', target: 2000, label: 'Afternoon Target', confetti: true },
+          { time: '20:00', target: 3000, label: 'Evening Target', confetti: true }
+        ],
+        currentStatus: 'Ready for milestone tracking'
+      }
+    };
+
+    let results: any = {};
     
     if (testType === 'fcm' || testType === 'all') {
       console.log('🔔 Testing FCM Push Notifications...');
-      
-      // Test all 8 notification tones as per TODO requirements
-      const tones = ['funny', 'kind', 'motivational', 'sarcastic', 'strict', 'supportive', 'crass', 'weightloss'];
-      const selectedTone = tone || tones[Math.floor(Math.random() * tones.length)];
-      
-      // Test vibration patterns for each tone
-      const vibrationPatterns = {
-        funny: [200, 100, 200, 100, 200],
-        kind: [300, 150, 300],
-        motivational: [100, 50, 100, 50, 100, 50, 100],
-        sarcastic: [500, 200, 100],
-        strict: [400, 100, 400],
-        supportive: [200, 100, 200, 100, 200, 100, 200],
-        crass: [150, 50, 150, 50, 150],
-        weightloss: [250, 100, 250, 100, 250]
-      };
-
-             // Test Gemini AI motivation message generation as per TODO
-       console.log(`✅ Testing Gemini AI for ${selectedTone} tone with prompt pattern`);
-       
-       // Demonstrate the exact prompt logic from TODO requirements
-       const promptPattern = `Generate a short, ${selectedTone}-toned push notification encouraging demo-user to hydrate right now. User consumed: 800/2000 ml today. Current streak: 5 days. Ensure each message is unique, engaging, and NEVER repetitive.`;
-
-      return NextResponse.json({
-        success: true,
-        message: 'FCM notification system test completed',
-        testResults: {
-          fcm: {
-            status: 'tested',
-            tonesTested: tones,
-            selectedTone,
-            vibrationPattern: vibrationPatterns[selectedTone as keyof typeof vibrationPatterns],
-            message: `Testing ${selectedTone} tone notification with device vibration`
-          },
-                     geminiAI: {
-             status: 'tested',
-             promptPattern: promptPattern
-           },
-          deviceVibration: {
-            status: 'tested',
-            pattern: vibrationPatterns[selectedTone as keyof typeof vibrationPatterns],
-            smartwatchSupport: true
-          },
-          australianLocalisation: {
-            status: 'implemented',
-            units: 'ml (metric)',
-            spelling: 'Australian',
-            tone: 'clinical, professional, friendly'
-          }
-        }
-      });
+      results.fcm = mockResults.fcm;
     }
-
+    
+    if (testType === 'gemini' || testType === 'all') {
+      console.log(`✅ Testing Gemini AI for ${tone} tone with ${notificationType} context`);
+      results.gemini = mockResults.gemini;
+    }
+    
     if (testType === 'gamification' || testType === 'all') {
       console.log('🎮 Testing Gamification System...');
-      
-      // Test confetti animations as per TODO
-      return NextResponse.json({
-        success: true,
-        message: 'Gamification system test completed',
-        testResults: {
-          confetti: {
-            status: 'ready',
-            triggers: ['daily_goal_achieved', 'streak_milestone', 'badge_earned'],
-            animations: ['canvas-confetti', 'celebration_modal', 'badge_unlock']
-          },
-          badges: {
-            status: 'implemented',
-            count: 8,
-            rarities: ['common', 'uncommon', 'rare', 'epic', 'legendary'],
-            system: 'achievement_tracking'
-          },
-          analytics: {
-            status: 'ready',
-            collection: 'analytics_events',
-            logging: 'comprehensive_user_interactions'
-          }
-        }
-      });
+      results.gamification = mockResults.gamification;
+    }
+
+    if (testType === 'day-split' || testType === 'all') {
+      console.log('🎯 Testing Day-Splitting Logic...');
+      results.daySplit = mockResults.daySplit;
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Test completed',
-      availableTests: ['fcm', 'gamification', 'all'],
-      todoStatus: {
-        fcmNotifications: '✅ Primary feature implemented',
-        deviceVibrations: '✅ Custom patterns implemented',
-        notificationTones: '✅ All 8 tones implemented',
-        geminiAI: '✅ Dynamic content generation',
-        gamification: '✅ Confetti and badges ready',
-        cloudFunctions: '✅ 7 functions deployed',
-        testing: '✅ Comprehensive test endpoints',
-        localisation: '✅ Australian standards'
-      }
+      testType,
+      notificationType,
+      tone,
+      timestamp: new Date().toISOString(),
+      results,
+      message: `All ${testType} tests completed successfully`,
+      mockMode: true,
+      note: 'This is a test endpoint demonstrating the enhanced notification system'
     });
 
   } catch (error) {
     console.error('Test notification error:', error);
-    return NextResponse.json(
-      { error: 'Test failed', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
+}
+
+function getEmojiForType(type: string): string {
+  const emojis = {
+    sip: '💧',
+    glass: '🥤', 
+    walk: '🚶‍♂️',
+    drink: '🥛',
+    herbal_tea: '🍵',
+    milestone: '🎯'
+  };
+  return emojis[type as keyof typeof emojis] || '💧';
+}
+
+function getSampleMessage(tone: string, notificationType: string): string {
+  const messages = {
+    funny: {
+      sip: "Your cells are texting me... they want water! 💧",
+      glass: "Time for a glass break! Your body will send thank-you notes! 🥤",
+      walk: "Walk it off... with water! Double win! 🚶‍♂️💧",
+      drink: "Hydration station calling! All aboard the water train! 🥛",
+      herbal_tea: "Tea time for some zen hydration vibes! 🍵",
+      milestone: "🎯 BOOM! You've absolutely crushed this milestone!"
+    },
+    kind: {
+      sip: "A gentle reminder for a small, refreshing sip 💧",
+      glass: "How about a lovely glass of water? 🥤", 
+      walk: "A peaceful walk with some water sounds wonderful 🚶‍♂️",
+      drink: "Time for some gentle hydration, dear friend 🥛",
+      herbal_tea: "Perhaps a soothing herbal tea break? 🍵",
+      milestone: "🎯 Wonderful! You've reached your hydration milestone!"
+    },
+    motivational: {
+      sip: "Every sip counts! You've got this! 💧",
+      glass: "Power up with a full glass! Champion mode! 🥤",
+      walk: "Move and hydrate! Double the victory! 🚶‍♂️💧", 
+      drink: "Fuel your success with hydration! 🥛",
+      herbal_tea: "Energize with herbal goodness! 🍵",
+      milestone: "🎯 INCREDIBLE! You're smashing your goals!"
+    },
+    sarcastic: {
+      sip: "Oh look, your water bottle misses you... shocking 💧",
+      glass: "Another glass? What a revolutionary concept 🥤",
+      walk: "Walk AND drink water? Mind = blown 🚶‍♂️",
+      drink: "Drinking water... because apparently that's a thing 🥛", 
+      herbal_tea: "Herbal tea... because regular water is too mainstream 🍵",
+      milestone: "🎯 Well well, look who actually hit their target"
+    },
+    strict: {
+      sip: "Drink. Water. Now. Small sip. Do it. 💧",
+      glass: "Full glass. No excuses. Your body demands it. 🥤",
+      walk: "Walk. Drink. Move. Hydrate. Execute. 🚶‍♂️",
+      drink: "Hydration is mandatory. Drink now. 🥛",
+      herbal_tea: "Herbal tea break. Immediate compliance required. 🍵", 
+      milestone: "🎯 Target achieved. Continue. No celebration."
+    },
+    supportive: {
+      sip: "You're doing amazing! Just a tiny sip to keep going 💧",
+      glass: "I believe in you! One glass closer to your goal 🥤",
+      walk: "You've got this! Walk and hydrate together 🚶‍♂️",
+      drink: "I'm here for you! Time for some supportive hydration 🥛",
+      herbal_tea: "You deserve this peaceful tea moment 🍵",
+      milestone: "🎯 I'm so proud of you! Milestone achieved!"
+    },
+    crass: {
+      sip: "Mate, your hydration game is weaker than my WiFi! 💧",
+      glass: "Seriously? When did you last drink a proper glass? 🥤",
+      walk: "Get off your arse and walk with some water! 🚶‍♂️",
+      drink: "Your body's crying for water louder than a baby! 🥛",
+      herbal_tea: "Even fancy tea beats your current nothing! 🍵",
+      milestone: "🎯 Holy shit, you actually did it! Respect!"
+    },
+    weightloss: {
+      sip: "Every sip boosts metabolism! Weight loss wins! 💧",
+      glass: "Water = appetite control = weight goals! 🥤",
+      walk: "Walking + water = fat burning combo! 🚶‍♂️",
+      drink: "Hydration accelerates weight loss! Drink up! 🥛",
+      herbal_tea: "Herbal tea supports healthy weight management! 🍵",
+      milestone: "🎯 Milestone hit! Your weight loss journey rocks!"
+    }
+  };
+  
+  const toneMessages = messages[tone as keyof typeof messages] || messages.kind;
+  return toneMessages[notificationType as keyof typeof toneMessages] || "Time to hydrate!";
 } 

@@ -2,35 +2,24 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { createAuthenticatedFunction } from "./types/firebase";
 import { generateMotivationalMessage } from "./generateMotivationalMessage";
-import { subDays, startOfDay, format } from "date-fns";
+import { subDays, startOfDay, format, parseISO, isAfter, isBefore, addMinutes } from "date-fns";
 
 const twilio = require('twilio');
 
-interface HydrationReminderRequest {
-  tone?: 'funny' | 'kind' | 'motivational' | 'sarcastic' | 'strict' | 'supportive' | 'crass' | 'weightloss';
-  forceMethod?: 'fcm' | 'sms' | 'auto'; // Force specific delivery method
-  testMode?: boolean; // For testing purposes
+export interface HydrationReminderRequest {
+  tone?: string;
+  forceMethod?: 'auto' | 'fcm' | 'sms';
+  testMode?: boolean;
+  notificationType?: 'sip' | 'glass' | 'walk' | 'drink' | 'herbal_tea' | 'milestone';
 }
 
-interface HydrationReminderResponse {
+export interface HydrationReminderResponse {
   success: boolean;
   method: 'fcm' | 'sms' | 'both' | 'none';
   message: string;
   messageText?: string;
   error?: string;
-  analytics: {
-    userId: string;
-    tone: string;
-    deliveryMethod: string;
-    hydrationStatus: {
-      currentMl: number;
-      goalMl: number;
-      percentage: number;
-    };
-    streakDays: number;
-    lastActiveHours: number;
-    timestamp: string;
-  };
+  analytics: any;
 }
 
 // Notification frequency intervals (in minutes)
@@ -40,9 +29,19 @@ const FREQUENCY_INTERVALS = {
   frequent: [60, 90, 120, 150, 180, 240] // 1-4 hours
 };
 
+// Notification type configurations
+const NOTIFICATION_TYPE_CONFIGS = {
+  sip: { defaultAmount: 50, emoji: '💧', label: 'Sip Reminder' },
+  glass: { defaultAmount: 250, emoji: '🥤', label: 'Glass Reminder' },
+  walk: { defaultAmount: 100, emoji: '🚶‍♂️', label: 'Walk & Drink' },
+  drink: { defaultAmount: 200, emoji: '🥛', label: 'General Drink' },
+  herbal_tea: { defaultAmount: 200, emoji: '🍵', label: 'Herbal Tea' },
+  milestone: { defaultAmount: 0, emoji: '🎯', label: 'Milestone Alert' }
+};
+
 export const sendHydrationReminder = createAuthenticatedFunction<HydrationReminderRequest, HydrationReminderResponse>(
   async (data, userId) => {
-    const { tone, forceMethod = 'auto', testMode = false } = data;
+    const { tone, forceMethod = 'auto', testMode = false, notificationType = 'drink' } = data;
     
     try {
       const db = admin.firestore();
@@ -64,12 +63,25 @@ export const sendHydrationReminder = createAuthenticatedFunction<HydrationRemind
       const fcmEnabled = userPrefs.fcmEnabled || false;
       const smsEnabled = userPrefs.smsReminderOn || false;
       const notificationFrequency = userPrefs.notificationFrequency || 'moderate';
+      const enabledNotificationTypes = userPrefs.enabledNotificationTypes || ['drink', 'glass'];
+      const customIntervals = userPrefs.customNotificationIntervals || {};
+      const daySplitConfig = userPrefs.daySplitConfig || { enabled: false, splits: [] };
       
       if (!fcmEnabled && !smsEnabled && !testMode) {
         return {
           success: false,
           method: 'none',
           message: 'All notification methods disabled',
+          analytics: await buildAnalytics(userId, userProfile, userPrefs, 'none')
+        };
+      }
+
+      // Check if this notification type is enabled
+      if (!enabledNotificationTypes.includes(notificationType) && !testMode) {
+        return {
+          success: false,
+          method: 'none',
+          message: `Notification type '${notificationType}' is disabled`,
           analytics: await buildAnalytics(userId, userProfile, userPrefs, 'none')
         };
       }
@@ -86,47 +98,77 @@ export const sendHydrationReminder = createAuthenticatedFunction<HydrationRemind
       }, 0);
       
       const dailyGoalMl = userProfile.hydrationGoal || 2000;
-      const hydrationPercentage = (currentMl / dailyGoalMl) * 100;
+      const hydrationPercentage = Math.round((currentMl / dailyGoalMl) * 100);
       
-      // Get current streak
-      const currentStreak = userPrefs.dailyStreak || 0;
-      const userName = userProfile.name || 'there';
-      const selectedTone = tone || userPrefs.motivationTone || 'kind';
+      // Calculate streaks
+      const currentStreak = await calculateCurrentStreak(userId, dailyGoalMl);
+      
+      // Check day-splitting milestones
+      if (daySplitConfig.enabled && notificationType === 'milestone') {
+        const milestoneResult = await checkMilestoneTargets(userId, currentMl, daySplitConfig);
+        if (!milestoneResult.shouldNotify) {
+          return {
+            success: false,
+            method: 'none',
+            message: 'No milestone targets reached',
+            analytics: await buildAnalytics(userId, userProfile, userPrefs, 'none')
+          };
+        }
+      }
 
-      // Check if user should receive notification based on patterns
-      if (!testMode && !shouldSendNotification(userPrefs, notificationFrequency, hydrationPercentage)) {
+      // Check notification timing based on type and custom intervals
+      if (!testMode && !shouldSendNotificationByType(userPrefs, notificationType, customIntervals, hydrationPercentage)) {
         return {
           success: false,
           method: 'none',
-          message: 'Notification skipped due to frequency rules',
-          analytics: await buildAnalytics(userId, userProfile, userPrefs, 'skipped')
+          message: 'Notification timing not appropriate',
+          analytics: await buildAnalytics(userId, userProfile, userPrefs, 'none')
         };
       }
 
-      // Generate AI-powered motivational message using a simple fallback approach
-      // Since we're inside a cloud function, we'll create the message directly
-      let messageText = `💧 Hey ${userName}! You're at ${currentMl}/${dailyGoalMl}ml today. Time to hydrate! 🚰`;
+      // Generate AI-powered message text
+      const userName = userProfile.name || 'Friend';
+      const selectedTone = tone || userPrefs.motivationTone || 'kind';
       
-      // Simple tone variations
-      const toneMessages = {
-        funny: `😂 ${userName}, your water bottle is starting to feel neglected! Show it some love? 💧`,
-        kind: `😊 Gentle reminder, ${userName}: a sip of water now will keep you feeling great! 💧`,
-        motivational: `💪 You've got this, ${userName}! ${currentMl}ml down, ${dailyGoalMl - currentMl}ml to go! 🚰`,
-        sarcastic: `🙄 Oh look, ${userName}, your hydration goal is still waiting... how surprising 💧`,
-        strict: `🧐 ${userName}, drink water. Now. Your body needs it. No excuses. 💧`,
-        supportive: `🤗 Hey ${userName}, just checking in - how about some water to keep you amazing? 💧`,
-        crass: `💥 Seriously ${userName}, your hydration game is weaker than decaf coffee! 💧`,
-        weightloss: `🏋️‍♀️ Water boosts metabolism, ${userName}! Drink up for those weight goals! 💧`
-      };
+      let messageText: string;
       
-      messageText = toneMessages[selectedTone as keyof typeof toneMessages] || toneMessages.kind;
+      try {
+        // Enhanced prompt for different notification types
+        const typeConfig = NOTIFICATION_TYPE_CONFIGS[notificationType];
+        const typeContext = notificationType === 'milestone' 
+          ? `milestone celebration - they've hit a major hydration target!`
+          : `${typeConfig.label.toLowerCase()} - suggest ${typeConfig.defaultAmount}ml`;
+          
+        const prompt = `
+          Generate a short, ${selectedTone}-toned push notification for ${userName} about ${typeContext}.
+          User consumed: ${currentMl}/${dailyGoalMl} ml today (${hydrationPercentage}%).
+          Current streak: ${currentStreak} days.
+          Context: This is a ${notificationType} reminder.
+          Ensure each message is unique, engaging, and NEVER repetitive.
+          Keep it under 100 characters for mobile notifications.
+        `;
+
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + functions.config().gemini.api_key, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        const result = await response.json();
+        messageText = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 
+                     getDefaultMessage(selectedTone, notificationType, userName);
+      } catch (error) {
+        console.error('Gemini API error:', error);
+        messageText = getDefaultMessage(selectedTone, notificationType, userName);
+      }
 
       // Determine delivery method
       let deliveryMethod: 'fcm' | 'sms' | 'both' = 'fcm';
       if (forceMethod !== 'auto') {
         deliveryMethod = forceMethod as 'fcm' | 'sms';
       } else if (fcmEnabled && smsEnabled) {
-        // Prefer FCM but fallback to SMS if needed
         deliveryMethod = 'fcm';
       } else if (smsEnabled) {
         deliveryMethod = 'sms';
@@ -144,7 +186,8 @@ export const sendHydrationReminder = createAuthenticatedFunction<HydrationRemind
           dailyGoalMl,
           percentage: hydrationPercentage,
           streak: currentStreak,
-          vibrationEnabled: userPrefs.vibrationEnabled || true
+          vibrationEnabled: userPrefs.vibrationEnabled || true,
+          notificationType
         }
       );
 
@@ -154,6 +197,7 @@ export const sendHydrationReminder = createAuthenticatedFunction<HydrationRemind
         method: results.method,
         success: results.success,
         messageText,
+        notificationType,
         hydrationStatus: {
           currentMl,
           goalMl: dailyGoalMl,
@@ -172,25 +216,18 @@ export const sendHydrationReminder = createAuthenticatedFunction<HydrationRemind
         analytics: await buildAnalytics(userId, userProfile, userPrefs, results.method)
       };
 
-    } catch (error: unknown) {
-      console.error("Error sending hydration reminder:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      return {
-        success: false,
-        method: 'none',
-        message: `Failed to send reminder: ${errorMessage}`,
-        error: errorMessage,
-        analytics: await buildAnalytics(userId, {}, {}, 'error')
-      };
+    } catch (error) {
+      console.error('Hydration reminder error:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to send hydration reminder');
     }
   }
 );
 
-// Check if notification should be sent based on patterns and frequency
-function shouldSendNotification(
+// Check if notification should be sent based on type and custom intervals
+function shouldSendNotificationByType(
   userPrefs: any, 
-  frequency: string, 
+  notificationType: string,
+  customIntervals: Record<string, number>,
   hydrationPercentage: number
 ): boolean {
   const lastNotificationTime = userPrefs.lastNotificationTime?.toDate();
@@ -199,24 +236,129 @@ function shouldSendNotification(
   if (!lastNotificationTime) return true; // First notification
   
   const minutesSinceLastNotification = (now.getTime() - lastNotificationTime.getTime()) / (1000 * 60);
-  const intervals = FREQUENCY_INTERVALS[frequency as keyof typeof FREQUENCY_INTERVALS] || FREQUENCY_INTERVALS.moderate;
   
-  // Smart interval selection based on hydration status
-  let targetInterval: number;
-  if (hydrationPercentage < 25) {
-    targetInterval = Math.min(...intervals); // More frequent if severely behind
-  } else if (hydrationPercentage < 50) {
-    targetInterval = intervals[Math.floor(intervals.length / 2)]; // Moderate if behind
-  } else {
-    targetInterval = Math.max(...intervals); // Less frequent if on track
+  // Get custom interval for this notification type
+  const customInterval = customIntervals[notificationType];
+  if (customInterval && customInterval > 0) {
+    return minutesSinceLastNotification >= customInterval;
   }
   
-  // Add randomness for unpredictability
-  const randomVariation = targetInterval * 0.2; // ±20% variation
-  const randomOffset = (Math.random() - 0.5) * 2 * randomVariation;
-  const finalInterval = targetInterval + randomOffset;
+  // Fallback to default frequency logic
+  const frequency = userPrefs.notificationFrequency || 'moderate';
+  const intervals = FREQUENCY_INTERVALS[frequency as keyof typeof FREQUENCY_INTERVALS] || FREQUENCY_INTERVALS.moderate;
   
-  return minutesSinceLastNotification >= finalInterval;
+  let targetInterval: number;
+  if (hydrationPercentage < 25) {
+    targetInterval = Math.min(...intervals);
+  } else if (hydrationPercentage < 50) {
+    targetInterval = intervals[Math.floor(intervals.length / 2)];
+  } else {
+    targetInterval = Math.max(...intervals);
+  }
+  
+  return minutesSinceLastNotification >= targetInterval;
+}
+
+// Check milestone targets for day-splitting
+async function checkMilestoneTargets(
+  userId: string, 
+  currentMl: number, 
+  daySplitConfig: any
+): Promise<{ shouldNotify: boolean; milestone?: any }> {
+  const now = new Date();
+  const currentTime = format(now, 'HH:mm');
+  
+  for (const split of daySplitConfig.splits) {
+    if (currentTime >= split.time && currentMl >= split.targetMl) {
+      // Check if we've already notified for this milestone today
+      const db = admin.firestore();
+      const today = format(startOfDay(now), 'yyyy-MM-dd');
+      const milestoneKey = `${today}-${split.time}-${split.targetMl}`;
+      
+      const milestoneDoc = await db.collection('milestone_notifications')
+        .doc(userId)
+        .collection('daily')
+        .doc(milestoneKey)
+        .get();
+        
+      if (!milestoneDoc.exists) {
+        // Mark this milestone as notified
+        await db.collection('milestone_notifications')
+          .doc(userId)
+          .collection('daily')
+          .doc(milestoneKey)
+          .set({
+            notifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+            targetMl: split.targetMl,
+            actualMl: currentMl,
+            time: split.time,
+            label: split.label
+          });
+          
+        return { shouldNotify: true, milestone: split };
+      }
+    }
+  }
+  
+  return { shouldNotify: false };
+}
+
+// Get default message for notification type
+function getDefaultMessage(tone: string, notificationType: string, userName: string): string {
+  const typeConfig = NOTIFICATION_TYPE_CONFIGS[notificationType as keyof typeof NOTIFICATION_TYPE_CONFIGS];
+  const messages = {
+    funny: {
+      sip: `${userName}, your cells are sending SOS signals! 💧`,
+      glass: `Time for a glass break! Your body will thank you! 🥤`,
+      walk: `Walk it off... with water! 🚶‍♂️💧`,
+      drink: `Hydration station calling ${userName}! 🥛`,
+      herbal_tea: `Tea time for some zen hydration! 🍵`,
+      milestone: `🎯 BOOM! You've smashed another hydration milestone!`
+    },
+    kind: {
+      sip: `A gentle reminder to take a small sip, ${userName} 💧`,
+      glass: `How about a refreshing glass of water? 🥤`,
+      walk: `A little walk and water would be wonderful 🚶‍♂️`,
+      drink: `Time for some hydration, dear ${userName} 🥛`,
+      herbal_tea: `Perhaps a soothing herbal tea? 🍵`,
+      milestone: `🎯 Wonderful! You've reached your hydration milestone!`
+    }
+    // Add other tones as needed
+  };
+  
+  const toneMessages = messages[tone as keyof typeof messages] || messages.kind;
+  return toneMessages[notificationType as keyof typeof toneMessages] || `Time to hydrate, ${userName}!`;
+}
+
+// Calculate current streak
+async function calculateCurrentStreak(userId: string, dailyGoalMl: number): Promise<number> {
+  const db = admin.firestore();
+  let streak = 0;
+  let currentDate = startOfDay(new Date());
+  
+  while (true) {
+    const dayLogsSnapshot = await db.collection('hydration_logs')
+      .where('userId', '==', userId)
+      .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(currentDate))
+      .where('timestamp', '<', admin.firestore.Timestamp.fromDate(addMinutes(currentDate, 24 * 60)))
+      .get();
+    
+    const dayTotal = dayLogsSnapshot.docs.reduce((total, doc) => {
+      return total + (doc.data().amount || 0);
+    }, 0);
+    
+    if (dayTotal >= dailyGoalMl) {
+      streak++;
+      currentDate = addMinutes(currentDate, -24 * 60); // Go back one day
+    } else {
+      break;
+    }
+    
+    // Prevent infinite loops
+    if (streak > 365) break;
+  }
+  
+  return streak;
 }
 
 // Send notifications via FCM and/or SMS
@@ -244,16 +386,18 @@ async function sendNotifications(
         };
         
         const emoji = toneEmojis[tone as keyof typeof toneEmojis] || '💧';
+        const typeConfig = NOTIFICATION_TYPE_CONFIGS[hydrationData.notificationType as keyof typeof NOTIFICATION_TYPE_CONFIGS];
         const vibrationPattern = hydrationData.vibrationEnabled ? '200,100,200,100,200' : '';
         
         const fcmMessage = {
           token: fcmToken,
           notification: {
-            title: `${emoji} Water4WeightLoss`,
+            title: `${emoji} ${typeConfig?.label || 'Water4WeightLoss'}`,
             body: messageText
           },
           data: {
             tone,
+            notificationType: hydrationData.notificationType,
             hydrationPercentage: hydrationData.percentage.toString(),
             currentMl: hydrationData.currentMl.toString(),
             goalMl: hydrationData.dailyGoalMl.toString(),
@@ -282,7 +426,9 @@ async function sendNotifications(
 
         await admin.messaging().send(fcmMessage);
         fcmSuccess = true;
-        console.log(`FCM notification sent to user ${userId}`);
+        console.log(`FCM notification sent to user ${userId} for ${hydrationData.notificationType}`);
+      } else {
+        lastError = 'No FCM token available';
       }
     } catch (error) {
       console.error('FCM notification failed:', error);
@@ -300,15 +446,15 @@ async function sendNotifications(
 
       if (phoneNumber && twilioAccountSid && twilioAuthToken && twilioPhoneNumber) {
         const twilioClient = twilio(twilioAccountSid, twilioAuthToken);
-        
         await twilioClient.messages.create({
           body: messageText,
           from: twilioPhoneNumber,
           to: phoneNumber
         });
-        
         smsSuccess = true;
-        console.log(`SMS notification sent to user ${userId}`);
+        console.log(`SMS notification sent to user ${userId} for ${hydrationData.notificationType}`);
+      } else {
+        lastError += ' SMS configuration incomplete';
       }
     } catch (error) {
       console.error('SMS notification failed:', error);
@@ -323,75 +469,58 @@ async function sendNotifications(
     });
   }
 
-  // Determine final result
-  if (fcmSuccess && smsSuccess) {
-    return { success: true, method: 'both' };
-  } else if (fcmSuccess) {
-    return { success: true, method: 'fcm' };
-  } else if (smsSuccess) {
-    return { success: true, method: 'sms' };
-  } else {
-    return { success: false, method: 'none', error: lastError };
-  }
+  const finalMethod = fcmSuccess && smsSuccess ? 'both' : 
+                     fcmSuccess ? 'fcm' : 
+                     smsSuccess ? 'sms' : 'none';
+
+  return {
+    success: fcmSuccess || smsSuccess,
+    method: finalMethod,
+    error: lastError || undefined
+  };
 }
 
-// Log analytics for reminder
-async function logReminderAnalytics(userId: string, data: any) {
+// Log reminder analytics
+async function logReminderAnalytics(userId: string, data: any): Promise<void> {
   try {
     await admin.firestore().collection('analytics_events').add({
       userId,
-      type: 'hydration_reminder',
-      ...data,
+      eventType: 'hydration_reminder_sent',
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      platform: 'firebase_function'
+      data: {
+        tone: data.selectedTone,
+        method: data.method,
+        success: data.success,
+        messageText: data.messageText,
+        notificationType: data.notificationType,
+        hydrationStatus: data.hydrationStatus,
+        streakDays: data.streakDays,
+        testMode: data.testMode
+      }
     });
   } catch (error) {
     console.error('Failed to log reminder analytics:', error);
   }
 }
 
-// Build analytics object
-async function buildAnalytics(userId: string, userProfile: any, userPrefs: any, method: string) {
-  const today = startOfDay(new Date());
-  const db = admin.firestore();
+// Build analytics response
+async function buildAnalytics(userId: string, userProfile: any, userPrefs: any, method: string): Promise<any> {
+  const now = new Date();
   
-  try {
-    const todayLogsSnapshot = await db.collection('hydration_logs')
-      .where('userId', '==', userId)
-      .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(today))
-      .get();
-    
-    const currentMl = todayLogsSnapshot.docs.reduce((total, doc) => {
-      return total + (doc.data().amount || 0);
-    }, 0);
-    
-    const goalMl = userProfile.hydrationGoal || 2000;
-    const lastLogin = userProfile.lastLogin?.toDate() || new Date();
-    const lastActiveHours = (new Date().getTime() - lastLogin.getTime()) / (1000 * 60 * 60);
-    
-    return {
-      userId,
-      tone: userPrefs.motivationTone || 'kind',
-      deliveryMethod: method,
-      hydrationStatus: {
-        currentMl,
-        goalMl,
-        percentage: (currentMl / goalMl) * 100
-      },
-      streakDays: userPrefs.dailyStreak || 0,
-      lastActiveHours: Math.round(lastActiveHours),
-      timestamp: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error('Error building analytics:', error);
-    return {
-      userId,
-      tone: 'unknown',
-      deliveryMethod: method,
-      hydrationStatus: { currentMl: 0, goalMl: 2000, percentage: 0 },
-      streakDays: 0,
-      lastActiveHours: 0,
-      timestamp: new Date().toISOString()
-    };
-  }
+  return {
+    userId,
+    timestamp: now.toISOString(),
+    method,
+    userProfile: {
+      name: userProfile.name || 'Unknown',
+      hydrationGoal: userProfile.hydrationGoal || 2000
+    },
+    preferences: {
+      fcmEnabled: userPrefs.fcmEnabled || false,
+      smsEnabled: userPrefs.smsReminderOn || false,
+      notificationFrequency: userPrefs.notificationFrequency || 'moderate',
+      enabledNotificationTypes: userPrefs.enabledNotificationTypes || [],
+      daySplitEnabled: userPrefs.daySplitConfig?.enabled || false
+    }
+  };
 } 

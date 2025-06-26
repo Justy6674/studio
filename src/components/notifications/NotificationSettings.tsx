@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { Bell, Smartphone, Watch, Vibrate, Volume2, TestTube2 } from 'lucide-react';
 import { fcmService, initializeFCM, testFCMNotification } from '@/lib/fcm';
 import { useAuth } from '@/hooks/useAuth';
-import { availableTones, notificationFrequencies, MotivationTone, NotificationFrequency } from '@/lib/types';
+import { availableTones, notificationFrequencies, MotivationTone, NotificationFrequency, notificationTypes, NotificationTypeConfig, NotificationType, DaySplitConfig, defaultDaySplits, DaySplitTarget } from '@/lib/types';
 import { doc, updateDoc, getFirestore } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 
@@ -23,6 +23,9 @@ interface NotificationSettingsProps {
     vibrationEnabled?: boolean;
     smartwatchEnabled?: boolean;
     fcmToken?: string;
+    enabledNotificationTypes?: NotificationType[];
+    customNotificationIntervals?: Record<NotificationType, number>;
+    daySplitConfig?: DaySplitConfig;
   };
   onSettingsChange?: (settings: any) => void;
 }
@@ -38,6 +41,27 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
   const [isInitializing, setIsInitializing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
+  
+  // New state for enhanced notifications
+  const [enabledNotificationTypes, setEnabledNotificationTypes] = useState<NotificationType[]>(
+    initialSettings?.enabledNotificationTypes ?? ['drink', 'glass']
+  );
+  const [customIntervals, setCustomIntervals] = useState<Record<NotificationType, number>>(
+    initialSettings?.customNotificationIntervals ?? {
+      sip: 15,
+      glass: 60,
+      walk: 90,
+      drink: 45,
+      herbal_tea: 120,
+      milestone: 0
+    }
+  );
+  const [daySplitConfig, setDaySplitConfig] = useState<DaySplitConfig>(
+    initialSettings?.daySplitConfig ?? {
+      enabled: false,
+      splits: defaultDaySplits
+    }
+  );
 
   useEffect(() => {
     // Check current notification permission status
@@ -169,6 +193,9 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
         vibrationEnabled,
         smartwatchEnabled,
         fcmToken,
+        enabledNotificationTypes,
+        customNotificationIntervals: customIntervals,
+        daySplitConfig,
         updatedAt: new Date()
       };
 
@@ -229,7 +256,38 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     if (user) {
       saveSettings();
     }
-  }, [motivationTone, notificationFrequency, vibrationEnabled, smartwatchEnabled]);
+  }, [motivationTone, notificationFrequency, vibrationEnabled, smartwatchEnabled, enabledNotificationTypes, customIntervals, daySplitConfig]);
+
+  const handleNotificationTypeToggle = (type: NotificationType, enabled: boolean) => {
+    if (enabled) {
+      setEnabledNotificationTypes(prev => [...prev, type]);
+    } else {
+      setEnabledNotificationTypes(prev => prev.filter(t => t !== type));
+    }
+  };
+
+  const handleIntervalChange = (type: NotificationType, interval: number) => {
+    setCustomIntervals(prev => ({
+      ...prev,
+      [type]: interval
+    }));
+  };
+
+  const handleDaySplitToggle = (enabled: boolean) => {
+    setDaySplitConfig(prev => ({
+      ...prev,
+      enabled
+    }));
+  };
+
+  const handleSplitTargetChange = (index: number, field: keyof DaySplitTarget, value: any) => {
+    setDaySplitConfig(prev => ({
+      ...prev,
+      splits: prev.splits.map((split, i) => 
+        i === index ? { ...split, [field]: value } : split
+      )
+    }));
+  };
 
   return (
     <div className="space-y-6">
@@ -287,6 +345,138 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
           )}
         </CardContent>
       </Card>
+
+      {/* Notification Types Selection */}
+      {fcmEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notification Types
+            </CardTitle>
+            <CardDescription>
+              Choose which types of hydration reminders you want to receive
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {notificationTypes.filter(nt => nt.type !== 'milestone').map((notifType) => (
+              <div key={notifType.type} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{notifType.emoji}</span>
+                  <div>
+                    <h4 className="font-medium">{notifType.label}</h4>
+                    <p className="text-sm text-muted-foreground">{notifType.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  {enabledNotificationTypes.includes(notifType.type) && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm">Every</label>
+                      <input
+                        type="number"
+                        min="5"
+                        max="480"
+                        value={customIntervals[notifType.type]}
+                        onChange={(e) => handleIntervalChange(notifType.type, parseInt(e.target.value))}
+                        className="w-16 px-2 py-1 text-sm border rounded"
+                      />
+                      <span className="text-sm text-muted-foreground">min</span>
+                    </div>
+                  )}
+                  <Switch
+                    checked={enabledNotificationTypes.includes(notifType.type)}
+                    onCheckedChange={(checked) => handleNotificationTypeToggle(notifType.type, checked)}
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Day Splitting Configuration */}
+      {fcmEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="text-2xl">🎯</div>
+              Day Splitting Targets
+            </CardTitle>
+            <CardDescription>
+              Break your day into hydration milestones with confetti celebrations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <h4 className="font-medium">Enable Day Splitting</h4>
+                <p className="text-sm text-muted-foreground">
+                  Get milestone alerts with confetti when you hit targets throughout the day
+                </p>
+              </div>
+              <Switch
+                checked={daySplitConfig.enabled}
+                onCheckedChange={handleDaySplitToggle}
+              />
+            </div>
+
+            {daySplitConfig.enabled && (
+              <div className="space-y-4">
+                <h5 className="font-medium">Milestone Targets</h5>
+                {daySplitConfig.splits.map((split, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium">Time</label>
+                        <input
+                          type="time"
+                          value={split.time}
+                          onChange={(e) => handleSplitTargetChange(index, 'time', e.target.value)}
+                          className="w-full mt-1 px-3 py-2 border rounded"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-sm font-medium">Target (ml)</label>
+                        <input
+                          type="number"
+                          min="250"
+                          max="5000"
+                          step="250"
+                          value={split.targetMl}
+                          onChange={(e) => handleSplitTargetChange(index, 'targetMl', parseInt(e.target.value))}
+                          className="w-full mt-1 px-3 py-2 border rounded"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium">Label</label>
+                        <input
+                          type="text"
+                          value={split.label}
+                          onChange={(e) => handleSplitTargetChange(index, 'label', e.target.value)}
+                          className="w-full mt-1 px-3 py-2 border rounded"
+                          placeholder="e.g., Morning Target"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={split.confettiEnabled}
+                          onCheckedChange={(checked) => handleSplitTargetChange(index, 'confettiEnabled', checked)}
+                        />
+                        <label className="text-sm">Confetti</label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-sm text-muted-foreground p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <strong>Example:</strong> Set 10:00 AM for 1L, 3:00 PM for 2L, and 8:00 PM for 3L to break your day into thirds with celebration confetti!
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tone Selection */}
       {fcmEnabled && (

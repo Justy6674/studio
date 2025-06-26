@@ -6,12 +6,114 @@ export type NotificationFrequency = "minimal" | "moderate" | "frequent";
 
 export const notificationFrequencies: NotificationFrequency[] = ["minimal", "moderate", "frequent"];
 
+// New: Specific notification types
+export type NotificationType = "sip" | "glass" | "walk" | "drink" | "herbal_tea" | "milestone";
+
+export interface NotificationTypeConfig {
+  type: NotificationType;
+  label: string;
+  description: string;
+  emoji: string;
+  defaultAmount?: number; // ml for drink types
+  defaultInterval?: number; // minutes
+}
+
+export const notificationTypes: NotificationTypeConfig[] = [
+  {
+    type: "sip",
+    label: "Sip Reminder",
+    description: "Small drink reminders (50ml)",
+    emoji: "💧",
+    defaultAmount: 50,
+    defaultInterval: 15
+  },
+  {
+    type: "glass",
+    label: "Glass Reminder", 
+    description: "Full glass reminders (250ml)",
+    emoji: "🥤",
+    defaultAmount: 250,
+    defaultInterval: 60
+  },
+  {
+    type: "walk",
+    label: "Walk & Drink",
+    description: "Movement + hydration combo",
+    emoji: "🚶‍♂️",
+    defaultAmount: 100,
+    defaultInterval: 90
+  },
+  {
+    type: "drink",
+    label: "General Drink",
+    description: "Standard hydration reminder",
+    emoji: "🥛",
+    defaultAmount: 200,
+    defaultInterval: 45
+  },
+  {
+    type: "herbal_tea",
+    label: "Herbal Tea",
+    description: "Herbal tea break reminders",
+    emoji: "🍵",
+    defaultAmount: 200,
+    defaultInterval: 120
+  },
+  {
+    type: "milestone",
+    label: "Milestone Alert",
+    description: "Day-splitting progress targets",
+    emoji: "🎯",
+    defaultInterval: 0 // Calculated dynamically
+  }
+];
+
+// New: Day-splitting configuration
+export interface DaySplitConfig {
+  enabled: boolean;
+  splits: DaySplitTarget[];
+}
+
+export interface DaySplitTarget {
+  time: string; // HH:MM format
+  targetMl: number;
+  label: string;
+  confettiEnabled: boolean;
+}
+
+export const defaultDaySplits: DaySplitTarget[] = [
+  {
+    time: "10:00",
+    targetMl: 1000,
+    label: "Morning Target",
+    confettiEnabled: true
+  },
+  {
+    time: "15:00", 
+    targetMl: 2000,
+    label: "Afternoon Target",
+    confettiEnabled: true
+  },
+  {
+    time: "20:00",
+    targetMl: 3000,
+    label: "Evening Target", 
+    confettiEnabled: true
+  }
+];
+
 export interface UserPreferences {
   tone?: MotivationTone;
   notificationFrequency?: NotificationFrequency;
   fcmEnabled?: boolean;
   vibrationEnabled?: boolean;
   smartwatchEnabled?: boolean;
+  
+  // New: Enhanced notification preferences
+  enabledNotificationTypes?: NotificationType[];
+  customNotificationIntervals?: Record<NotificationType, number>;
+  daySplitConfig?: DaySplitConfig;
+  
   // other preferences can go here
 }
 
