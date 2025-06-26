@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { 
   Bell, 
@@ -23,7 +22,6 @@ export default function SettingsPage() {
   const [timeWindows, setTimeWindows] = useState<string[]>(['morning', 'afternoon']);
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [smsMaxPerDay, setSmsMaxPerDay] = useState(1);
-  const [lastSaved, setLastSaved] = useState<string>('');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -89,32 +87,15 @@ export default function SettingsPage() {
   ];
 
   const toggleTimeWindow = (windowId: string) => {
-    setTimeWindows(prev => {
-      const newWindows = prev.includes(windowId) 
+    setTimeWindows(prev => 
+      prev.includes(windowId) 
         ? prev.filter(id => id !== windowId)
-        : [...prev, windowId];
-      
-      saveSettings();
-      console.log(`🕐 Time windows updated: ${newWindows.join(', ')}`);
-      
-      return newWindows;
-    });
+        : [...prev, windowId]
+    );
   };
 
   return (
     <div className="min-h-screen bg-background p-4 pb-20">
-      {/* OBVIOUS VISUAL INDICATOR */}
-      <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6 rounded-lg text-center mb-6">
-        <h1 className="text-3xl font-bold">🎉 NEW iOS-STYLE NOTIFICATION SETTINGS 🎉</h1>
-        <p className="text-lg mt-2">This is the comprehensive notification system from the TODO!</p>
-        <p className="text-sm mt-1">All 8 tones, frequency controls, time windows, vibration settings</p>
-        {lastSaved && (
-          <div className="mt-3 bg-white/20 rounded-lg p-2">
-            <p className="text-sm">💾 Last saved: {lastSaved}</p>
-          </div>
-        )}
-      </div>
-
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -123,7 +104,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* 1. Master Switch */}
+        {/* Push Notifications */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -144,33 +125,21 @@ export default function SettingsPage() {
                 onCheckedChange={setFcmEnabled}
               />
             </div>
-            {fcmEnabled && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800 font-medium">✅ Push Notifications Enabled!</p>
-                <p className="text-xs text-green-700 mt-1">
-                  You can now access all notification settings below.
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        {/* 2. Notification Tone - Only show when Push is ON */}
+        {/* Notification Tone - Only show when Push is ON */}
         {fcmEnabled && (
           <Card>
             <CardHeader>
-              <CardTitle>🎵 Notification Tone (8 Options)</CardTitle>
+              <CardTitle>Notification Tone</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(tones).map(([tone, config]) => (
                   <button
                     key={tone}
-                    onClick={() => {
-                      setMotivationTone(tone);
-                      saveSettings();
-                      console.log(`🎵 Tone changed to: ${config.emoji} ${config.label}`);
-                    }}
+                    onClick={() => setMotivationTone(tone)}
                     className={`p-3 rounded-lg border text-left transition-all ${
                       motivationTone === tone
                         ? 'bg-blue-50 border-blue-200 text-blue-800 ring-2 ring-blue-200'
@@ -190,11 +159,11 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* 3. Frequency & Timing - Only show when Push is ON */}
+        {/* Frequency & Timing - Only show when Push is ON */}
         {fcmEnabled && (
           <Card>
             <CardHeader>
-              <CardTitle>⏰ Frequency & Timing</CardTitle>
+              <CardTitle>Frequency & Timing</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Frequency Radio Group */}
@@ -204,11 +173,7 @@ export default function SettingsPage() {
                   {Object.entries(frequencies).map(([freq, config]) => (
                     <button
                       key={freq}
-                      onClick={() => {
-                        setNotificationFrequency(freq);
-                        saveSettings();
-                        console.log(`⏰ Frequency changed to: ${config.label}`);
-                      }}
+                      onClick={() => setNotificationFrequency(freq)}
                       className={`p-3 rounded-lg border text-center transition-all ${
                         notificationFrequency === freq
                           ? 'bg-blue-50 border-blue-200 text-blue-800 ring-2 ring-blue-200'
@@ -254,13 +219,13 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* 4. Vibration - Only show when Push is ON */}
+        {/* Vibration - Only show when Push is ON */}
         {fcmEnabled && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Vibrate className="h-5 w-5" />
-                📳 Vibration Settings
+                Vibration
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -284,11 +249,7 @@ export default function SettingsPage() {
                     {(['light', 'medium', 'heavy'] as const).map((intensity) => (
                       <button
                         key={intensity}
-                        onClick={() => {
-                          setVibrationIntensity(intensity);
-                          saveSettings();
-                          console.log(`📳 Vibration intensity: ${intensity}`);
-                        }}
+                        onClick={() => setVibrationIntensity(intensity)}
                         className={`p-3 rounded-lg border text-center transition-all capitalize ${
                           vibrationIntensity === intensity
                             ? 'bg-blue-50 border-blue-200 text-blue-800 ring-2 ring-blue-200'
@@ -306,13 +267,13 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* 5. SMS Reminders - Only show when Push is ON */}
+        {/* SMS Reminders - Only show when Push is ON */}
         {fcmEnabled && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                💬 SMS Backup Reminders
+                SMS Reminders
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -331,19 +292,13 @@ export default function SettingsPage() {
 
               {smsEnabled && (
                 <div className="space-y-4">
-                  {/* Max per day stepper */}
                   <div>
                     <Label className="text-base font-medium mb-3 block">Max per day</Label>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const newValue = Math.max(1, smsMaxPerDay - 1);
-                          setSmsMaxPerDay(newValue);
-                          saveSettings();
-                          console.log(`💬 SMS max per day: ${newValue}`);
-                        }}
+                        onClick={() => setSmsMaxPerDay(Math.max(1, smsMaxPerDay - 1))}
                         disabled={smsMaxPerDay <= 1}
                       >
                         -
@@ -352,12 +307,7 @@ export default function SettingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const newValue = Math.min(5, smsMaxPerDay + 1);
-                          setSmsMaxPerDay(newValue);
-                          saveSettings();
-                          console.log(`💬 SMS max per day: ${newValue}`);
-                        }}
+                        onClick={() => setSmsMaxPerDay(Math.min(5, smsMaxPerDay + 1))}
                         disabled={smsMaxPerDay >= 5}
                       >
                         +
@@ -378,29 +328,6 @@ export default function SettingsPage() {
             <p className="text-sm">Enable push notifications to access all settings</p>
           </div>
         )}
-
-        {/* Implementation Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-green-600">✅ Implementation Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ iOS-Style Layout</Badge>
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ 8 Notification Tones</Badge>
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ Frequency Controls</Badge>
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ Time Windows</Badge>
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ Vibration Settings</Badge>
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ SMS Backup</Badge>
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ Immediate Feedback</Badge>
-              <Badge variant="outline" className="text-green-600 border-green-200">✅ Grouped Sections</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              This is the comprehensive notification settings system from your TODO requirements. 
-              All features are implemented according to the iOS-style specifications.
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
