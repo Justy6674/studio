@@ -12,7 +12,7 @@ import { Bell, Smartphone, Watch, Vibrate, Volume2, TestTube2 } from 'lucide-rea
 import { fcmService, initializeFCM, testFCMNotification } from '@/lib/fcm';
 import { useAuth } from '@/hooks/useAuth';
 import { availableTones, notificationFrequencies, MotivationTone, NotificationFrequency, notificationTypes, NotificationTypeConfig, NotificationType, DaySplitConfig, defaultDaySplits, DaySplitTarget } from '@/lib/types';
-import { doc, updateDoc, getFirestore } from 'firebase/firestore';
+import { doc, setDoc, getFirestore } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 
 interface NotificationSettingsProps {
@@ -230,7 +230,7 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
         updatedAt: new Date()
       };
 
-      await updateDoc(userPrefsRef, settings);
+      await setDoc(userPrefsRef, settings, { merge: true });
       
       if (onSettingsChange) {
         onSettingsChange(settings);
