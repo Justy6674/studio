@@ -25,7 +25,9 @@ export default [
       'jest.config.js',
       'jest.setup.js',
       'sentry.client.config.js',
-      'sentry.server.config.js'
+      'sentry.server.config.js',
+      '.lighthouserc.js',
+      'public/firebase-messaging-sw.js'
     ]
   },
   {

@@ -54,7 +54,7 @@ export async function logHydration(userId: string, amount: number) {
     // Update user profile streak and check for achievements
     const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
-    let achievements = [];
+    const achievements = [];
     let isFirstEverLog = false;
     
     if (userDoc.exists()) {

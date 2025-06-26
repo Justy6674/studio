@@ -175,7 +175,7 @@ export default function BillingPage() {
                 <div className="flex justify-center">
                   <stripe-buy-button
                     buy-button-id="buy_btn_1RUbr801xl09Ntf40fasOqrK"
-                    publishable-key="pk_live_51Q8bcy01xl09Ntf4KyX7ax9zvGm8Rg4yXv0eluw1thBvHuW6NNU5eMXnkyxPfdMYkL2Nj8q51HlivCa6xxoC6TXY00CRxbXhKI"
+                    publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
                   ></stripe-buy-button>
                 </div>
               ) : (

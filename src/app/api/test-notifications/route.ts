@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    let results: any = {};
+    const results: any = {};
     
     if (testType === 'fcm' || testType === 'all') {
       console.log('🔔 Testing FCM Push Notifications...');
