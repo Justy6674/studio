@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { 
@@ -13,45 +12,115 @@ import {
   Check
 } from "lucide-react";
 
+// PERFECT iOS PILL TOGGLE - EXACT PILL SHAPE
+// PROPER iOS PILL TOGGLE - FORCED WITH EXACT DIMENSIONS
+const SimpleToggle = ({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) => (
+  <div
+    onClick={() => onChange(!checked)}
+    style={{
+      position: 'relative',
+      display: 'inline-flex',
+      alignItems: 'center',
+      height: '32px',
+      width: '58px', // Wider to ensure pill shape
+      backgroundColor: checked ? '#22c55e' : '#d1d5db',
+      borderRadius: '16px', // Half of height for proper pill
+      border: 'none',
+      outline: 'none',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      boxShadow: checked 
+        ? '0 2px 8px rgba(34, 197, 94, 0.3)' 
+        : '0 2px 4px rgba(0, 0, 0, 0.1)'
+    }}
+  >
+    <div
+      style={{
+        position: 'absolute',
+        top: '3px',
+        left: checked ? '29px' : '3px', // Adjusted for wider container
+        width: '26px',
+        height: '26px',
+        backgroundColor: '#ffffff',
+        borderRadius: '50%',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+      }}
+    />
+  </div>
+);
+
 export default function SettingsPage() {
   const [fcmEnabled, setFcmEnabled] = useState(false);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [vibrationIntensity, setVibrationIntensity] = useState<'light' | 'medium' | 'heavy'>('medium');
-  const [motivationTone, setMotivationTone] = useState<string>('kind');
-  const [notificationFrequency, setNotificationFrequency] = useState<string>('moderate');
-  const [timeWindows, setTimeWindows] = useState<string[]>(['morning', 'afternoon']);
+  const [vibrationIntensity, setVibrationIntensity] = useState('medium');
+  const [motivationTone, setMotivationTone] = useState('kind');
+  const [notificationFrequency, setNotificationFrequency] = useState('moderate');
+  const [timeWindows, setTimeWindows] = useState(['morning', 'afternoon']);
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [smsMaxPerDay, setSmsMaxPerDay] = useState(1);
 
-  // Load settings from localStorage on mount
+  // Load settings from Firebase on mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('hydration-settings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setFcmEnabled(settings.fcmEnabled || false);
-      setVibrationEnabled(settings.vibrationEnabled || true);
-      setVibrationIntensity(settings.vibrationIntensity || 'medium');
-      setMotivationTone(settings.motivationTone || 'kind');
-      setNotificationFrequency(settings.notificationFrequency || 'moderate');
-      setTimeWindows(settings.timeWindows || ['morning', 'afternoon']);
-      setSmsEnabled(settings.smsEnabled || false);
-      setSmsMaxPerDay(settings.smsMaxPerDay || 1);
-    }
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/user-settings');
+        if (response.ok) {
+          const data = await response.json();
+          const settings = data.settings;
+          
+          setFcmEnabled(settings.fcmEnabled || false);
+          setVibrationEnabled(settings.vibrationEnabled !== undefined ? settings.vibrationEnabled : true);
+          setVibrationIntensity(settings.vibrationIntensity || 'medium');
+          setMotivationTone(settings.motivationTone || 'kind');
+          setNotificationFrequency(settings.notificationFrequency || 'moderate');
+          setTimeWindows(settings.timeWindows || ['morning', 'afternoon']);
+          setSmsEnabled(settings.smsEnabled || false);
+          setSmsMaxPerDay(settings.smsMaxPerDay || 1);
+          
+          console.log('✅ Settings loaded from Firebase:', settings);
+        } else {
+          console.error('❌ Failed to load settings from Firebase');
+        }
+      } catch (error) {
+        console.error('❌ Error loading settings:', error);
+      }
+    };
+    
+    loadSettings();
   }, []);
 
-  // Save settings to localStorage whenever they change
-  const saveSettings = () => {
-    const settings = {
-      fcmEnabled,
-      vibrationEnabled,
-      vibrationIntensity,
-      motivationTone,
-      notificationFrequency,
-      timeWindows,
-      smsEnabled,
-      smsMaxPerDay
-    };
-    localStorage.setItem('hydration-settings', JSON.stringify(settings));
+  // Save settings to Firebase instead of localStorage
+  const saveSettings = async () => {
+    try {
+      const settings = {
+        fcmEnabled,
+        vibrationEnabled,
+        vibrationIntensity,
+        motivationTone,
+        notificationFrequency,
+        timeWindows,
+        smsEnabled,
+        smsMaxPerDay
+      };
+      
+      // Save to Firebase via API
+      const response = await fetch('/api/user-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save settings');
+      }
+      
+      console.log('✅ Settings saved to Firebase');
+    } catch (error) {
+      console.error('❌ Failed to save settings:', error);
+    }
   };
 
   // Save settings whenever any setting changes
@@ -100,43 +169,32 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <SettingsIcon className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Settings</h1>
           </div>
         </div>
 
         {/* Push Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
+        <Card className="glass-effect border-accent/30">
+          <CardHeader className="border-b border-accent/20">
+            <CardTitle className="flex items-center gap-2 text-foreground text-xl">
+              <Bell className="h-6 w-6" />
               Push Notifications
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="font-medium">Push Notifications</p>
                 <p className="text-sm text-muted-foreground">
-                  Receive hydration reminders on this device
+                  {fcmEnabled ? 'Enabled' : 'Disabled'}
                 </p>
               </div>
-              <button
-                onClick={() => setFcmEnabled(!fcmEnabled)}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                  fcmEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                    fcmEnabled ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+              <SimpleToggle checked={fcmEnabled} onChange={setFcmEnabled} />
             </div>
             {fcmEnabled && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800 font-medium">✅ Push Notifications Enabled!</p>
-                <p className="text-xs text-green-700 mt-1">
+              <div className="mt-4 p-4 bg-primary/10 border border-primary/30 rounded-lg">
+                <p className="text-sm text-primary font-bold">✅ Push Notifications Enabled!</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   You can now configure all notification settings below.
                 </p>
               </div>
@@ -146,28 +204,28 @@ export default function SettingsPage() {
 
         {/* Notification Tone - Only show when Push is ON */}
         {fcmEnabled && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Tone</CardTitle>
+          <Card className="glass-effect border-accent/30">
+            <CardHeader className="border-b border-accent/20">
+              <CardTitle className="text-foreground text-xl">Notification Tone</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 gap-4">
                 {Object.entries(tones).map(([tone, config]) => (
                   <button
                     key={tone}
                     onClick={() => setMotivationTone(tone)}
-                    className={`p-3 rounded-lg border text-left transition-all ${
+                    className={`p-4 rounded-xl border text-left transition-all duration-200 ${
                       motivationTone === tone
-                        ? 'bg-blue-50 border-blue-200 text-blue-800 ring-2 ring-blue-200'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        ? 'bg-primary/20 border-primary text-foreground shadow-lg shadow-primary/20 transform scale-105'
+                        : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{config.emoji}</span>
-                      <span className="font-medium">{config.label}</span>
-                      {motivationTone === tone && <Check className="h-4 w-4 text-blue-600 ml-auto" />}
+                      <span className="text-2xl">{config.emoji}</span>
+                      <span className="font-bold text-lg">{config.label}</span>
+                      {motivationTone === tone && <Check className="h-5 w-5 text-primary ml-auto" />}
                     </div>
-                    <p className="text-xs text-gray-600">{config.description}</p>
+                    <p className="text-sm text-muted-foreground">{config.description}</p>
                   </button>
                 ))}
               </div>
@@ -177,28 +235,28 @@ export default function SettingsPage() {
 
         {/* Frequency & Timing - Only show when Push is ON */}
         {fcmEnabled && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Frequency & Timing</CardTitle>
+          <Card className="glass-effect border-accent/30">
+            <CardHeader className="border-b border-accent/20">
+              <CardTitle className="text-foreground text-xl">Frequency & Timing</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-6 space-y-6">
               {/* Frequency Radio Group */}
               <div>
-                <Label className="text-base font-medium mb-3 block">Frequency</Label>
-                <div className="grid grid-cols-3 gap-2">
+                <Label className="text-lg font-bold mb-3 block text-foreground">Frequency</Label>
+                <div className="grid grid-cols-3 gap-4">
                   {Object.entries(frequencies).map(([freq, config]) => (
                     <button
                       key={freq}
                       onClick={() => setNotificationFrequency(freq)}
-                      className={`p-3 rounded-lg border text-center transition-all ${
+                      className={`p-4 rounded-xl border text-center transition-all duration-200 ${
                         notificationFrequency === freq
-                          ? 'bg-blue-50 border-blue-200 text-blue-800 ring-2 ring-blue-200'
-                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                          ? 'bg-primary/20 border-primary text-foreground shadow-lg shadow-primary/20 transform scale-105'
+                          : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
                       }`}
                     >
-                      <div className="font-medium">{config.label}</div>
-                      <div className="text-xs text-gray-600 mt-1">{config.description}</div>
-                      {notificationFrequency === freq && <Check className="h-4 w-4 text-blue-600 mx-auto mt-1" />}
+                      <div className="font-bold text-lg">{config.label}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{config.description}</div>
+                      {notificationFrequency === freq && <Check className="h-5 w-5 text-primary mx-auto mt-2" />}
                     </button>
                   ))}
                 </div>
@@ -206,25 +264,25 @@ export default function SettingsPage() {
 
               {/* Time Windows */}
               <div>
-                <Label className="text-base font-medium mb-3 block">Time Windows</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <Label className="text-lg font-bold mb-3 block text-foreground">Time Windows</Label>
+                <div className="grid grid-cols-2 gap-4">
                   {timeWindowOptions.map((window) => (
                     <button
                       key={window.id}
                       onClick={() => toggleTimeWindow(window.id)}
-                      className={`p-3 rounded-lg border text-left transition-all ${
+                      className={`p-4 rounded-xl border text-left transition-all duration-200 ${
                         timeWindows.includes(window.id)
-                          ? 'bg-green-50 border-green-200 text-green-800 ring-2 ring-green-200'
-                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                          ? 'bg-accent/20 border-accent text-foreground shadow-lg shadow-accent/20 transform scale-105'
+                          : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">{window.label}</div>
-                          <div className="text-xs text-gray-600">{window.time}</div>
+                          <div className="font-bold text-lg">{window.label}</div>
+                          <div className="text-sm text-muted-foreground">{window.time}</div>
                         </div>
                         {timeWindows.includes(window.id) && (
-                          <Check className="h-4 w-4 text-green-600" />
+                          <Check className="h-6 w-6 text-accent" />
                         )}
                       </div>
                     </button>
@@ -237,14 +295,14 @@ export default function SettingsPage() {
 
         {/* Vibration - Only show when Push is ON */}
         {fcmEnabled && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Vibrate className="h-5 w-5" />
+          <Card className="glass-effect border-accent/30">
+            <CardHeader className="border-b border-accent/20">
+              <CardTitle className="flex items-center gap-2 text-foreground text-xl">
+                <Vibrate className="h-6 w-6" />
                 Vibration
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-medium">Vibrate on Reminder</p>
@@ -252,36 +310,25 @@ export default function SettingsPage() {
                     {vibrationEnabled ? 'Enabled' : 'Disabled'}
                   </p>
                 </div>
-                <button
-                  onClick={() => setVibrationEnabled(!vibrationEnabled)}
-                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                    vibrationEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                      vibrationEnabled ? 'translate-x-7' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
+                <SimpleToggle checked={vibrationEnabled} onChange={setVibrationEnabled} />
               </div>
 
               {vibrationEnabled && (
                 <div>
-                  <Label className="text-base font-medium mb-3 block">Intensity</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <Label className="text-lg font-bold mb-3 block text-foreground">Intensity</Label>
+                  <div className="grid grid-cols-3 gap-4">
                     {(['light', 'medium', 'heavy'] as const).map((intensity) => (
                       <button
                         key={intensity}
                         onClick={() => setVibrationIntensity(intensity)}
-                        className={`p-3 rounded-lg border text-center transition-all capitalize ${
+                        className={`p-4 rounded-xl border text-center transition-all duration-200 capitalize ${
                           vibrationIntensity === intensity
-                            ? 'bg-blue-50 border-blue-200 text-blue-800 ring-2 ring-blue-200'
-                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                            ? 'bg-primary/20 border-primary text-foreground shadow-lg shadow-primary/20 transform scale-105'
+                            : 'bg-card border-border hover:bg-muted/50 hover:border-accent text-foreground'
                         }`}
                       >
-                        {intensity}
-                        {vibrationIntensity === intensity && <Check className="h-4 w-4 text-blue-600 mx-auto mt-1" />}
+                        <div className="font-bold text-lg">{intensity}</div>
+                        {vibrationIntensity === intensity && <Check className="h-5 w-5 text-primary mx-auto mt-2" />}
                       </button>
                     ))}
                   </div>
@@ -293,59 +340,53 @@ export default function SettingsPage() {
 
         {/* SMS Reminders - Only show when Push is ON */}
         {fcmEnabled && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+          <Card className="glass-effect border-accent/30">
+            <CardHeader className="border-b border-accent/20">
+              <CardTitle className="flex items-center gap-2 text-foreground text-xl">
+                <MessageSquare className="h-6 w-6" />
                 SMS Reminders
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-medium">SMS Reminders</p>
                   <p className="text-sm text-muted-foreground">
-                    Text message backup reminders
+                    {smsEnabled ? 'Enabled' : 'Disabled'}
                   </p>
                 </div>
-                <button
-                  onClick={() => setSmsEnabled(!smsEnabled)}
-                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                    smsEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                      smsEnabled ? 'translate-x-7' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
+                <SimpleToggle checked={smsEnabled} onChange={setSmsEnabled} />
               </div>
 
               {smsEnabled && (
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-base font-medium mb-3 block">Max per day</Label>
-                    <div className="flex items-center gap-2">
+                    <Label className="text-lg font-bold mb-3 block text-foreground">Max per day</Label>
+                    <div className="flex items-center gap-6">
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="lg"
                         onClick={() => setSmsMaxPerDay(Math.max(1, smsMaxPerDay - 1))}
                         disabled={smsMaxPerDay <= 1}
+                        className="h-12 w-12 p-0"
                       >
                         -
                       </Button>
-                      <span className="mx-4 font-medium">{smsMaxPerDay}</span>
+                      <span className="mx-4 font-bold text-2xl text-foreground">{smsMaxPerDay}</span>
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => setSmsMaxPerDay(Math.min(5, smsMaxPerDay + 1))}
-                        disabled={smsMaxPerDay >= 5}
+                        size="lg"
+                        onClick={() => setSmsMaxPerDay(Math.min(2, smsMaxPerDay + 1))}
+                        disabled={smsMaxPerDay >= 2}
+                        className="h-12 w-12 p-0"
                       >
                         +
                       </Button>
                     </div>
                   </div>
+                  <p className="text-sm text-destructive bg-destructive/10 p-3 rounded border border-destructive/30">
+                    ⚠️ Maximum 2 SMS per day due to cost constraints
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -354,10 +395,10 @@ export default function SettingsPage() {
 
         {/* Disabled State Message */}
         {!fcmEnabled && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-lg font-medium">Push Notifications Disabled</p>
-            <p className="text-sm">Enable push notifications to access all settings</p>
+          <div className="text-center py-16 text-muted-foreground bg-muted/20 rounded-lg border border-border">
+            <Bell className="h-20 w-20 mx-auto mb-6 opacity-50" />
+            <p className="text-2xl font-bold mb-2">Push Notifications Disabled</p>
+            <p className="text-lg">Enable push notifications to access all settings</p>
           </div>
         )}
       </div>
