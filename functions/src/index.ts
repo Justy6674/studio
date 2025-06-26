@@ -22,6 +22,7 @@ import { getWeeklyChartData } from "./getWeeklyChartData";
 import { getDailyHydrationSummary } from "./getDailyHydrationSummary";
 import { handleBillingWebhook } from "./handleBillingWebhook";
 import { generateHydrationGoalInsight } from "./generateHydrationGoalInsight";
+import { processScheduledNotifications } from "./processScheduledNotifications";
 
 // Export all functions
 export { 
@@ -37,5 +38,6 @@ export {
   getWeeklyChartData,
   getDailyHydrationSummary,
   handleBillingWebhook,
-  generateHydrationGoalInsight
+  generateHydrationGoalInsight,
+  processScheduledNotifications
 };
