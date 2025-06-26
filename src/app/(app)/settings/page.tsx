@@ -120,11 +120,27 @@ export default function SettingsPage() {
                   Receive hydration reminders on this device
                 </p>
               </div>
-              <Switch
-                checked={fcmEnabled}
-                onCheckedChange={setFcmEnabled}
-              />
+              <button
+                onClick={() => setFcmEnabled(!fcmEnabled)}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                  fcmEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    fcmEnabled ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
+            {fcmEnabled && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800 font-medium">✅ Push Notifications Enabled!</p>
+                <p className="text-xs text-green-700 mt-1">
+                  You can now configure all notification settings below.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -236,10 +252,18 @@ export default function SettingsPage() {
                     {vibrationEnabled ? 'Enabled' : 'Disabled'}
                   </p>
                 </div>
-                <Switch
-                  checked={vibrationEnabled}
-                  onCheckedChange={setVibrationEnabled}
-                />
+                <button
+                  onClick={() => setVibrationEnabled(!vibrationEnabled)}
+                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                    vibrationEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                      vibrationEnabled ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
 
               {vibrationEnabled && (
@@ -284,10 +308,18 @@ export default function SettingsPage() {
                     Text message backup reminders
                   </p>
                 </div>
-                <Switch
-                  checked={smsEnabled}
-                  onCheckedChange={setSmsEnabled}
-                />
+                <button
+                  onClick={() => setSmsEnabled(!smsEnabled)}
+                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                    smsEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                      smsEnabled ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
 
               {smsEnabled && (
