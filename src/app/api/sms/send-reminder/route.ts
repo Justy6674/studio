@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { db } from '@/lib/firebase'; // Assuming firebase admin is initialized here
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth } from 'firebase-admin/auth'; // If using Firebase Admin for user auth server-side
-import { app as adminApp } from '@/lib/firebase-admin'; // Your Firebase Admin App instance
+import { firestore } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { auth, app as adminApp } from '@/lib/firebase-admin'; // Your Firebase Admin App instance
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -23,8 +22,8 @@ async function getUserIdFromRequest(request: NextRequest): Promise<string | null
     const idToken = authorization.split('Bearer ')[1];
     try {
       // Safely check if Firebase Admin is initialized before using it
-      if (adminApp && typeof adminApp.auth === 'function') {
-        const decodedToken = await getAuth(adminApp).verifyIdToken(idToken);
+      if (auth && typeof auth.verifyIdToken === 'function') {
+        const decodedToken = await auth.verifyIdToken(idToken);
         return decodedToken.uid;
       } else {
         console.error('Firebase Admin not properly initialized');
@@ -74,12 +73,11 @@ export async function POST(request: NextRequest) {
     // Safely handle Firestore operations
     try {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const smsCountRef = doc(db, `smsCounts/${userId}/dailyCounts`, today);
-      const smsCountSnap = await getDoc(smsCountRef);
+      const smsCountSnap = await firestore.collection(`smsCounts`).doc(userId).collection('dailyCounts').doc(today).get();
 
       let currentCount = 0;
-      if (smsCountSnap.exists()) {
-        currentCount = smsCountSnap.data().count || 0;
+      if (smsCountSnap.exists) {
+        currentCount = smsCountSnap.data()?.count || 0;
       }
 
       if (currentCount >= MAX_SMS_PER_DAY) {
@@ -106,13 +104,13 @@ export async function POST(request: NextRequest) {
       // Try to update count in Firestore, but continue if it fails
       try {
         const today = new Date().toISOString().split('T')[0];
-        const smsCountRef = doc(db, `smsCounts/${userId}/dailyCounts`, today);
-        const smsCountSnap = await getDoc(smsCountRef);
+        const smsCountRef = firestore.collection(`smsCounts`).doc(userId).collection('dailyCounts').doc(today);
+        const smsCountSnap = await smsCountRef.get();
   
-        if (smsCountSnap.exists()) {
-          await updateDoc(smsCountRef, { count: smsCountSnap.data().count + 1 || 1, lastSent: serverTimestamp() });
+        if (smsCountSnap.exists) {
+          await smsCountRef.update({ count: (smsCountSnap.data()?.count || 0) + 1, lastSent: FieldValue.serverTimestamp() });
         } else {
-          await setDoc(smsCountRef, { count: 1, date: today, firstSent: serverTimestamp(), lastSent: serverTimestamp() });
+          await smsCountRef.set({ count: 1, date: today, firstSent: FieldValue.serverTimestamp(), lastSent: FieldValue.serverTimestamp() });
         }
       } catch (updateError) {
         console.error('Error updating SMS count in Firestore:', updateError);

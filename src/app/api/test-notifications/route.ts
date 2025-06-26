@@ -1,35 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFunctions } from 'firebase-admin/functions';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-
-// Initialize Firebase Admin if not already initialized
-if (!getApps().length) {
-  const serviceAccountKey = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
-  
-  if (!serviceAccountKey) {
-    console.log('FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY environment variable is missing. This must be set in Vercel environment variables with the complete service account JSON.');
-    console.log('Firebase Admin SDK initialized with project ID fallback for development.');
-    
-    initializeApp({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'hydrateai-ayjow'
-    });
-  } else {
-    try {
-      const serviceAccount = JSON.parse(serviceAccountKey);
-      initializeApp({
-        credential: cert(serviceAccount),
-        projectId: serviceAccount.project_id
-      });
-    } catch (error) {
-      console.error('Failed to parse service account key:', error);
-      initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'hydrateai-ayjow'
-      });
-    }
-  }
-}
+import { auth, firestore } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {

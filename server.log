@@ -2,14 +2,16 @@
 > nextn@0.1.0 dev
 > next dev -p 3000
 
- ⨯ Failed to start server
-Error: listen EADDRINUSE: address already in use :::3000
-    at <unknown> (Error: listen EADDRINUSE: address already in use :::3000)
-    at new Promise (<anonymous>) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '::',
-  port: 3000
-}
-[?25h
+   ▲ Next.js 15.3.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.89:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1494ms
+ ○ Compiling /settings ...
+ ✓ Compiled /settings in 5.5s (5628 modules)
+FCM: Window not available, skipping initialization
+ GET /settings 200 in 6402ms
+ ✓ Compiled in 1139ms (1990 modules)
+ GET /settings 200 in 41ms

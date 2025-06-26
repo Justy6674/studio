@@ -1,8 +1,8 @@
 "use server";
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { firestore } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import type { UserProfile } from '@/lib/types';
 
 // Enhanced input interface for contextual AI motivation
@@ -122,9 +122,9 @@ const getContextualFallback = (stats: MotivationRequest, tone: string = "Default
 // Enhanced logging function
 async function logMotivationRequest(logData: MotivationLog): Promise<void> {
   try {
-    await addDoc(collection(db, "motivation_logs"), {
+    await firestore.collection("motivation_logs").add({
       ...logData,
-      timestamp: serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     });
   } catch (error) {
     console.error('Failed to log motivation request:', error);
@@ -165,9 +165,8 @@ export async function POST(request: NextRequest) {
     // Get user's motivation tone preference
     let motivationTone = "Default";
     try {
-      const userDocRef = doc(db, "users", userId);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
+      const userDoc = await firestore.collection("users").doc(userId).get();
+      if (userDoc.exists) {
         const userData = userDoc.data() as UserProfile;
         motivationTone = userData.motivationTone || userData.aiTone || "Default";
       }

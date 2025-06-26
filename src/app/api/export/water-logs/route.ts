@@ -1,8 +1,7 @@
 "use server";
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { firestore } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/lib/types';
 
 interface HydrationLogExport {
@@ -62,21 +61,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user profile for goals and settings
-    const userDocRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userDocRef);
+    const userDoc = await firestore.collection("users").doc(userId).get();
     let userProfile: UserProfile | null = null;
     
-    if (userDoc.exists()) {
+    if (userDoc.exists) {
       userProfile = userDoc.data() as UserProfile;
     }
 
     const hydrationGoal = userProfile?.hydrationGoal || 2000;
 
     // Build query for hydration logs
-    let q = query(
-      collection(db, "hydration_logs"),
-      where("userId", "==", userId)
-    );
+    let q = firestore.collection("hydration_logs").where("userId", "==", userId);
 
     // Add date range filters if provided
     if (startDate && endDate) {
@@ -85,30 +80,26 @@ export async function GET(request: NextRequest) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
       
-      q = query(
-        collection(db, "hydration_logs"),
-        where("userId", "==", userId),
-        where("timestamp", ">=", Timestamp.fromDate(start)),
-        where("timestamp", "<=", Timestamp.fromDate(end))
-      );
+      q = firestore.collection("hydration_logs")
+        .where("userId", "==", userId)
+        .where("timestamp", ">=", start)
+        .where("timestamp", "<=", end);
     } else if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
-      q = query(
-        collection(db, "hydration_logs"),
-        where("userId", "==", userId),
-        where("timestamp", ">=", Timestamp.fromDate(start))
-      );
+      q = firestore.collection("hydration_logs")
+        .where("userId", "==", userId)
+        .where("timestamp", ">=", start);
     }
 
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await q.get();
     const logs = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
         userId: data.userId,
         amount: data.amount,
-        timestamp: (data.timestamp as Timestamp).toDate(),
+        timestamp: data.timestamp.toDate(),
       };
     }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 

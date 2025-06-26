@@ -14,7 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { MotivationTone } from "@/lib/types";
+import { 
+  MotivationTone, 
+  NotificationType, 
+  DaySplitConfig, 
+  defaultDaySplits 
+} from "@/lib/types";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 import { GamificationSystem } from "@/components/gamification/GamificationSystem";
 import { 
@@ -47,6 +52,10 @@ interface SettingsData {
   notificationFrequency?: 'minimal' | 'moderate' | 'frequent';
   vibrationEnabled?: boolean;
   smartwatchEnabled?: boolean;
+  // Enhanced notification settings
+  enabledNotificationTypes?: NotificationType[];
+  customNotificationIntervals?: Record<NotificationType, number>;
+  daySplitConfig?: DaySplitConfig;
 }
 
 const motivationTones = [
@@ -82,6 +91,13 @@ export default function SettingsPage() {
     notificationFrequency: 'moderate',
     vibrationEnabled: true,
     smartwatchEnabled: false,
+    // Enhanced notification defaults
+    enabledNotificationTypes: ['glass', 'drink', 'milestone'],
+    customNotificationIntervals: {},
+    daySplitConfig: {
+      enabled: true,
+      splits: defaultDaySplits
+    },
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -113,6 +129,13 @@ export default function SettingsPage() {
           notificationFrequency: userPrefs.notificationFrequency || 'moderate',
           vibrationEnabled: userPrefs.vibrationEnabled !== false,
           smartwatchEnabled: userPrefs.smartwatchEnabled || false,
+          // Enhanced notification settings
+          enabledNotificationTypes: userPrefs.enabledNotificationTypes || ['glass', 'drink', 'milestone'],
+          customNotificationIntervals: userPrefs.customNotificationIntervals || {},
+          daySplitConfig: userPrefs.daySplitConfig || {
+            enabled: true,
+            splits: defaultDaySplits
+          },
         };
         setSettings(newSettings);
       }
@@ -353,6 +376,9 @@ export default function SettingsPage() {
               notificationFrequency: settings.notificationFrequency,
               vibrationEnabled: settings.vibrationEnabled,
               smartwatchEnabled: settings.smartwatchEnabled,
+              enabledNotificationTypes: settings.enabledNotificationTypes,
+              customNotificationIntervals: settings.customNotificationIntervals,
+              daySplitConfig: settings.daySplitConfig,
               fcmToken: settings.fcmToken
             }}
             onSettingsChange={(newSettings) => {

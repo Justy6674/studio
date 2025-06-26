@@ -1,8 +1,8 @@
 "use server";
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, query, where, getDocs, doc, deleteDoc, updateDoc, getDoc, serverTimestamp, limit } from 'firebase/firestore';
+import { firestore } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import type { BodyMetrics, BodyMetricsEntry, BodyMetricsStats } from '@/lib/types';
 
 // POST - Add new body metrics entry
@@ -24,12 +24,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Add the body metrics entry
-    const docRef = await addDoc(collection(db, "body_metrics"), {
+    const docRef = await firestore.collection("body_metrics").add({
       userId,
       weight_kg: Number(weight_kg),
       waist_cm: Number(waist_cm),
       notes: notes || "",
-      timestamp: serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     });
 
     return NextResponse.json({ 
@@ -63,13 +63,10 @@ export async function GET(request: NextRequest) {
     
     try {
       // Try the simple query first without ordering to avoid index issues
-      const bodyMetricsQuery = query(
-        collection(db, 'body_metrics'),
-        where('userId', '==', userId),
-        limit(limitNum)
-      );
-
-      const snapshot = await getDocs(bodyMetricsQuery);
+      const snapshot = await firestore.collection('body_metrics')
+        .where('userId', '==', userId)
+        .limit(limitNum)
+        .get();
       const bodyMetrics: BodyMetrics[] = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -177,10 +174,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Verify the entry belongs to the user before deleting
-    const entryRef = doc(db, "body_metrics", entryId);
-    const entryDoc = await getDoc(entryRef);
+    const entryDoc = await firestore.collection("body_metrics").doc(entryId).get();
     
-    if (!entryDoc.exists()) {
+    if (!entryDoc.exists) {
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
     }
 
@@ -189,7 +185,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized to delete this entry' }, { status: 403 });
     }
 
-    await deleteDoc(entryRef);
+    await firestore.collection("body_metrics").doc(entryId).delete();
 
     return NextResponse.json({ 
       success: true,
@@ -225,10 +221,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify the entry belongs to the user before updating
-    const entryRef = doc(db, "body_metrics", entryId);
-    const entryDoc = await getDoc(entryRef);
+    const entryDoc = await firestore.collection("body_metrics").doc(entryId).get();
     
-    if (!entryDoc.exists()) {
+    if (!entryDoc.exists) {
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
     }
 
@@ -237,11 +232,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized to update this entry' }, { status: 403 });
     }
 
-    await updateDoc(entryRef, {
+    await firestore.collection("body_metrics").doc(entryId).update({
       weight_kg: Number(weight_kg),
       waist_cm: Number(waist_cm),
       notes: notes || "",
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     return NextResponse.json({ 
