@@ -18,6 +18,20 @@ export function OnboardingTip({ userId }: OnboardingTipProps) {
   useEffect(() => {
     const checkIfNewUser = async () => {
       try {
+        // IMMEDIATE FIX: Check if we're on dashboard with existing progress
+        // If user has visible progress (URL contains dashboard and progress ring visible), 
+        // they're definitely a returning user - dismiss immediately
+        if (window.location.pathname.includes('dashboard')) {
+          const progressElement = document.querySelector('[data-progress]') || 
+                                 document.querySelector('.progress') ||
+                                 document.querySelector('[class*="progress"]');
+          if (progressElement) {
+            localStorage.setItem(`onboarding-tip-${userId}`, 'true');
+            setIsLoading(false);
+            return;
+          }
+        }
+
         // Check localStorage first (fastest check)
         const hasSeenTip = localStorage.getItem(`onboarding-tip-${userId}`);
         if (hasSeenTip) {
@@ -29,21 +43,34 @@ export function OnboardingTip({ userId }: OnboardingTipProps) {
         const hydrationLogs = await getHydrationLogs();
         const hasHydrationData = hydrationLogs && hydrationLogs.length > 0;
 
-        // Check if user profile indicates they're new (created recently)
-        const isNewProfile = userProfile?.createdAt 
-          ? new Date().getTime() - new Date(userProfile.createdAt).getTime() < 24 * 60 * 60 * 1000 // Less than 24 hours old
-          : true; // If no createdAt, assume new
+        // STRICT RULE: If user has ANY hydration data, they are a returning user
+        // Never show welcome modal to returning users, regardless of profile age
+        if (hasHydrationData) {
+          // Mark as seen to prevent future checks
+          localStorage.setItem(`onboarding-tip-${userId}`, 'true');
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if user profile indicates they're very new (created in last 2 hours)
+        const isVeryNewProfile = userProfile?.createdAt 
+          ? new Date().getTime() - new Date(userProfile.createdAt).getTime() < 2 * 60 * 60 * 1000 // Less than 2 hours old
+          : false; // If no createdAt, assume NOT new (safer default)
 
         // Only show tip if:
         // 1. User hasn't seen it before (localStorage)
-        // 2. AND they have no hydration data (new user)
-        // 3. OR their profile is less than 24 hours old
-        if (!hasSeenTip && (!hasHydrationData || isNewProfile)) {
+        // 2. AND they have no hydration data (confirmed new user)  
+        // 3. AND their profile is very new (less than 2 hours old)
+        if (!hasSeenTip && !hasHydrationData && isVeryNewProfile) {
           setShowTip(true);
+        } else {
+          // Mark as seen to prevent future annoyance
+          localStorage.setItem(`onboarding-tip-${userId}`, 'true');
         }
       } catch (error) {
         console.error('Error checking user status:', error);
-        // On error, don't show tip to avoid annoying returning users
+        // On error, mark as seen to avoid annoying users
+        localStorage.setItem(`onboarding-tip-${userId}`, 'true');
       } finally {
         setIsLoading(false);
       }
