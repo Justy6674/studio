@@ -6,7 +6,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       allowedOrigins: [
         "localhost:*",
-        "127.0.0.1:*"
+        "127.0.0.1:*",
+        "localhost:3000",
+        "hydrateai-ayjow.vercel.app"
       ]
     },
     optimizePackageImports: ['lucide-react']
@@ -121,7 +123,15 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
           },
         ],
       },

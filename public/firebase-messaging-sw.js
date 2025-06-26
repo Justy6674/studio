@@ -1,47 +1,30 @@
 // Firebase Cloud Messaging Service Worker
 // Handles background push notifications and vibrations
-// Environment variables are injected at build time
 
 // Import Firebase scripts
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js');
 
-// Firebase configuration - loaded from API endpoint
-let firebaseConfig = null;
-let messaging = null;
+// Firebase configuration - environment variables injected at build time
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
 
-// Load Firebase config and initialize
-async function initializeFirebase() {
-  try {
-    const response = await fetch('/api/firebase-config');
-    firebaseConfig = await response.json();
-    
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    
-    // Initialize Firebase Cloud Messaging
-    messaging = firebase.messaging();
-    
-    console.log('[firebase-messaging-sw.js] Firebase initialized successfully');
-    return true;
-  } catch (error) {
-    console.error('[firebase-messaging-sw.js] Failed to initialize Firebase:', error);
-    return false;
-  }
-}
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
 
-// Initialize Firebase when service worker loads
-initializeFirebase();
+// Initialize Firebase Cloud Messaging
+const messaging = firebase.messaging();
 
-// Handle background messages (setup after Firebase is initialized)
-async function setupBackgroundMessageHandler() {
-  const initialized = await initializeFirebase();
-  if (!initialized || !messaging) {
-    console.error('[firebase-messaging-sw.js] Cannot setup background message handler - Firebase not initialized');
-    return;
-  }
+console.log('[firebase-messaging-sw.js] Firebase initialized successfully');
 
-  messaging.onBackgroundMessage((payload) => {
+// Handle background messages
+messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
   const notificationTitle = payload.notification?.title || 'Water4WeightLoss';
@@ -78,11 +61,7 @@ async function setupBackgroundMessageHandler() {
   }
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
-  });
-}
-
-// Setup background message handler
-setupBackgroundMessageHandler();
+});
 
 // Handle notification click events
 self.addEventListener('notificationclick', (event) => {
