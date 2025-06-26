@@ -4,14 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import { Bell, Smartphone, Watch, Vibrate, Volume2, TestTube2 } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { fcmService, initializeFCM, testFCMNotification } from '@/lib/fcm';
 import { useAuth } from '@/hooks/useAuth';
-import { availableTones, notificationFrequencies, MotivationTone, NotificationFrequency, notificationTypes, NotificationTypeConfig, NotificationType, DaySplitConfig, defaultDaySplits, DaySplitTarget } from '@/lib/types';
+import { MotivationTone, NotificationFrequency } from '@/lib/types';
 import { doc, setDoc, getFirestore } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 
@@ -20,49 +18,78 @@ interface NotificationSettingsProps {
     fcmEnabled?: boolean;
     motivationTone?: MotivationTone;
     notificationFrequency?: NotificationFrequency;
-    vibrationEnabled?: boolean;
-    smartwatchEnabled?: boolean;
     fcmToken?: string;
-    enabledNotificationTypes?: NotificationType[];
-    customNotificationIntervals?: Record<NotificationType, number>;
-    daySplitConfig?: DaySplitConfig;
   };
   onSettingsChange?: (settings: any) => void;
 }
 
 export function NotificationSettings({ initialSettings, onSettingsChange }: NotificationSettingsProps) {
   const { user } = useAuth();
+  
+  // Core state
   const [fcmEnabled, setFcmEnabled] = useState(initialSettings?.fcmEnabled || false);
   const [motivationTone, setMotivationTone] = useState<MotivationTone>(initialSettings?.motivationTone ?? 'kind');
   const [notificationFrequency, setNotificationFrequency] = useState<NotificationFrequency>(initialSettings?.notificationFrequency ?? 'moderate');
-  const [vibrationEnabled, setVibrationEnabled] = useState(initialSettings?.vibrationEnabled ?? true);
-  const [smartwatchEnabled, setSmartWatchEnabled] = useState(initialSettings?.smartwatchEnabled ?? false);
   const [fcmToken, setFcmToken] = useState<string | null>(initialSettings?.fcmToken || null);
+  
+  // UI state
   const [isInitializing, setIsInitializing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
   const [vapidKeyMissing, setVapidKeyMissing] = useState(false);
-  
-  // New state for enhanced notifications
-  const [enabledNotificationTypes, setEnabledNotificationTypes] = useState<NotificationType[]>(
-    initialSettings?.enabledNotificationTypes ?? ['drink', 'glass']
-  );
-  const [customIntervals, setCustomIntervals] = useState<Record<NotificationType, number>>(
-    initialSettings?.customNotificationIntervals ?? {
-      sip: 15,
-      glass: 60,
-      walk: 90,
-      drink: 45,
-      herbal_tea: 120,
-      milestone: 0
+  const [lastTestTime, setLastTestTime] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Tone definitions with live preview
+  const tones: Record<MotivationTone, { label: string; emoji: string; preview: string }> = {
+    funny: {
+      label: 'Funny',
+      emoji: '😂',
+      preview: 'Your water bottle is feeling lonely... maybe give it a visit? 😂'
+    },
+    kind: {
+      label: 'Kind',
+      emoji: '😊',
+      preview: 'A gentle reminder to stay hydrated, you\'re doing great! 😊'
+    },
+    motivational: {
+      label: 'Motivational',
+      emoji: '💪',
+      preview: 'You\'ve got this! Every sip brings you closer to your goal! 💪'
+    },
+    sarcastic: {
+      label: 'Sarcastic',
+      emoji: '🙄',
+      preview: 'Oh look, your water goal is still waiting... how surprising 🙄'
+    },
+    strict: {
+      label: 'Strict',
+      emoji: '🧐',
+      preview: 'Drink water. Now. Your body needs it. No excuses. 🧐'
+    },
+    supportive: {
+      label: 'Supportive',
+      emoji: '🤗',
+      preview: 'Hey, just checking in - how about some water to keep you feeling amazing? 🤗'
+    },
+    crass: {
+      label: 'Crass',
+      emoji: '💥',
+      preview: 'Seriously mate, your hydration game is weaker than decaf coffee! 💥'
+    },
+    weightloss: {
+      label: 'Weight Loss',
+      emoji: '🏋️‍♀️',
+      preview: 'Water boosts metabolism and burns calories - drink up for those weight goals! 🏋️‍♀️'
     }
-  );
-  const [daySplitConfig, setDaySplitConfig] = useState<DaySplitConfig>(
-    initialSettings?.daySplitConfig ?? {
-      enabled: false,
-      splits: defaultDaySplits
-    }
-  );
+  };
+
+  // Frequency definitions
+  const frequencies: Record<NotificationFrequency, { label: string; description: string }> = {
+    minimal: { label: 'Minimal', description: 'You\'ll receive ~2 reminders per day' },
+    moderate: { label: 'Moderate', description: 'You\'ll receive ~4 reminders per day' },
+    frequent: { label: 'Frequent', description: 'You\'ll receive ~8 reminders per day' }
+  };
 
   useEffect(() => {
     // Check current notification permission status
@@ -71,76 +98,45 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     }
   }, []);
 
-  const toneDescriptions: Record<MotivationTone, { description: string; example: string; emoji: string }> = {
-    funny: {
-      description: 'Lighthearted and humorous',
-      example: '"Your water bottle is feeling lonely... maybe give it a visit? 😂"',
-      emoji: '😂'
-    },
-    kind: {
-      description: 'Gentle and encouraging',
-      example: '"A gentle reminder to stay hydrated, you\'re doing great! 😊"',
-      emoji: '😊'
-    },
-    motivational: {
-      description: 'Energetic and inspiring',
-      example: '"You\'ve got this! Every sip brings you closer to your goal! 💪"',
-      emoji: '💪'
-    },
-    sarcastic: {
-      description: 'Witty with a playful edge',
-      example: '"Oh look, your water goal is still waiting... how surprising 🙄"',
-      emoji: '🙄'
-    },
-    strict: {
-      description: 'Direct and authoritative',
-      example: '"Drink water. Now. Your body needs it. No excuses. 🧐"',
-      emoji: '🧐'
-    },
-    supportive: {
-      description: 'Caring and understanding',
-      example: '"Hey, just checking in - how about some water to keep you feeling amazing? 🤗"',
-      emoji: '🤗'
-    },
-    crass: {
-      description: 'Bold and unfiltered',
-      example: '"Seriously mate, your hydration game is weaker than decaf coffee! 💥"',
-      emoji: '💥'
-    },
-    weightloss: {
-      description: 'Focused on weight management',
-      example: '"Water boosts metabolism and burns calories - drink up for those weight goals! 🏋️‍♀️"',
-      emoji: '🏋️‍♀️'
+  const autoSave = async () => {
+    if (!user) return;
+
+    setSaveStatus('saving');
+    
+    try {
+      const db = getFirestore(app);
+      const userPrefsRef = doc(db, 'user_preferences', user.uid);
+      
+      const settings = {
+        fcmEnabled,
+        motivationTone,
+        notificationFrequency,
+        fcmToken,
+        updatedAt: new Date()
+      };
+
+      await setDoc(userPrefsRef, settings, { merge: true });
+      
+      if (onSettingsChange) {
+        onSettingsChange(settings);
+      }
+
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+      setSaveStatus('idle');
     }
   };
 
-  const toneLabels: Record<MotivationTone, string> = {
-    funny: 'Funny',
-    kind: 'Kind',
-    motivational: 'Motivational',
-    sarcastic: 'Sarcastic',
-    strict: 'Strict',
-    supportive: 'Supportive',
-    crass: 'Crass',
-    weightloss: 'Weight Loss'
-  };
-
-  const frequencyDescriptions: Record<NotificationFrequency, { description: string; interval: string }> = {
-    minimal: {
-      description: 'Essential reminders only',
-      interval: '2-3 times per day'
-    },
-    moderate: {
-      description: 'Balanced motivation',
-      interval: '4-6 times per day'
-    },
-    frequent: {
-      description: 'Regular encouragement',
-      interval: '8-12 times per day'
+  // Auto-save when settings change
+  useEffect(() => {
+    if (user && saveStatus === 'idle') {
+      autoSave();
     }
-  };
+  }, [fcmEnabled, motivationTone, notificationFrequency]);
 
-  const handleFCMToggle = async (enabled: boolean) => {
+  const handleMasterToggle = async (enabled: boolean) => {
     if (!user) {
       toast({
         variant: 'destructive',
@@ -184,11 +180,9 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
         
         toast({
           title: 'Push Notifications Disabled',
-          description: 'You can re-enable them anytime in settings'
+          description: 'You can re-enable them anytime'
         });
       }
-
-      await saveSettings();
     } catch (error) {
       console.error('FCM toggle error:', error);
       
@@ -201,7 +195,7 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
       } else {
         toast({
           variant: 'destructive',
-          title: 'Notification Setup Failed',
+          title: 'Setup Failed',
           description: 'Please check browser permissions and try again'
         });
       }
@@ -210,52 +204,30 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     }
   };
 
-  const saveSettings = async () => {
-    if (!user) return;
-
+  const handleGrantPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    
     try {
-      const db = getFirestore(app);
-      const userPrefsRef = doc(db, 'user_preferences', user.uid);
+      const permission = await Notification.requestPermission();
+      setPermissionStatus(permission);
       
-      const settings = {
-        fcmEnabled,
-        motivationTone,
-        notificationFrequency,
-        vibrationEnabled,
-        smartwatchEnabled,
-        fcmToken,
-        enabledNotificationTypes,
-        customNotificationIntervals: customIntervals,
-        daySplitConfig,
-        updatedAt: new Date()
-      };
-
-      await setDoc(userPrefsRef, settings, { merge: true });
-      
-      if (onSettingsChange) {
-        onSettingsChange(settings);
+      if (permission === 'granted') {
+        toast({
+          title: 'Permission Granted! ✅',
+          description: 'You can now receive push notifications'
+        });
       }
-
-      console.log('Notification settings saved successfully');
     } catch (error) {
-      console.error('Error saving notification settings:', error);
       toast({
         variant: 'destructive',
-        title: 'Save Failed',
-        description: 'Could not save notification settings'
+        title: 'Permission Failed',
+        description: 'Could not grant notification permission'
       });
     }
   };
 
   const handleTestNotification = async () => {
-    if (!user || !fcmEnabled) {
-      toast({
-        variant: 'destructive',
-        title: 'Cannot Test',
-        description: 'Please enable notifications first'
-      });
-      return;
-    }
+    if (!user || !fcmEnabled) return;
 
     setIsTesting(true);
     
@@ -263,6 +235,9 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
       const result = await testFCMNotification(user.uid, motivationTone);
       
       if (result.success) {
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setLastTestTime(now);
+        
         toast({
           title: 'Test Notification Sent! 🎉',
           description: 'Check your device for the notification'
@@ -282,111 +257,53 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     }
   };
 
-  // Auto-save when settings change
-  useEffect(() => {
-    if (user) {
-      saveSettings();
-    }
-  }, [motivationTone, notificationFrequency, vibrationEnabled, smartwatchEnabled, enabledNotificationTypes, customIntervals, daySplitConfig]);
-
-  const handleNotificationTypeToggle = (type: NotificationType, enabled: boolean) => {
-    if (enabled) {
-      setEnabledNotificationTypes(prev => [...prev, type]);
-    } else {
-      setEnabledNotificationTypes(prev => prev.filter(t => t !== type));
-    }
-  };
-
-  const handleIntervalChange = (type: NotificationType, interval: number) => {
-    setCustomIntervals(prev => ({
-      ...prev,
-      [type]: interval
-    }));
-  };
-
-  const handleDaySplitToggle = (enabled: boolean) => {
-    setDaySplitConfig(prev => ({
-      ...prev,
-      enabled
-    }));
-  };
-
-  const handleSplitTargetChange = (index: number, field: keyof DaySplitTarget, value: any) => {
-    setDaySplitConfig(prev => ({
-      ...prev,
-      splits: prev.splits.map((split, i) => 
-        i === index ? { ...split, [field]: value } : split
-      )
-    }));
-  };
-
   return (
     <div className="space-y-6">
-      {/* FCM Push Notifications */}
+      {/* 1. Master Switch */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
             Push Notifications
+            {saveStatus === 'saved' && (
+              <Badge variant="outline" className="text-green-600 ml-auto">
+                <Check className="h-3 w-3 mr-1" />
+                Saved
+              </Badge>
+            )}
           </CardTitle>
           <CardDescription>
-            Get AI-powered hydration reminders sent directly to your device
+            Enable or disable all hydration reminders
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="font-medium">Enable Push Notifications</p>
               <p className="text-sm text-muted-foreground">
-                Receive reminders even when the app is closed
+                Receive AI-powered hydration reminders directly to your device
               </p>
             </div>
             <Switch
               checked={fcmEnabled}
-              onCheckedChange={handleFCMToggle}
+              onCheckedChange={handleMasterToggle}
               disabled={isInitializing}
             />
           </div>
 
-          {permissionStatus !== 'granted' && !fcmEnabled && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                <strong>Enable push notifications to unlock:</strong>
-              </p>
-              <ul className="text-sm text-yellow-700 mt-2 space-y-1">
-                <li>• 6 granular notification types (sip, glass, walk, drink, herbal tea, milestones)</li>
-                <li>• Custom reminder intervals (5-480 minutes)</li>
-                <li>• Day-splitting targets with confetti celebrations</li>
-                <li>• 8 AI personality tones with custom vibration patterns</li>
-                <li>• Smartwatch integration and device synchronization</li>
-              </ul>
-            </div>
-          )}
-
           {isInitializing && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
                 <strong>Setting up push notifications...</strong>
               </p>
               <p className="text-sm text-blue-700 mt-1">
-                This may take a moment. Please allow notifications when prompted by your browser.
-              </p>
-            </div>
-          )}
-
-          {!fcmEnabled && permissionStatus === 'denied' && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">
-                <strong>Push notifications are blocked</strong>
-              </p>
-              <p className="text-sm text-red-700 mt-1">
-                To enable notifications: Click the lock icon in your browser's address bar → Allow notifications → Refresh this page.
+                Please allow notifications when prompted by your browser.
               </p>
             </div>
           )}
 
           {vapidKeyMissing && (
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
               <p className="text-sm text-orange-800 font-semibold mb-2">
                 🔧 Push Notifications Setup Required
               </p>
@@ -405,307 +322,130 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
                   <li>Go to Cloud Messaging tab</li>
                   <li>In "Web configuration" section, click "Generate key pair"</li>
                   <li>Copy the key and add it to Vercel environment variables</li>
-                  <li>Redeploy your app or restart development server</li>
+                  <li>Redeploy your app</li>
                 </ol>
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
 
-          {fcmToken && (
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-green-600">
-                <Smartphone className="h-3 w-3 mr-1" />
-                Connected
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTestNotification}
-                disabled={isTesting || !fcmEnabled}
-                className="ml-auto"
-              >
-                <TestTube2 className="h-4 w-4 mr-1" />
-                {isTesting ? 'Testing...' : 'Test Notification'}
+      {/* 2. Frequency - Only show if master is enabled */}
+      {fcmEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Frequency</CardTitle>
+            <CardDescription>
+              How often you want to receive reminders
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2">
+              {(Object.keys(frequencies) as NotificationFrequency[]).map((freq) => (
+                <button
+                  key={freq}
+                  onClick={() => setNotificationFrequency(freq)}
+                  className={`p-3 rounded-lg border text-center transition-colors ${
+                    notificationFrequency === freq
+                      ? 'bg-blue-50 border-blue-200 text-blue-800'
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="font-medium">{frequencies[freq].label}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              {frequencies[notificationFrequency].description}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 3. Tone Selection - Only show if master is enabled */}
+      {fcmEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Personality Tone</CardTitle>
+            <CardDescription>
+              Choose how your hydration coach talks to you
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(tones) as MotivationTone[]).map((tone) => (
+                <button
+                  key={tone}
+                  onClick={() => setMotivationTone(tone)}
+                  className={`p-3 rounded-lg border text-left transition-colors group ${
+                    motivationTone === tone
+                      ? 'bg-blue-50 border-blue-200 text-blue-800'
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}
+                  title={tones[tone].preview}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{tones[tone].emoji}</span>
+                    <span className="font-medium">{tones[tone].label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            
+            {/* Live Preview */}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-700 mb-1">Preview:</p>
+              <p className="text-sm text-gray-600 italic">
+                "{tones[motivationTone].preview}"
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 4. Permission & Test - Only show if master is enabled */}
+      {fcmEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Permission & Test</CardTitle>
+            <CardDescription>
+              Grant browser permissions and test your notifications
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {permissionStatus !== 'granted' ? (
+              <Button onClick={handleGrantPermission} className="w-full">
+                Grant Notification Permission
               </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Notification Types Preview/Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notification Types
-            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
-          </CardTitle>
-          <CardDescription>
-            {fcmEnabled 
-              ? "Choose which types of hydration reminders you want to receive"
-              : "Available notification types when push notifications are enabled"
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {notificationTypes.filter(nt => nt.type !== 'milestone').map((notifType) => (
-            <div key={notifType.type} className={`flex items-center justify-between p-4 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{notifType.emoji}</span>
-                <div>
-                  <h4 className="font-medium">{notifType.label}</h4>
-                  <p className="text-sm text-muted-foreground">{notifType.description}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                {(fcmEnabled && enabledNotificationTypes.includes(notifType.type)) && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm">Every</label>
-                    <input
-                      type="number"
-                      min="5"
-                      max="480"
-                      value={customIntervals[notifType.type]}
-                      onChange={(e) => handleIntervalChange(notifType.type, parseInt(e.target.value))}
-                      className="w-16 px-2 py-1 text-sm border rounded"
-                    />
-                    <span className="text-sm text-muted-foreground">min</span>
-                  </div>
-                )}
-                {!fcmEnabled && (
-                  <Badge variant="outline" className="text-xs">
-                    {notifType.type === 'sip' ? '15min' : 
-                     notifType.type === 'glass' ? '60min' :
-                     notifType.type === 'walk' ? '90min' :
-                     notifType.type === 'drink' ? '45min' :
-                     notifType.type === 'herbal_tea' ? '120min' : '30min'}
-                  </Badge>
-                )}
-                <Switch
-                  checked={fcmEnabled && enabledNotificationTypes.includes(notifType.type)}
-                  onCheckedChange={(checked) => fcmEnabled && handleNotificationTypeToggle(notifType.type, checked)}
-                  disabled={!fcmEnabled}
-                />
-              </div>
-            </div>
-          ))}
-          
-          {!fcmEnabled && (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">
-                Enable push notifications above to customize these settings
+            ) : (
+              <Button 
+                onClick={handleTestNotification} 
+                disabled={isTesting}
+                className="w-full"
+              >
+                {isTesting ? 'Sending Test...' : 'Send Test Notification'}
+              </Button>
+            )}
+            
+            {lastTestTime && (
+              <p className="text-sm text-muted-foreground text-center">
+                Last test sent at {lastTestTime}
               </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Day Splitting Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="text-2xl">🎯</div>
-            Day Splitting Targets
-            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
-          </CardTitle>
-          <CardDescription>
-            Break your day into hydration milestones with confetti celebrations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className={`flex items-center justify-between p-4 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
-            <div>
-              <h4 className="font-medium">Enable Day Splitting</h4>
-              <p className="text-sm text-muted-foreground">
-                Get milestone alerts with confetti when you hit targets throughout the day
-              </p>
-            </div>
-            <Switch
-              checked={fcmEnabled && daySplitConfig.enabled}
-              onCheckedChange={(enabled) => fcmEnabled && handleDaySplitToggle(enabled)}
-              disabled={!fcmEnabled}
-            />
-          </div>
-
-          {/* Always show preview of day splits */}
-          <div className="space-y-4">
-            <h5 className="font-medium flex items-center gap-2">
-              Milestone Targets
-              {!fcmEnabled && <span className="text-xs text-muted-foreground">(Preview)</span>}
-            </h5>
-            {(fcmEnabled ? daySplitConfig.splits : defaultDaySplits).map((split, index) => (
-              <div key={index} className={`p-4 border rounded-lg space-y-3 ${!fcmEnabled ? 'opacity-60' : ''}`}>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium">Time</label>
-                    <input
-                      type="time"
-                      value={split.time}
-                      onChange={(e) => fcmEnabled && handleSplitTargetChange(index, 'time', e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border rounded"
-                      disabled={!fcmEnabled}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-sm font-medium">Target (ml)</label>
-                    <input
-                      type="number"
-                      min="250"
-                      max="5000"
-                      step="250"
-                      value={split.targetMl}
-                      onChange={(e) => fcmEnabled && handleSplitTargetChange(index, 'targetMl', parseInt(e.target.value))}
-                      className="w-full mt-1 px-3 py-2 border rounded"
-                      disabled={!fcmEnabled}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium">Label</label>
-                    <input
-                      type="text"
-                      value={split.label}
-                      onChange={(e) => fcmEnabled && handleSplitTargetChange(index, 'label', e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border rounded"
-                      placeholder="e.g., Morning Target"
-                      disabled={!fcmEnabled}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={fcmEnabled && split.confettiEnabled}
-                      onCheckedChange={(checked) => fcmEnabled && handleSplitTargetChange(index, 'confettiEnabled', checked)}
-                      disabled={!fcmEnabled}
-                    />
-                    <label className="text-sm">Confetti</label>
-                  </div>
-                </div>
+            )}
+            
+            {permissionStatus === 'denied' && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">
+                  <strong>Notifications are blocked</strong>
+                </p>
+                <p className="text-sm text-red-700 mt-1">
+                  To enable: Click the lock icon in your browser's address bar → Allow notifications → Refresh this page.
+                </p>
               </div>
-            ))}
-            <div className="text-sm text-muted-foreground p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <strong>Example:</strong> Set 10:00 AM for 1L, 3:00 PM for 2L, and 8:00 PM for 3L to break your day into thirds with celebration confetti!
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tone Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Volume2 className="h-5 w-5" />
-            AI Notification Tone
-            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
-          </CardTitle>
-          <CardDescription>
-            Choose the AI personality style for your hydration reminders
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Motivation Style</label>
-            <Select 
-              value={motivationTone} 
-              onValueChange={(value: MotivationTone) => setMotivationTone(value)}
-              disabled={!fcmEnabled}
-            >
-              <SelectTrigger className={!fcmEnabled ? 'opacity-60' : ''}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableTones.map((tone) => (
-                  <SelectItem key={tone} value={tone}>
-                    <div className="flex items-center gap-2">
-                      <span>{toneDescriptions[tone].emoji}</span>
-                      <span>{toneLabels[tone]}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Always show tone preview */}
-          <div className={`p-4 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
-            <div className="space-y-2">
-                             <div className="flex items-center gap-2">
-                 <span className="text-lg">{toneDescriptions[motivationTone].emoji}</span>
-                 <span className="font-medium">
-                   {toneLabels[motivationTone]}
-                 </span>
-               </div>
-              <p className="text-sm text-muted-foreground">
-                {toneDescriptions[motivationTone].description}
-              </p>
-              <div className="text-sm italic text-blue-600 bg-blue-50 p-2 rounded">
-                {toneDescriptions[motivationTone].example}
-              </div>
-            </div>
-          </div>
-
-          {!fcmEnabled && (
-            <div className="text-center py-2">
-              <p className="text-sm text-muted-foreground">
-                Enable push notifications to activate AI tone customization
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Device Features */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Vibrate className="h-5 w-5" />
-            Device Features
-            {!fcmEnabled && <Badge variant="secondary">Preview</Badge>}
-          </CardTitle>
-          <CardDescription>
-            Enhance notifications with vibration and smartwatch support
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className={`flex items-center justify-between p-3 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
-            <div className="flex items-center gap-3">
-              <Vibrate className="h-5 w-5" />
-              <div>
-                <p className="font-medium">Vibration Patterns</p>
-                <p className="text-sm text-muted-foreground">Custom vibration for each tone</p>
-              </div>
-            </div>
-            <Switch
-              checked={fcmEnabled && vibrationEnabled}
-              onCheckedChange={setVibrationEnabled}
-              disabled={!fcmEnabled}
-            />
-          </div>
-
-          <div className={`flex items-center justify-between p-3 border rounded-lg ${!fcmEnabled ? 'opacity-60' : ''}`}>
-            <div className="flex items-center gap-3">
-              <Watch className="h-5 w-5" />
-              <div>
-                <p className="font-medium">Smartwatch Integration</p>
-                <p className="text-sm text-muted-foreground">Forward notifications to wearables</p>
-              </div>
-            </div>
-            <Switch
-              checked={fcmEnabled && smartwatchEnabled}
-              onCheckedChange={setSmartWatchEnabled}
-              disabled={!fcmEnabled}
-            />
-          </div>
-
-          {!fcmEnabled && (
-            <div className="text-center py-2">
-              <p className="text-sm text-muted-foreground">
-                Enable push notifications to access device features
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 } 
