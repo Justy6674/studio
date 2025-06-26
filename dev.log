@@ -1438,3 +1438,17 @@ Firebase Admin SDK already initialized.
  GET /dashboard 200 in 742ms
  GET /dashboard 200 in 13ms
  GET /dashboard 200 in 11ms
+ ✓ Compiled in 1498ms (6355 modules)
+ ✓ Compiled /dashboard in 310ms (4317 modules)
+ GET /dashboard 200 in 431ms
+ ✓ Compiled in 1199ms (6997 modules)
+ GET /dashboard 200 in 100ms
+ ✓ Compiled in 718ms (6997 modules)
+ GET /dashboard 200 in 103ms
+ ✓ Compiled in 1067ms (6997 modules)
+ GET /dashboard 200 in 98ms
+ ✓ Compiled in 1631ms (6997 modules)
+ GET /dashboard 200 in 185ms
+ ✓ Compiled in 1133ms (6997 modules)
+ GET /dashboard 200 in 184ms
+[?25h

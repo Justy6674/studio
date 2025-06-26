@@ -34,7 +34,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-secondary/50 dark:bg-background">
       <Header />
-      <main className="flex-1 container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 py-4">
         {children}
       </main>
       <footer className="py-6 text-center text-xs text-muted-foreground border-t border-border">

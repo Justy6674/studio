@@ -430,7 +430,7 @@ export default function DashboardPage() {
   }
   
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8">
+    <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 mx-auto">
       
       {/* Celebrations Layer */}
       {showStreakCelebration && <StreakCelebration streak={dailyStreak} isNewRecord={longestStreak === dailyStreak && dailyStreak > 0} onDismiss={() => setShowStreakCelebration(false)} />}
@@ -460,24 +460,24 @@ export default function DashboardPage() {
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-4">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Droplets className="h-4 w-4" />
-            Overview
+            <span className="hidden xs:inline">Overview</span>
           </TabsTrigger>
           <TabsTrigger value="metrics" className="flex items-center gap-2">
             <Scale className="h-4 w-4" />
-            Metrics
+            <span className="hidden xs:inline">Metrics</span>
           </TabsTrigger>
           <TabsTrigger value="exports" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Export
+            <span className="hidden xs:inline">Export</span>
           </TabsTrigger>
           <TabsTrigger value="info" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
-            Info
+            <span className="hidden xs:inline">Info</span>
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="p-6 space-y-4">
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="w-full rounded-2xl p-4 space-y-4">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-4 w-4" />
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                 <HydrationProgressRing progress={hydrationPercentage} />
               </CardContent>
             </Card>
-            <Card className="p-6 space-y-4">
+            <Card className="w-full rounded-2xl p-4 space-y-4">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Droplets className="h-4 w-4" />
@@ -501,7 +501,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <Card className="p-6 space-y-4">
+          <Card className="w-full rounded-2xl p-4 space-y-4">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Flame className="h-5 w-5 text-orange-500" />
@@ -513,7 +513,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="w-full rounded-2xl p-4 space-y-4">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart className="h-4 w-4" />
@@ -536,17 +536,23 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="metrics" className="space-y-6">
-          <BodyMetricsTracker />
+        <TabsContent value="metrics" className="space-y-4">
+          <div className="w-full">
+            <BodyMetricsTracker />
+          </div>
         </TabsContent>
-        <TabsContent value="exports" className="space-y-6">
-          <ExportCenter
-            userName={userName}
-            hydrationLogs={hydrationLogs}
-          />
+        <TabsContent value="exports" className="space-y-4">
+          <div className="w-full">
+            <ExportCenter
+              userName={userName}
+              hydrationLogs={hydrationLogs}
+            />
+          </div>
         </TabsContent>
-        <TabsContent value="info" className="space-y-6">
-          <InfoCards />
+        <TabsContent value="info" className="space-y-4">
+          <div className="w-full">
+            <InfoCards />
+          </div>
         </TabsContent>
       </Tabs>
 
