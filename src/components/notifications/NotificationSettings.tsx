@@ -250,6 +250,12 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
 
   return (
     <div className="space-y-6">
+      {/* OBVIOUS VISUAL INDICATOR - NEW NOTIFICATION SETTINGS */}
+      <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-lg text-center">
+        <h2 className="text-xl font-bold">🎉 NEW iOS-STYLE NOTIFICATION SETTINGS 🎉</h2>
+        <p className="text-sm mt-1">This is the comprehensive notification system you requested!</p>
+      </div>
+
       {/* Save Status Indicator */}
       {saveStatus === 'saving' && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
