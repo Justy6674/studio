@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const progressPercentage = Math.min((currentIntake / goal) * 100, 100);
     const tone = preferences?.tone || 'encouraging';
