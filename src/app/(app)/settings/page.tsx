@@ -70,38 +70,28 @@ export default function SettingsPage() {
       if (!user?.uid) return;
       
       try {
-        const requestPayload = {
-          userId: user.uid
-        };
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('@/lib/firebase');
         
-        const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchUserSettings';
-        console.debug('🔥 Firebase Function Call - fetchUserSettings:', { url, payload: requestPayload });
+        const fetchUserSettingsFunction = httpsCallable(functions, 'fetchUserSettings');
+        console.debug('🔥 Firebase Function Call - fetchUserSettings');
         
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestPayload),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          console.debug('✅ Firebase Function Response - fetchUserSettings:', data);
-          const settings = data.settings;
-          
-          setFcmEnabled(settings.fcmEnabled || false);
-          setVibrationEnabled(settings.vibrationEnabled !== undefined ? settings.vibrationEnabled : true);
-          setVibrationIntensity(settings.vibrationIntensity || 'medium');
-          setMotivationTone(settings.motivationTone || 'kind');
-          setNotificationFrequency(settings.notificationFrequency || 'moderate');
-          setTimeWindows(settings.timeWindows || ['morning', 'afternoon']);
-          setSmsEnabled(settings.smsEnabled || false);
-          setSmsMaxPerDay(settings.smsMaxPerDay || 1);
-          
-          console.log('✅ Settings loaded from Firebase:', settings);
-        } else {
-          console.error('❌ Failed to load settings from Firebase');
-        }
+        const result = await fetchUserSettingsFunction({});
+        console.debug('✅ Firebase Function Response - fetchUserSettings:', result.data);
+        
+        const data = result.data as any;
+        const settings = data.settings;
+        
+        setFcmEnabled(settings.fcmEnabled || false);
+        setVibrationEnabled(settings.vibrationEnabled !== undefined ? settings.vibrationEnabled : true);
+        setVibrationIntensity(settings.vibrationIntensity || 'medium');
+        setMotivationTone(settings.motivationTone || 'kind');
+        setNotificationFrequency(settings.notificationFrequency || 'moderate');
+        setTimeWindows(settings.timeWindows || ['morning', 'afternoon']);
+        setSmsEnabled(settings.smsEnabled || false);
+        setSmsMaxPerDay(settings.smsMaxPerDay || 1);
+        
+        console.log('✅ Settings loaded from Firebase:', settings);
       } catch (error) {
         console.error('❌ Error loading settings:', error);
       }
@@ -115,6 +105,9 @@ export default function SettingsPage() {
     if (!user?.uid) return;
     
     try {
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('@/lib/firebase');
+      
       const settings = {
         fcmEnabled,
         vibrationEnabled,
@@ -126,29 +119,11 @@ export default function SettingsPage() {
         smsMaxPerDay
       };
       
-      const requestPayload = {
-        userId: user.uid,
-        settings: settings
-      };
+      const updateUserSettingsFunction = httpsCallable(functions, 'updateUserSettings');
+      console.debug('🔥 Firebase Function Call - updateUserSettings:', settings);
       
-      const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/updateUserSettings';
-      console.debug('🔥 Firebase Function Call - updateUserSettings:', { url, payload: requestPayload });
-      
-      // Save to Firebase via API
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save settings');
-      }
-      
-      const result = await response.json();
-      console.debug('✅ Firebase Function Response - updateUserSettings:', result);
+      const result = await updateUserSettingsFunction(settings);
+      console.debug('✅ Firebase Function Response - updateUserSettings:', result.data);
       console.log('✅ Settings saved to Firebase');
     } catch (error) {
       console.error('❌ Failed to save settings:', error);

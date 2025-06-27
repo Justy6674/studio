@@ -144,7 +144,7 @@ exports.sendHydrationReminder = (0, firebase_1.createAuthenticatedFunction)(asyn
           Ensure each message is unique, engaging, and NEVER repetitive.
           Keep it under 100 characters for mobile notifications.
         `;
-            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + functions.config().gemini.api_key, {
+            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + functions.config().gemini.api_key, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

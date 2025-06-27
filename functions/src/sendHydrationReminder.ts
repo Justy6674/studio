@@ -148,7 +148,7 @@ export const sendHydrationReminder = createAuthenticatedFunction<HydrationRemind
           Keep it under 100 characters for mobile notifications.
         `;
 
-        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + functions.config().gemini.api_key, {
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + functions.config().gemini.api_key, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

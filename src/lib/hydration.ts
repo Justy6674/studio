@@ -1,6 +1,7 @@
 'use client';
 
-import { auth } from "@/lib/firebase";
+import { auth, functions } from "@/lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import type { HydrationLog } from "@/lib/types";
 
 // Enhanced hydration logging using Firebase Functions
@@ -14,30 +15,13 @@ export async function logHydration(amount: number): Promise<{ success?: string; 
   }
 
   try {
-    const requestPayload = {
-      userId: user.uid,
-      amount
-    };
+    const logHydrationFunction = httpsCallable(functions, 'logHydration');
+    console.debug('🔥 Firebase Function Call - logHydration:', { amount });
     
-    const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/logHydration';
-    console.debug('🔥 Firebase Function Call - logHydration:', { url, payload: requestPayload });
+    const result = await logHydrationFunction({ amount });
+    console.debug('✅ Firebase Function Response - logHydration:', result.data);
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to log hydration: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.debug('✅ Firebase Function Response - logHydration:', result);
-    
-    return { success: result.message || "Hydration logged successfully!" };
+    return { success: (result.data as any).message || "Hydration logged successfully!" };
   } catch (error: unknown) {
     console.error("❌ Error logging hydration:", error);
     return { error: (error as Error).message || "Failed to log hydration." };
@@ -56,39 +40,26 @@ export async function logOtherDrink(
   }
 
   try {
-    const requestPayload = {
-      userId: user.uid,
-      amount,
-      drinkType,
-      drinkName,
-      hydrationPercentage
-    };
-    
-    const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/logHydration';
-    console.debug('🔥 Firebase Function Call - logOtherDrink:', { url, payload: requestPayload });
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload),
+    const logHydrationFunction = httpsCallable(functions, 'logHydration');
+    console.debug('🔥 Firebase Function Call - logOtherDrink:', { 
+      amount, drinkType, drinkName, hydrationPercentage 
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to log drink: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.debug('✅ Firebase Function Response - logOtherDrink:', result);
+    
+    const result = await logHydrationFunction({ 
+      amount, 
+      drinkType, 
+      drinkName, 
+      hydrationPercentage 
+    });
+    console.debug('✅ Firebase Function Response - logOtherDrink:', result.data);
     
     const successMessage = drinkType === 'water' 
       ? "Hydration logged successfully!" 
       : `${drinkName} logged successfully!`;
 
     return { 
-      success: result.message || successMessage,
-      isFirstTime: result.isFirstTime || false
+      success: (result.data as any).message || successMessage,
+      isFirstTime: (result.data as any).isFirstTime || false
     };
   } catch (error: unknown) {
     console.error("❌ Error logging other drink:", error);
@@ -104,29 +75,14 @@ export async function getHydrationLogs(): Promise<HydrationLog[]> {
   }
 
   try {
-    const requestPayload = {
-      userId: user.uid
-    };
+    const fetchHydrationLogsFunction = httpsCallable(functions, 'fetchHydrationLogs');
+    console.debug('🔥 Firebase Function Call - fetchHydrationLogs');
     
-    const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchHydrationLogs';
-    console.debug('🔥 Firebase Function Call - fetchHydrationLogs:', { url, payload: requestPayload });
+    const result = await fetchHydrationLogsFunction({});
+    console.debug('✅ Firebase Function Response - fetchHydrationLogs:', result.data);
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch hydration logs: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.debug('✅ Firebase Function Response - fetchHydrationLogs:', result);
-    
-    return (result.logs || []).map((log: any) => ({
+    const logs = (result.data as any).logs || [];
+    return logs.map((log: any) => ({
       id: log.id,
       userId: log.userId,
       amount: log.amount,
@@ -149,35 +105,20 @@ export async function getAIMotivation(hydrationGoal: number, debugMode = false):
   }
 
   try {
-    const requestPayload = {
-      userId: user.uid,
-      hydrationGoal,
-      debugMode
-    };
+    const generateMotivationalMessageFunction = httpsCallable(functions, 'generateMotivationalMessage');
+    console.debug('🔥 Firebase Function Call - generateMotivationalMessage:', { hydrationGoal, debugMode });
     
-    const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/generateMotivationalMessage';
-    console.debug('🔥 Firebase Function Call - generateMotivationalMessage:', { url, payload: requestPayload });
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload),
+    const result = await generateMotivationalMessageFunction({ 
+      hydrationGoal, 
+      debugMode 
     });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.debug('✅ Firebase Function Response - generateMotivationalMessage:', result);
+    console.debug('✅ Firebase Function Response - generateMotivationalMessage:', result.data);
     
     return { 
-      message: result.message || "Keep hydrating! 💧", 
-      source: result.source,
-      tone: result.tone,
-      debug: result.debug
+      message: (result.data as any).message || "Keep hydrating! 💧", 
+      source: (result.data as any).source,
+      tone: (result.data as any).tone,
+      debug: (result.data as any).debug
     };
     
   } catch (error) {

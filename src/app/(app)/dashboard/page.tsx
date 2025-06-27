@@ -89,43 +89,27 @@ export default function DashboardPage() {
       
       // Calculate streaks using deployed Firebase Function
       try {
-        const requestPayload = {
-          userId: user.uid
-        };
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('@/lib/firebase');
         
-        const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/getStreaks';
-        console.debug('🔥 Firebase Function Call - getStreaks:', { url, payload: requestPayload });
+        const getStreaksFunction = httpsCallable(functions, 'getStreaks');
+        console.debug('🔥 Firebase Function Call - getStreaks');
         
-        const streakResponse = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestPayload),
-        });
-
-        if (streakResponse.ok) {
-          const streakData = await streakResponse.json();
-          console.debug('✅ Firebase Function Response - getStreaks:', streakData);
-          const currentStreak = streakData.currentStreak || 0;
-          const maxStreak = streakData.longestStreak || 0;
-          
-          // Celebrate streak milestones
-          if (currentStreak > 0 && (currentStreak === 3 || currentStreak === 7 || currentStreak % 10 === 0)) {
-            setShowStreakCelebration(true);
-            setTimeout(() => setShowStreakCelebration(false), 3000);
-          }
-          
-          setDailyStreak(currentStreak);
-          setLongestStreak(maxStreak);
-        } else {
-          // Fallback to client-side calculation if Firebase Function fails
-          const dailyTotals = calculateDailyTotals(logs);
-          const { currentStreak, longestStreak: maxStreak } = calculateStreaks(dailyTotals, hydrationGoal);
-          
-          setDailyStreak(currentStreak);
-          setLongestStreak(maxStreak);
+        const result = await getStreaksFunction({});
+        console.debug('✅ Firebase Function Response - getStreaks:', result.data);
+        
+        const streakData = result.data as any;
+        const currentStreak = streakData.dailyStreak || 0;
+        const maxStreak = streakData.longestStreak || 0;
+        
+        // Celebrate streak milestones
+        if (currentStreak > 0 && (currentStreak === 3 || currentStreak === 7 || currentStreak % 10 === 0)) {
+          setShowStreakCelebration(true);
+          setTimeout(() => setShowStreakCelebration(false), 3000);
         }
+        
+        setDailyStreak(currentStreak);
+        setLongestStreak(maxStreak);
       } catch (streakError) {
         console.error('Error fetching streaks from Firebase Function, falling back to client-side calculation:', streakError);
         // Fallback to client-side calculation

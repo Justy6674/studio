@@ -85,29 +85,17 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const requestPayload = {
-        userId: user.uid
-      };
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('@/lib/firebase');
       
-      const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchHydrationLogs';
-      console.debug('🔥 Firebase Function Call - fetchHydrationLogs (Context):', { url, payload: requestPayload });
+      const fetchHydrationLogsFunction = httpsCallable(functions, 'fetchHydrationLogs');
+      console.debug('🔥 Firebase Function Call - fetchHydrationLogs (Context)');
       
-      // Use deployed Firebase Function instead of direct Firestore access
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch hydration logs: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.debug('✅ Firebase Function Response - fetchHydrationLogs (Context):', data);
+      // Use Firebase Functions SDK instead of raw HTTP
+      const result = await fetchHydrationLogsFunction({});
+      console.debug('✅ Firebase Function Response - fetchHydrationLogs (Context):', result.data);
       
+      const data = result.data as any;
       const logs = (data.logs || []).map((log: any) => 
         createHydrationRecord(log.amount, new Date(log.timestamp))
       );
