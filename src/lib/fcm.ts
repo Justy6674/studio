@@ -32,9 +32,9 @@ class FCMService {
 
   private async loadFirebaseConfig(): Promise<void> {
     try {
-      const response = await fetch('/api/firebase-config');
-      const config = await response.json();
-      this.vapidKey = config.vapidKey;
+      // Get Firebase config directly instead of API call
+      const { firebaseConfig } = await import('@/lib/firebase');
+      this.vapidKey = firebaseConfig.vapidKey;
       console.log('FCM: VAPID key loaded successfully');
     } catch (error) {
       console.error('FCM: Failed to load Firebase config:', error);
@@ -283,7 +283,43 @@ export const fcmService = FCMService.getInstance();
 
 // Convenience functions
 export async function initializeFCM(userId: string): Promise<string | null> {
-  return await fcmService.getRegistrationToken(userId);
+  if (typeof window === 'undefined') {
+    console.log('FCM: Window not available, skipping initialization');
+    return null;
+  }
+
+  try {
+    // Get Firebase config directly instead of API call
+    const { firebaseConfig } = await import('@/lib/firebase');
+    
+    if (!firebaseConfig.vapidKey) {
+      console.error('FCM: VAPID key not configured');
+      return null;
+    }
+
+    const messaging = getMessaging();
+    const permission = await Notification.requestPermission();
+    
+    if (permission !== 'granted') {
+      console.log('FCM: Notification permission denied');
+      return null;
+    }
+
+    const token = await getToken(messaging, {
+      vapidKey: firebaseConfig.vapidKey
+    });
+
+    if (token) {
+      console.log('FCM: Token obtained successfully');
+      return token;
+    } else {
+      console.error('FCM: Failed to get token');
+      return null;
+    }
+  } catch (error) {
+    console.error('FCM: Initialization error:', error);
+    return null;
+  }
 }
 
 export async function showFCMNotification(options: FCMNotificationOptions) {

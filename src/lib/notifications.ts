@@ -159,37 +159,10 @@ export async function sendHydrationSmsReminder(
   }
 
   try {
-    const idToken = await getFreshIdToken();
-    if (!idToken) {
-      console.error('Could not get ID token for sending SMS.');
-      await showMotivationNotification(`Reminder (auth error): ${messageBody}`, tone);
-      return { success: false, type: 'popup', error: 'Authentication error' };
-    }
-
-    const response = await fetch('/api/sms/send-reminder', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ phoneNumber, messageBody }),
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.success) {
-      console.log('SMS reminder sent successfully:', result.messageSid);
-      return { success: true, type: 'sms' };
-    } else if (response.status === 429 && result.limitReached) {
-      console.log('SMS limit reached, falling back to in-app popup.');
-      await showMotivationNotification(messageBody, tone); // Use browser notification as popup
-      return { success: true, type: 'popup', error: 'SMS limit reached' };
-    } else {
-      console.error('Failed to send SMS reminder:', result.error, result.details);
-      // Fallback to in-app popup on other SMS errors
-      await showMotivationNotification(`Reminder (SMS failed): ${messageBody}`, tone);
-      return { success: false, type: 'popup', error: result.error || 'SMS sending failed' };
-    }
+    // SMS functionality temporarily disabled during Firebase Functions migration
+    console.log('SMS functionality temporarily disabled during Firebase Functions migration');
+    await showMotivationNotification(`Reminder (SMS disabled): ${messageBody}`, tone);
+    return { success: true, type: 'popup', error: 'SMS temporarily disabled' };
   } catch (error) {
     console.error('Error in sendHydrationSmsReminder:', error);
     // Fallback to in-app popup on unexpected errors

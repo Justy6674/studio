@@ -55,21 +55,14 @@ export function AIMotivationTester() {
 
   const testGemini = async (customParams?: unknown) => {
     setIsLoading(true);
+    
     try {
-      const params = customParams || {
-        tone,
-        ml_logged_today: mlLogged,
-        goal_ml: goal,
-        current_streak: streak,
+      // Admin testing temporarily disabled during Firebase Functions migration
+      const result = {
+        success: false,
+        error: "Admin testing temporarily disabled during Firebase Functions migration",
+        timestamp: new Date().toISOString()
       };
-
-      const response = await fetch('/api/admin/test-gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      });
-
-      const result = await response.json();
       
       if (!customParams) {
         setResults(prev => [result, ...prev.slice(0, 9)]); // Keep last 10 results

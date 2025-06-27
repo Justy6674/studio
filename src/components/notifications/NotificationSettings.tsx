@@ -165,11 +165,10 @@ export function NotificationSettings({ initialSettings, onSettingsChange }: Noti
     
     try {
       if (enabled) {
-        // Check if VAPID key is available
-        const configResponse = await fetch('/api/firebase-config');
-        const config = await configResponse.json();
+        // Get Firebase config directly instead of API call
+        const { firebaseConfig } = await import('@/lib/firebase');
         
-        if (!config.vapidKey) {
+        if (!firebaseConfig.vapidKey) {
           throw new Error('VAPID key not configured');
         }
 

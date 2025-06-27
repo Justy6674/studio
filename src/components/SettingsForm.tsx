@@ -309,20 +309,11 @@ export function SettingsForm() {
 
     setTestingSMS(true);
     try {
-      const response = await fetch('/api/sms/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: settings.phoneNumber }),
+      // SMS testing temporarily disabled during Firebase Functions migration
+      toast({
+        title: "SMS Test Disabled",
+        description: "SMS testing temporarily unavailable during migration.",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Test SMS Sent! 📱",
-          description: "Check your phone for the test message.",
-        });
-      } else {
-        throw new Error('Failed to send test SMS');
-      }
     } catch (error) {
       console.error('Error sending test SMS:', error);
       toast({
