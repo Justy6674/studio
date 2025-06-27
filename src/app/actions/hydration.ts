@@ -172,7 +172,7 @@ async function triggerAchievementNotifications(userId: string, achievements: any
       });
 
       // Send push notification for achievement
-      await fetch('/api/ai/motivation', {
+      await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/generateMotivationalMessage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

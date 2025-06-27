@@ -212,7 +212,7 @@ export async function getAIMotivation(hydrationGoal: number, debugMode = false):
     const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
 
     // Call the enhanced API with comprehensive stats
-    const response = await fetch('/api/ai/motivation', {
+    const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/generateMotivationalMessage', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

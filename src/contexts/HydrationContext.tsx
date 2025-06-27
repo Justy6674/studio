@@ -85,54 +85,45 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const today = getCurrentDateString();
-      const docRef = doc(db, 'users', user.uid, 'hydration', today);
-      const docSnap = await getDoc(docRef);
+      // Use deployed Firebase Function instead of direct Firestore access
+      const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchHydrationLogs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.uid
+        }),
+      });
 
-      if (docSnap.exists()) {
-        const data = docSnap.data() as Omit<DailyHydration, 'date'>;
-        const logs = (data.logs || []).map((log: unknown) => {
-          if (typeof log === 'object' && log !== null && 'amount' in log && 'timestamp' in log) {
-            // @ts-expect-error: TypeScript can't infer the shape, but we checked keys
-            return createHydrationRecord(log.amount, log.timestamp);
-          }
-          return null;
-        }).filter(Boolean) as HydrationRecord[];
-        
-        // Skip state updates if component unmounted
-        if (!isMounted.current) return;
-        
-        setDailyHydration({
-          ...data,
-          date: today,
-          logs,
-          lastUpdated: toDate(data.lastUpdated)
-        });
-        setHydrationGoal(data.goal || 3000);
-      } else {
-        // Create new daily hydration record
-        const newHydration: DailyHydration = {
-          date: today,
-          total: 0,
-          goal: 3000,
-          logs: [],
-          lastUpdated: new Date()
-        };
-        await setDoc(docRef, newHydration);
-        
-        // Skip state updates if component unmounted
-        if (!isMounted.current) return;
-        
-        setDailyHydration(newHydration);
-        setHydrationGoal(3000);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch hydration logs: ${response.statusText}`);
       }
+
+      const data = await response.json();
+      const logs = (data.logs || []).map((log: any) => 
+        createHydrationRecord(log.amount, new Date(log.timestamp))
+      );
+      
+      // Skip state updates if component unmounted
+      if (!isMounted.current) return;
+      
+      const today = getCurrentDateString();
+      setDailyHydration({
+        date: today,
+        total: data.total || 0,
+        goal: data.goal || 3000,
+        logs,
+        lastUpdated: new Date()
+      });
+      setHydrationGoal(data.goal || 3000);
     } catch (err) {
       console.error('Error loading hydration data:', err);
       setError('Failed to load hydration data');
     } finally {
       setIsLoading(false);
     }
-  }, [user, getCurrentDateString, createHydrationRecord, toDate]);
+  }, [user, getCurrentDateString, createHydrationRecord]);
 
   useEffect(() => {
     // Skip if SSR
@@ -148,27 +139,31 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     if (!isMounted.current) return;
     
     try {
-      const today = getCurrentDateString();
-      const docRef = doc(db, 'users', user.uid, 'hydration', today);
-      
-      // Create hydration record with current timestamp
-      const record = createHydrationRecord(amount);
-      const newTotal = (dailyHydration?.total || 0) + amount;
-      
-      // Update Firestore
-      await updateDoc(docRef, {
-        total: newTotal,
-        logs: arrayUnion({
-          amount,
-          timestamp: serverTimestamp()
+      // Use deployed Firebase Function instead of direct Firestore access
+      const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/logHydration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.uid,
+          amount
         }),
-        lastUpdated: serverTimestamp()
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to log hydration: ${response.statusText}`);
+      }
+
+      const result = await response.json();
       
       // Skip state updates if component unmounted
       if (!isMounted.current) return;
       
-      // Update local state
+      // Update local state with the response from Firebase Function
+      const record = createHydrationRecord(amount);
+      const newTotal = (dailyHydration?.total || 0) + amount;
+      
       setDailyHydration(prev => {
         if (!prev) return prev;
         
@@ -191,7 +186,7 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
       if (!isMounted.current) return;
       setError('Failed to log hydration');
     }
-  }, [user, dailyHydration, getCurrentDateString, createHydrationRecord]);
+  }, [user, dailyHydration, createHydrationRecord]);
 
   const updateHydrationGoal = useCallback(async (newGoal: number) => {
     if (!user || !dailyHydration) return;

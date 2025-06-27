@@ -87,18 +87,48 @@ export default function DashboardPage() {
       const todayIntake = todayLogs.reduce((sum, log) => sum + (log.hydrationValue || log.amount), 0);
       setCurrentIntake(todayIntake);
       
-      // Calculate streaks
-      const dailyTotals = calculateDailyTotals(logs);
-      const { currentStreak, longestStreak: maxStreak } = calculateStreaks(dailyTotals, hydrationGoal);
-      
-      // Celebrate streak milestones
-      if (currentStreak > 0 && (currentStreak === 3 || currentStreak === 7 || currentStreak % 10 === 0)) {
-        setShowStreakCelebration(true);
-        setTimeout(() => setShowStreakCelebration(false), 3000);
+      // Calculate streaks using deployed Firebase Function
+      try {
+        const streakResponse = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/getStreaks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.uid
+          }),
+        });
+
+        if (streakResponse.ok) {
+          const streakData = await streakResponse.json();
+          const currentStreak = streakData.currentStreak || 0;
+          const maxStreak = streakData.longestStreak || 0;
+          
+          // Celebrate streak milestones
+          if (currentStreak > 0 && (currentStreak === 3 || currentStreak === 7 || currentStreak % 10 === 0)) {
+            setShowStreakCelebration(true);
+            setTimeout(() => setShowStreakCelebration(false), 3000);
+          }
+          
+          setDailyStreak(currentStreak);
+          setLongestStreak(maxStreak);
+        } else {
+          // Fallback to client-side calculation if Firebase Function fails
+          const dailyTotals = calculateDailyTotals(logs);
+          const { currentStreak, longestStreak: maxStreak } = calculateStreaks(dailyTotals, hydrationGoal);
+          
+          setDailyStreak(currentStreak);
+          setLongestStreak(maxStreak);
+        }
+      } catch (streakError) {
+        console.error('Error fetching streaks from Firebase Function, falling back to client-side calculation:', streakError);
+        // Fallback to client-side calculation
+        const dailyTotals = calculateDailyTotals(logs);
+        const { currentStreak, longestStreak: maxStreak } = calculateStreaks(dailyTotals, hydrationGoal);
+        
+        setDailyStreak(currentStreak);
+        setLongestStreak(maxStreak);
       }
-      
-      setDailyStreak(currentStreak);
-      setLongestStreak(maxStreak);
       
     } catch (error: unknown) {
       if (error instanceof FirebaseError) {

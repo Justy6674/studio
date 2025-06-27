@@ -13,6 +13,7 @@ import {
   Scale
 } from "lucide-react";
 import { BodyMetricsTracker } from '@/components/metrics/BodyMetricsTracker';
+import { useAuth } from '@/contexts/AuthContext';
 
 // PERFECT iOS PILL TOGGLE - EXACT PILL SHAPE
 // PROPER iOS PILL TOGGLE - FORCED WITH EXACT DIMENSIONS
@@ -53,6 +54,7 @@ const SimpleToggle = ({ checked, onChange }: { checked: boolean; onChange: (chec
 );
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [fcmEnabled, setFcmEnabled] = useState(false);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [vibrationIntensity, setVibrationIntensity] = useState('medium');
@@ -65,8 +67,18 @@ export default function SettingsPage() {
   // Load settings from Firebase on mount
   useEffect(() => {
     const loadSettings = async () => {
+      if (!user?.uid) return;
+      
       try {
-        const response = await fetch('/api/user-settings');
+        const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchUserSettings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.uid
+          }),
+        });
         if (response.ok) {
           const data = await response.json();
           const settings = data.settings;
@@ -90,10 +102,12 @@ export default function SettingsPage() {
     };
     
     loadSettings();
-  }, []);
+  }, [user]);
 
   // Save settings to Firebase instead of localStorage
   const saveSettings = async () => {
+    if (!user?.uid) return;
+    
     try {
       const settings = {
         fcmEnabled,
@@ -107,12 +121,15 @@ export default function SettingsPage() {
       };
       
       // Save to Firebase via API
-      const response = await fetch('/api/user-settings', {
+      const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/updateUserSettings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          userId: user.uid,
+          settings: settings
+        }),
       });
       
       if (!response.ok) {
