@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -64,6 +64,36 @@ export default function SettingsPage() {
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [smsMaxPerDay, setSmsMaxPerDay] = useState(1);
 
+  // Save settings to Firebase - memoized to prevent infinite loops
+  const saveSettings = useCallback(async () => {
+    if (!user?.uid) return;
+    
+    try {
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('@/lib/firebase');
+      
+      const settings = {
+        fcmEnabled,
+        vibrationEnabled,
+        vibrationIntensity,
+        motivationTone,
+        notificationFrequency,
+        timeWindows,
+        smsEnabled,
+        smsMaxPerDay
+      };
+      
+      const updateUserSettingsFunction = httpsCallable(functions, 'updateUserSettings');
+      console.debug('🔥 Firebase Function Call - updateUserSettings:', settings);
+      
+      const result = await updateUserSettingsFunction(settings);
+      console.debug('✅ Firebase Function Response - updateUserSettings:', result.data);
+      console.log('✅ Settings saved to Firebase');
+    } catch (error) {
+      console.error('❌ Failed to save settings:', error);
+    }
+  }, [user?.uid, fcmEnabled, vibrationEnabled, vibrationIntensity, motivationTone, notificationFrequency, timeWindows, smsEnabled, smsMaxPerDay]);
+
   // Load settings from Firebase on mount
   useEffect(() => {
     const loadSettings = async () => {
@@ -100,40 +130,10 @@ export default function SettingsPage() {
     loadSettings();
   }, [user]);
 
-  // Save settings to Firebase instead of localStorage
-  const saveSettings = async () => {
-    if (!user?.uid) return;
-    
-    try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { functions } = await import('@/lib/firebase');
-      
-      const settings = {
-        fcmEnabled,
-        vibrationEnabled,
-        vibrationIntensity,
-        motivationTone,
-        notificationFrequency,
-        timeWindows,
-        smsEnabled,
-        smsMaxPerDay
-      };
-      
-      const updateUserSettingsFunction = httpsCallable(functions, 'updateUserSettings');
-      console.debug('🔥 Firebase Function Call - updateUserSettings:', settings);
-      
-      const result = await updateUserSettingsFunction(settings);
-      console.debug('✅ Firebase Function Response - updateUserSettings:', result.data);
-      console.log('✅ Settings saved to Firebase');
-    } catch (error) {
-      console.error('❌ Failed to save settings:', error);
-    }
-  };
-
   // Save settings whenever any setting changes
   useEffect(() => {
     saveSettings();
-  }, [fcmEnabled, vibrationEnabled, vibrationIntensity, motivationTone, notificationFrequency, timeWindows, smsEnabled, smsMaxPerDay]);
+  }, [saveSettings]);
 
   // Tone definitions with emojis and descriptions
   const tones = {
