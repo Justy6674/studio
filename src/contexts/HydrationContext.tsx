@@ -134,29 +134,15 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     if (!isMounted.current) return;
     
     try {
-      const requestPayload = {
-        userId: user.uid,
-        amount
-      };
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('@/lib/firebase');
       
-      const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/logHydration';
-      console.debug('🔥 Firebase Function Call - logHydration (Context):', { url, payload: requestPayload });
+      const logHydrationFunction = httpsCallable(functions, 'logHydration');
+      console.debug('🔥 Firebase Function Call - logHydration (Context):', { amount });
       
-      // Use deployed Firebase Function instead of direct Firestore access
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to log hydration: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.debug('✅ Firebase Function Response - logHydration (Context):', result);
+      // Use Firebase Functions SDK with proper authentication
+      const result = await logHydrationFunction({ amount });
+      console.debug('✅ Firebase Function Response - logHydration (Context):', result.data);
       
       // Skip state updates if component unmounted
       if (!isMounted.current) return;
