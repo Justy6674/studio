@@ -85,15 +85,20 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
+      const requestPayload = {
+        userId: user.uid
+      };
+      
+      const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchHydrationLogs';
+      console.debug('🔥 Firebase Function Call - fetchHydrationLogs (Context):', { url, payload: requestPayload });
+      
       // Use deployed Firebase Function instead of direct Firestore access
-      const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchHydrationLogs', {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId: user.uid
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
@@ -101,6 +106,8 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
+      console.debug('✅ Firebase Function Response - fetchHydrationLogs (Context):', data);
+      
       const logs = (data.logs || []).map((log: any) => 
         createHydrationRecord(log.amount, new Date(log.timestamp))
       );
@@ -139,16 +146,21 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
     if (!isMounted.current) return;
     
     try {
+      const requestPayload = {
+        userId: user.uid,
+        amount
+      };
+      
+      const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/logHydration';
+      console.debug('🔥 Firebase Function Call - logHydration (Context):', { url, payload: requestPayload });
+      
       // Use deployed Firebase Function instead of direct Firestore access
-      const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/logHydration', {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId: user.uid,
-          amount
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
@@ -156,6 +168,7 @@ export function HydrationProvider({ children }: { children: ReactNode }) {
       }
 
       const result = await response.json();
+      console.debug('✅ Firebase Function Response - logHydration (Context):', result);
       
       // Skip state updates if component unmounted
       if (!isMounted.current) return;

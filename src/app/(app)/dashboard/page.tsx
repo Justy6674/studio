@@ -89,18 +89,24 @@ export default function DashboardPage() {
       
       // Calculate streaks using deployed Firebase Function
       try {
-        const streakResponse = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/getStreaks', {
+        const requestPayload = {
+          userId: user.uid
+        };
+        
+        const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/getStreaks';
+        console.debug('🔥 Firebase Function Call - getStreaks:', { url, payload: requestPayload });
+        
+        const streakResponse = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            userId: user.uid
-          }),
+          body: JSON.stringify(requestPayload),
         });
 
         if (streakResponse.ok) {
           const streakData = await streakResponse.json();
+          console.debug('✅ Firebase Function Response - getStreaks:', streakData);
           const currentStreak = streakData.currentStreak || 0;
           const maxStreak = streakData.longestStreak || 0;
           

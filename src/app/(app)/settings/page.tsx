@@ -70,17 +70,23 @@ export default function SettingsPage() {
       if (!user?.uid) return;
       
       try {
-        const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchUserSettings', {
+        const requestPayload = {
+          userId: user.uid
+        };
+        
+        const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/fetchUserSettings';
+        console.debug('🔥 Firebase Function Call - fetchUserSettings:', { url, payload: requestPayload });
+        
+        const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            userId: user.uid
-          }),
+          body: JSON.stringify(requestPayload),
         });
         if (response.ok) {
           const data = await response.json();
+          console.debug('✅ Firebase Function Response - fetchUserSettings:', data);
           const settings = data.settings;
           
           setFcmEnabled(settings.fcmEnabled || false);
@@ -120,22 +126,29 @@ export default function SettingsPage() {
         smsMaxPerDay
       };
       
+      const requestPayload = {
+        userId: user.uid,
+        settings: settings
+      };
+      
+      const url = 'https://us-central1-hydrateai-ayjow.cloudfunctions.net/updateUserSettings';
+      console.debug('🔥 Firebase Function Call - updateUserSettings:', { url, payload: requestPayload });
+      
       // Save to Firebase via API
-      const response = await fetch('https://us-central1-hydrateai-ayjow.cloudfunctions.net/updateUserSettings', {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId: user.uid,
-          settings: settings
-        }),
+        body: JSON.stringify(requestPayload),
       });
       
       if (!response.ok) {
         throw new Error('Failed to save settings');
       }
       
+      const result = await response.json();
+      console.debug('✅ Firebase Function Response - updateUserSettings:', result);
       console.log('✅ Settings saved to Firebase');
     } catch (error) {
       console.error('❌ Failed to save settings:', error);
