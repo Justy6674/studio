@@ -171,7 +171,7 @@ export default function BillingPage() {
 
             {/* Subscribe Button */}
             <div className="space-y-4 pt-4">
-              {isStripeBuyButtonLoaded ? (
+              {isStripeBuyButtonLoaded && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? (
                 <div className="flex justify-center">
                   <stripe-buy-button
                     buy-button-id="buy_btn_1RUbr801xl09Ntf40fasOqrK"
