@@ -74,13 +74,13 @@ Transform hydration from a chore into an engaging, gamified experience that supp
 
 ## 🎨 Design System
 
-### **Color Palette**
-- **Primary**: Google Blue (#4285F4)
-- **Secondary**: Google Green (#34A853)
-- **Accent**: Google Yellow (#FBBC04)
-- **Warning**: Google Red (#EA4335)
-- **Background**: Dark (#1A1A1A) / Light (#FFFFFF)
-- **Surface**: Dark (#2D2D2D) / Light (#F8F9FA)
+### **Downscale Brand Color Palette**
+- **Cream**: #f7f2d3 - Majority of UI elements, backgrounds
+- **Brown**: #b68a71 - Headers, footers, preset messages
+- **Gray**: #666d70 - Secondary text, subtle elements
+- **Bright Blue**: #5271ff - Primary buttons, CTAs
+- **Slate**: #334155 - Main background, solid surfaces
+- **Slate 20% Less**: #667388 - Secondary backgrounds, cards
 
 ### **Typography**
 - **Primary**: Inter (Google Fonts)
