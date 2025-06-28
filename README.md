@@ -95,14 +95,12 @@ Transform hydration from a chore into an engaging, gamified experience that supp
 
 ## 💰 Pricing Model
 
-### **Free Tier**
-- Basic hydration tracking
-- Daily goals (up to 2L)
-- Standard notifications
-- Basic AI motivation
-- 7-day history
+### **Australian Pricing**
+- **Standard**: $9.95 AUD/month
+- **Downscale Weight Loss Patients**: 50% discount for life ($4.98 AUD/month)
+- **Australian market only**
 
-### **Premium ($4.99/month)**
+### **Features Included**
 - Unlimited hydration tracking
 - Advanced AI motivation (all tones)
 - SMS reminders
@@ -110,15 +108,6 @@ Transform hydration from a chore into an engaging, gamified experience that supp
 - Exportable reports
 - Unlimited history
 - Priority support
-
-### **Clinic Plan ($19.99/month)**
-- Everything in Premium
-- Multi-user management
-- Clinic dashboard
-- Patient progress reports
-- Custom branding
-- API access
-- White-label options
 
 ## 🔧 Firebase Studio Setup
 
